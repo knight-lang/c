@@ -3,14 +3,16 @@ OBJDIR ?= obj
 EXE ?= knight
 
 CC = gcc 
-CFLAGS = -Wall -Wextra -Wpedantic -flto -march=native -Wno-gnu
+CFLAGS = -Wall -Wextra -Wpedantic
 CFLAGS += $(CER)
 override CFLAGS += -F$(SRCDIR)
 
 ifdef DEBUG
 override CFLAGS += -g -fsanitize=address,undefined
-else
-CEXEFLAGS += -O3 -DNDEBUG
+endif
+
+ifdef OPTIMIZED
+CEXEFLAGS += -O3 -DNDEBUG -flto -march=native -Wno-gnu
 endif
 
 # ifdef COMPUTED_GOTOS

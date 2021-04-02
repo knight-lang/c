@@ -1,4 +1,22 @@
+#include "value.h"
+#include "shared.h"
+#include <stdio.h>
+
+void value_dump(value value) {
+	switch(value) {
+	case V_NULL: printf("Null()"); return;
+	case V_TRUE: printf("Boolean(true)"); return;
+	case V_FALSE: printf("Boolean(false)"); return;
+	}
+
+	if (value & TAG_NUMBER) printf("Number(%lld)", VALUE_TO_NUMBER(value));
+	else if (value & TAG_STRING) printf("String(%s)", VALUE_TO_STRING(value));
+	else DIE("unknown value '%lld'", value);
+}
+
+#if 0
 #include <assert.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -322,3 +340,4 @@ void value_free(value_t value) {
 
 	free(blockptr);
 }
+#endif

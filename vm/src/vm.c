@@ -1,3 +1,4 @@
+#if 0
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -394,3 +395,5 @@ value_t vm_run(block_t *block) {
 	return POP();
 }
 
+
+#endif

@@ -1,48 +1,21 @@
 #ifndef VALUE_H
 #define VALUE_H
 
-#include <stdint.h>
-#include <stdbool.h>
-#include "string.h"
+typedef long long number;
+typedef unsigned long long value;
 
-struct _variable_t;
-struct _blockptr_t;
+#define V_NULL 2
+#define V_TRUE 4
+#define V_FALSE 0
 
-typedef uint64_t value_t;
-typedef int64_t number_t;
-typedef bool boolean_t;
+#define TAG_NUMBER 1
+#define TAG_STRING 2
 
-#define FALSE_ 0
-#define NULL_ 2
-#define TRUE_ 4
-#define UNDEFINED 8
+#define NUMBER_TO_VALUE(num) ((((value) (num)) << 8) | TAG_NUMBER)
+#define STRING_TO_VALUE(str) (((value) (str)) | TAG_STRING)
+#define VALUE_TO_NUMBER(val) (((number) (val)) >> 8)
+#define VALUE_TO_STRING(str) ((char *) ((str) & ~TAG_STRING))
 
-value_t value_new_number(number_t);
-value_t value_new_boolean(boolean_t);
-value_t value_new_string(string_t *);
-value_t value_new_variable(struct _variable_t *);
-value_t value_new_block(struct _blockptr_t *);
-
-bool value_is_number(value_t);
-bool value_is_boolean(value_t);
-bool value_is_string(value_t);
-bool value_is_variable(value_t);
-bool value_is_block(value_t);
-
-number_t value_as_number(value_t);
-boolean_t value_as_boolean(value_t);
-string_t *value_as_string(value_t);
-struct _variable_t *value_as_variable(value_t);
-struct _blockptr_t *value_as_block(value_t);
-
-number_t value_to_number(value_t);
-boolean_t value_to_boolean(value_t);
-string_t *value_to_string(value_t);
-
-void value_dump(value_t);
-
-value_t value_clone(value_t);
-value_t value_run(value_t);
-void value_free(value_t);
+void value_dump(value);
 
 #endif
