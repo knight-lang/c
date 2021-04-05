@@ -1,7 +1,7 @@
 #ifndef KN_STRING_H
 #define KN_STRING_H
 
-#include <stddef.h> /* size_t */
+#include <stddef.h>   /* size_t */
 
 /*
  * These flags are used to record information about how the memory of a
@@ -62,7 +62,7 @@ enum kn_string_flags {
  */
 struct kn_string {
 	/* The flags that dictate how to manage this struct's memory. */
-	enum kn_string_flags flags;
+	_Alignas(16) enum kn_string_flags flags;
 
 	/*
 	 * The amount of references to this string.
@@ -103,7 +103,7 @@ struct kn_string {
 	 * two, but the precise length can be customized if desired.
 	 */
 	char _padding[KN_STRING_PADDING_LENGTH];
-} __attribute__((aligned(16)));
+};
 
 /*
  * The empty string.

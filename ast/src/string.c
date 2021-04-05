@@ -1,9 +1,9 @@
-#include "string.h" /* prototypes, kn_string, kn_string_flags variants, size_t,
-                       KN_STRING_NEW_EMBED  */
-#include "shared.h" /* xmalloc_value_aligned, kn_hash, xmalloc_value_aligned */
-#include <stdlib.h> /* free, NULL */
-#include <string.h> /* strlen, strcmp, memcpy */
-#include <assert.h> /* assert */
+#include "string.h"   /* prototypes, kn_string, kn_string_flags variants,
+                         size_t, KN_STRING_NEW_EMBED  */
+#include "shared.h"   /* xmalloc, kn_hash, xmalloc_value_aligned */
+#include <stdlib.h>   /* free, NULL */
+#include <string.h>   /* strlen, strcmp, memcpy */
+#include <assert.h>   /* assert */
 
 #ifdef KN_STRING_CACHE
 # ifndef KN_STRING_CACHE_MAXLEN
@@ -26,8 +26,8 @@ static struct kn_string **get_cache_slot(const char *str, size_t length) {
 #endif /* KN_STRING_CACHE */
 
 // The empty string.
-__attribute__((aligned(16))) // we need the alignment for embedding.
-struct kn_string kn_string_empty = KN_STRING_NEW_EMBED("");
+// we need the alignment for embedding.
+struct kn_string _Alignas(16) kn_string_empty = KN_STRING_NEW_EMBED("");
 
 size_t kn_string_length(const struct kn_string *string) {
 	return string->flags & KN_STRING_FL_EMBED

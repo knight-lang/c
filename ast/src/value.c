@@ -245,7 +245,6 @@ static struct kn_string *number_to_string(kn_number num) {
 
 struct kn_string *kn_value_to_string(kn_value value) {
 	// static, embedded strings so we don't have to allocate for known strings.
-	__attribute__((aligned(16)))
 	static struct kn_string builtin_strings[KN_TRUE + 1] = {
 		[KN_FALSE] = KN_STRING_NEW_EMBED("false"),
 		[KN_TAG_NUMBER] = KN_STRING_NEW_EMBED("0"),

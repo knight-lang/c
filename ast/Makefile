@@ -3,7 +3,7 @@ OBJDIR?=obj
 EXE?=knight
 
 CC?=gcc
-CFLAGS+=-Wall -Wextra -Wpedantic
+CFLAGS+=-Wall -Wextra -Wpedantic -std=c11
 override CFLAGS+=-F$(SRCDIR)
 
 ifdef DEBUG

@@ -10,11 +10,11 @@
  * Note that this struct should be passed to `kn_ast_free` to release its
  * resources.
  */
-struct kn_ast {
+ struct kn_ast {
 	/*
 	 * The function associated with this ast.
 	 */
-	const struct kn_function *func;
+	_Alignas(16) const struct kn_function *func;
 
 	/*
 	 * How many references to this object exist.
