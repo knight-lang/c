@@ -2,9 +2,11 @@
 #include "shared.h" /* die, xmalloc, xrealloc */
 
 #include <stdlib.h> /* free, NULL, size_t */
-#include <stdio.h>  /* FILE, fopen, strerror, feof, fread, fclose, perror, stdin
-                       EOF, */
-#include <errno.h>  /* errno */
+#include <stdio.h>  /* FILE, fopen, feof, fread, fclose, perror, stdin EOF, */
+#ifdef KN_RECKLESS
+# include <string.h> /* strerror */
+# include <errno.h>  /* errno */
+#endif /* KN_RECKLESS */
 
 static char *read_file(const char *filename) {
 	FILE *file = fopen(filename, "r");

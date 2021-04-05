@@ -31,14 +31,14 @@ void kn_function_startup(void) {
 KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 	(void) args;
 
-	size_t cap = 0;
-	ssize_t len; // todo: remove the ssize_t
+	size_t capacity = 0;
+	ssize_t length; // todo: remove the ssize_t
 	char *line = NULL;
 
 	// TODO: use fgets instead
 
 	// try to read a line from stdin.
-	if ((len = getline(&line, &cap, stdin)) == -1) {
+	if ((length = getline(&line, &capacity, stdin)) == -1) {
 		assert(line != NULL);
 		free(line);
 
@@ -51,10 +51,10 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 		return kn_value_new_string(&kn_string_empty);
 	}
 
-	assert(0 <= len);
+	assert(0 <= length);
 	assert(line != NULL);
 
-	char *ret = strndup(line, len);
+	char *ret = strndup(line, length);
 	free(line);
 
 	return kn_value_new_string(kn_string_new(ret, len));
@@ -102,17 +102,17 @@ KN_FUNCTION_DECLARE(system, 1, '`') {
 	kn_string_free(command);
 
 	size_t tmp;
-	size_t cap = 2048;
+	size_t capacity = 2048;
 	size_t len = 0;
-	char *result = xmalloc(cap);
+	char *result = xmalloc(capacity);
 
 	// try to read the entire stream's stdout to `result`.
-	while (0 != (tmp = fread(result + len, 1, cap - len, stream))) {
+	while (0 != (tmp = fread(result + len, 1, capacity - len, stream))) {
 		len += tmp;
 
-		if (len == cap) {
-			cap *= 2;
-			result = xrealloc(result, cap);
+		if (len == capacity) {
+			capacity *= 2;
+			result = xrealloc(result, capacity);
 		}
 	}
 
