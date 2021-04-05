@@ -66,7 +66,7 @@ void kn_env_startup() {
 	for (size_t i = 0; i < KN_ENV_NBUCKETS; ++i) {
 		// since it's static, `length` starts off at `0`, and `kn_env_shutdown`
 		// should reset it back to zero.
-		assert(kn_env_map[i]->length == 0);
+		assert(kn_env_map[i].length == 0);
 		kn_env_map[i].capacity = KN_ENV_CAPACITY;
 		kn_env_map[i].variables =
 			xmalloc(sizeof(struct kn_variable [KN_ENV_CAPACITY]));

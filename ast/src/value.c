@@ -5,8 +5,8 @@
 #include "string.h" /* kn_string, kn_string_clone, kn_string_free,
                        kn_string_deref, kn_string_length, KN_STRING_FL_STATIC,
                        KN_STRING_NEW_EMBED */
-#ifndef KN_RECKLESS
 #include "shared.h" /* die */
+#ifndef KN_RECKLESS
 #endif /* !KN_RECKLESS */
 
 #include <inttypes.h> /* PRId64 */
@@ -17,27 +17,26 @@
 
 /*
  * The layout of `kn_value`:
- * 0...00000 - FALSE
- * X...XXXX1 - 63-bit signed integer
- * 0...00010 - NULL
- * 0...00100 - TRUE
- * 0...01000 - undefined.
- * X...X0000 - string (nonzero `X`)
- * X...X0010 - variable (nonzero `X`)
- * X...X0100 - function (nonzero `X`)
- * X...X0110 - custom (nonzero `X`) (only with `KN_EXT_CUSTOM_TYPES`)
+ * 0...000000 - FALSE
+ * 0...010000 - NULL
+ * 0...100000 - TRUE
+ * 0...110000 - undefined.
+ * X...XX0001 - 60-bit signed integer
+ * X...XX0010 - variable (nonzero `X`)
+ * X...XX0100 - string (nonzero `X`)
+ * X...XX1000 - function (nonzero `X`)
  * note all pointers are 16+-bit-aligned.
  */
 
 // note that since strings are used so frequently, casting them is a no-op.
-#define KN_NUMBER_SHIFT 1
-#define KN_TAG_STRING 0
+#define KN_SHIFT 5
 #define KN_TAG_NUMBER 1
 #define KN_TAG_VARIABLE 2
-#define KN_TAG_AST 4
+#define KN_TAG_STRING 4
+#define KN_TAG_AST 8
 
-#define KN_TAG(x) ((x) & 7)
-#define KN_UNMASK(x) ((x) & ~7)
+#define KN_TAG(x) ((x) & 15)
+#define KN_UNMASK(x) ((x) & ~15)
 
 bool kn_value_is_number(kn_value value) {
 	return value & KN_TAG_NUMBER;
@@ -48,25 +47,29 @@ bool kn_value_is_boolean(kn_value value) {
 }
 
 bool kn_value_is_string(kn_value value) {
-	return value != KN_TAG_STRING && KN_TAG(value) == KN_TAG_STRING;
+	return value & KN_TAG_STRING;
 }
 
 bool kn_value_is_variable(kn_value value) {
-	return value != KN_TAG_VARIABLE && KN_TAG(value) == KN_TAG_VARIABLE;
+	return value & KN_TAG_VARIABLE;
 }
 
 bool kn_value_is_ast(kn_value value) {
-	return value != KN_TAG_AST && KN_TAG(value) == KN_TAG_AST;
+	return value & KN_TAG_AST;
+}
+
+static bool kn_value_is_constant(kn_value value) {
+	return value == KN_TRUE || value == KN_FALSE || value == KN_NULL;
 }
 
 static bool kn_value_is_literal(kn_value value) {
-	return value <= 4 || kn_value_is_number(value);
+	return kn_value_is_constant(value) || kn_value_is_number(value);
 }
 
 kn_number kn_value_as_number(kn_value value) {
 	assert(kn_value_is_number(value));
 
-	return ((int64_t) value) >> KN_NUMBER_SHIFT;
+	return ((int64_t) value) >> KN_SHIFT;
 }
 
 kn_boolean kn_value_as_boolean(kn_value value) {
@@ -78,7 +81,7 @@ kn_boolean kn_value_as_boolean(kn_value value) {
 struct kn_string *kn_value_as_string(kn_value value) {
 	assert(kn_value_is_string(value));
 
-	return (struct kn_string *) value;
+	return (struct kn_string *) KN_UNMASK(value);
 }
 
 struct kn_variable *kn_value_as_variable(kn_value value) {
@@ -94,13 +97,14 @@ struct kn_ast *kn_value_as_ast(kn_value value) {
 }
 
 kn_value kn_value_new_number(kn_number number) {
-	assert(number == ((number << KN_NUMBER_SHIFT) >> KN_NUMBER_SHIFT));
+	assert(number == ((number << KN_SHIFT) >> KN_SHIFT));
 
-	return (((uint64_t) number) << KN_NUMBER_SHIFT) | KN_TAG_NUMBER;
+	return (((uint64_t) number) << KN_SHIFT) | KN_TAG_NUMBER;
 }
 
 kn_value kn_value_new_boolean(kn_boolean boolean) {
-	return ((uint64_t) boolean) << 2; // micro-optimizations hooray!
+	// return ((uint64_t) boolean) << 2; // micro-optimizations hooray!
+	return boolean ? KN_TRUE : KN_FALSE;
 }
 
 kn_value kn_value_new_string(struct kn_string *string) {
@@ -145,7 +149,7 @@ static kn_number string_to_number(struct kn_string *string) {
 	const char *ptr = kn_string_deref(string);
 
 	// strip leading whitespace.
-	while (isspace(*ptr))
+	while (UNLIKELY(isspace(*ptr)))
 		ptr++;
 
 	bool is_neg = *ptr == '-';
@@ -168,12 +172,8 @@ kn_number kn_value_to_number(kn_value value) {
 	if (kn_value_is_number(value))
 		return kn_value_as_number(value);
 
-	if (value <= KN_TRUE) {
-		// sanity check
-		assert(value == KN_FALSE || value == KN_NULL || value == KN_TRUE);
-
+	if (kn_value_is_constant(value))
 		return value == KN_TRUE;
-	}
 
 	if (kn_value_is_string(value))
 		return string_to_number(kn_value_as_string(value));
@@ -191,22 +191,14 @@ kn_number kn_value_to_number(kn_value value) {
 kn_boolean kn_value_to_boolean(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
-	if (value <= 4) {
-		// sanity check.
-		assert(value == KN_NULL
-			|| value == KN_FALSE
-			|| value == KN_TRUE
-			|| value == kn_value_new_number(0)
-			|| value == kn_value_new_number(1));
+	if (value <= KN_TRUE) {
+		assert(kn_value_is_constant(value) || kn_value_new_number(0));
 
-		return value >= 2;
+		return value == KN_TRUE;
 	}
 
-	if (kn_value_is_number(value)) {// already checked the zero case
-		assert(value != kn_value_new_number(0));
-
+	if (kn_value_is_number(value))
 		return 1;
-	}
 
 	if (kn_value_is_string(value))
 		return kn_string_length(kn_value_as_string(value)) != 0;
@@ -228,7 +220,7 @@ static struct kn_string *number_to_string(kn_number num) {
 	static struct kn_string number_string = { .flags = KN_STRING_FL_STATIC };
 
 	// should have been checked earlier.
-	assert(num != 0 && num != 1);
+	// assert(num != 0 && num != 1);
 
 	// initialize ptr to the end of the buffer minus one, as the last is
 	// the nul terminator.
@@ -253,18 +245,19 @@ static struct kn_string *number_to_string(kn_number num) {
 
 struct kn_string *kn_value_to_string(kn_value value) {
 	// static, embedded strings so we don't have to allocate for known strings.
-	static struct kn_string builtin_strings[5] = {
-		KN_STRING_NEW_EMBED("false"),
-		KN_STRING_NEW_EMBED("0"),
-		KN_STRING_NEW_EMBED("null"),
-		KN_STRING_NEW_EMBED("1"),
-		KN_STRING_NEW_EMBED("true"),
+	static struct kn_string builtin_strings[KN_TRUE + 1] = {
+		[KN_FALSE] = KN_STRING_NEW_EMBED("false"),
+		[KN_TAG_NUMBER] = KN_STRING_NEW_EMBED("0"),
+		[KN_NULL] = KN_STRING_NEW_EMBED("null"),
+		[KN_TRUE] = KN_STRING_NEW_EMBED("true"),
+		[17] = KN_STRING_NEW_EMBED("1"),
 	};
 
 	assert(value != KN_UNDEFINED);
 
-	if (value <= 4)
+	if (value <= KN_TRUE) {
 		return &builtin_strings[value];
+	}
 
 	if (kn_value_is_number(value))
 		return number_to_string(kn_value_as_number(value));
@@ -339,14 +332,14 @@ kn_value kn_value_run(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
 	// the whole point of literals is they dont do anything when evaluated.
-	if (kn_value_is_literal(value))
+	if (LIKELY(kn_value_is_literal(value)))
 		return value;
 
-	if (KN_TAG(value) == KN_TAG_VARIABLE)
+	if (kn_value_is_variable(value))
 		return kn_variable_run(kn_value_as_variable(value));
 
 	// we need to create a new string, as it needs to be unique from `value`.
-	if (KN_TAG(value) == KN_TAG_STRING)
+	if (LIKELY(kn_value_is_string(value)))
 		return kn_value_new_string(kn_string_clone(kn_value_as_string(value)));
 
 	return kn_ast_run(kn_value_as_ast(value));
@@ -357,10 +350,10 @@ kn_value kn_value_clone(kn_value value) {
 
 	// Note we don't need to clone variables, as they live for the lifetime of
 	// the program.
-	if (kn_value_is_literal(value) || KN_TAG(value) == KN_TAG_VARIABLE)
+	if (kn_value_is_literal(value) || kn_value_is_variable(value))
 		return value;
 
-	if (KN_TAG(value) == KN_TAG_STRING)
+	if (kn_value_is_string(value))
 		return kn_value_new_string(kn_string_clone(kn_value_as_string(value)));
 
 	return kn_value_new_ast(kn_ast_clone(kn_value_as_ast(value)));
@@ -370,13 +363,11 @@ void kn_value_free(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
 	// note that variables are freed when `kn_env_free` is run.
-	if (kn_value_is_literal(value) || KN_TAG(value) == KN_TAG_VARIABLE)
+	if (kn_value_is_literal(value) || kn_value_is_variable(value))
 		return;
 
-	if (KN_TAG(value) == KN_TAG_STRING) {
+	if (kn_value_is_string(value))
 		kn_string_free(kn_value_as_string(value));
-		return;
-	}
-
-	kn_ast_free(kn_value_as_ast(value));
+	else
+		kn_ast_free(kn_value_as_ast(value));
 }

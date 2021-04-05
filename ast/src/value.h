@@ -45,12 +45,12 @@ struct kn_variable;
 /*
  * The null value within Knight.
  */
-#define KN_NULL 2
+#define KN_NULL 16
 
 /*
  * The true value within Knight.
  */
-#define KN_TRUE 4
+#define KN_TRUE 32
 
 /*
  * An undefined value, used to indicate "no value."
@@ -59,7 +59,7 @@ struct kn_variable;
  * what's returned from `kn_parse` if no values could e parsed. This value is
  * invalid to pass to any function expecting a valid `kn_value`.
  */
-#define KN_UNDEFINED 8
+#define KN_UNDEFINED 48
 
 /*
  * Creates a new number value.

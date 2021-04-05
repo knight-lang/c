@@ -11,6 +11,16 @@
  */
 void die(const char *msg, ...) __attribute__((noreturn,cold));
 
+#ifdef BUILTIN_EXPECT
+# define LIKELY(x) (__builtin_expect(!!(x), 1))
+# define UNLIKELY(x) (__builtin_expect(!!(x), 0))
+# define UNREACHABLE() (__builtin_unreachable())
+#else
+# define LIKELY(x) (x)
+# define UNLIKELY(x) (x)
+# define UNREACHABLE() abort()
+#endif
+
 #ifdef KN_RECKLESS
 # define assert_reckless(_) do { } while(0)
 #else

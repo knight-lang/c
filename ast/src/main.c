@@ -3,9 +3,10 @@
 
 #include <stdlib.h> /* free, NULL, size_t */
 #include <stdio.h>  /* FILE, fopen, feof, fread, fclose, perror, stdin EOF, */
-#ifdef KN_RECKLESS
-# include <string.h> /* strerror */
-# include <errno.h>  /* errno */
+#include <string.h> /* strcmp, strerror */
+
+#ifndef KN_RECKLESS
+# include <errno.h> /* errno */
 #endif /* KN_RECKLESS */
 
 static char *read_file(const char *filename) {
@@ -59,7 +60,7 @@ static void usage(char *program) {
 int main(int argc, char **argv) {
 	char *str;
 
-	if (argc != 3 || argv[1][0] != '-' || argv[1][1] != 2 || argv[1][0] != '-')
+	if (argc != 3 || (!strcmp(argv[1], "-e") && !strcmp(argv[1], "-f")))
 		usage(argv[0]);
 
 	switch (argv[1][1]) {
