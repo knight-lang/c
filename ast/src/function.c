@@ -57,7 +57,7 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 	char *ret = strndup(line, length);
 	free(line);
 
-	return kn_value_new_string(kn_string_new(ret, len));
+	return kn_value_new_string(kn_string_new(ret, length));
 }
 
 
@@ -103,14 +103,14 @@ KN_FUNCTION_DECLARE(system, 1, '`') {
 
 	size_t tmp;
 	size_t capacity = 2048;
-	size_t len = 0;
+	size_t length = 0;
 	char *result = xmalloc(capacity);
 
 	// try to read the entire stream's stdout to `result`.
-	while (0 != (tmp = fread(result + len, 1, capacity - len, stream))) {
-		len += tmp;
+	while (0 != (tmp = fread(result + length, 1, capacity - length, stream))) {
+		length += tmp;
 
-		if (len == capacity) {
+		if (length == capacity) {
 			capacity *= 2;
 			result = xrealloc(result, capacity);
 		}
@@ -122,8 +122,8 @@ KN_FUNCTION_DECLARE(system, 1, '`') {
 		die("unable to read command stream");
 #endif /* !KN_RECKLESS */
 
-	result = xrealloc(result, len + 1);
-	result[len] = '\0';
+	result = xrealloc(result, length + 1);
+	result[length] = '\0';
 
 #ifndef KN_RECKLESS
 	// Abort if we cant close stream.
@@ -131,7 +131,7 @@ KN_FUNCTION_DECLARE(system, 1, '`') {
 		die("unable to close command stream.");
 #endif /* !KN_RECKLESS */
 
-	return kn_value_new_string(kn_string_new(result, len));
+	return kn_value_new_string(kn_string_new(result, length));
 }
 
 KN_FUNCTION_DECLARE(quit, 1, 'Q') {

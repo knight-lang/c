@@ -12,7 +12,6 @@ else
 override CFLAGS+=-O3 -flto -march=native -DNDEBUG
 endif
 
-
 ifdef COMPUTED_GOTOS
 override CFLAGS+=-DKN_COMPUTED_GOTOS -Wno-gnu-label-as-value -Wno-gnu-designator
 endif
