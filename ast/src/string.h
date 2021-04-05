@@ -35,7 +35,7 @@ enum kn_string_flags {
  * embedded, but the more memory used.
  */
 #ifndef KN_STRING_PADDING_LENGTH
-# define KN_STRING_PADDING_LENGTH 8
+# define KN_STRING_PADDING_LENGTH 16
 #endif /* !KN_STRING_PADDING_LENGTH */
 
 /*
@@ -103,7 +103,7 @@ struct kn_string {
 	 * two, but the precise length can be customized if desired.
 	 */
 	char _padding[KN_STRING_PADDING_LENGTH];
-};
+} __attribute__((aligned(16)));
 
 /*
  * The empty string.

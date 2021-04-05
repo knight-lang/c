@@ -7,7 +7,7 @@
 
 #ifndef KN_RECKLESS
 # include <errno.h> /* errno */
-#endif /* KN_RECKLESS */
+#endif /* !KN_RECKLESS */
 
 static char *read_file(const char *filename) {
 	FILE *file = fopen(filename, "r");

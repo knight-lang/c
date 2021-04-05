@@ -44,6 +44,7 @@ unsigned long kn_hash(const char *str);
  * The `size`, when converted to an `ssize_t`, must be nonnegative.
  */
 void *xmalloc(size_t size) __attribute__((malloc));
+void *xmalloc_value_aligned(size_t size) __attribute__((malloc));
 
 /*
  * Resizes the pointer to a segment of at least `size_t` bytes of memory and,

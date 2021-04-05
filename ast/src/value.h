@@ -61,6 +61,12 @@ struct kn_variable;
  */
 #define KN_UNDEFINED 48
 
+
+/*
+ * The alignment required for all numbers.
+ */
+#define KN_VALUE_ALIGN 16
+
 /*
  * Creates a new number value.
  *

@@ -1,8 +1,9 @@
 #include <stdio.h>  /* vfprintf, fprintf, stderr */
 #include <stdarg.h> /* va_list, va_start, va_end */
-#include <stdlib.h> /* exit, malloc, realloc */
+#include <stdlib.h> /* exit, malloc, realloc, aligned_alloc */
 #include <assert.h> /* assert */
 #include "shared.h" /* prototypes, size_t, ssize_t, NULL */
+#include "value.h"  /* KN_VALUE_ALIGN */
 
 void die(const char *fmt, ...) {
 	va_list args;
@@ -39,11 +40,30 @@ void *xmalloc(size_t size) {
 	void *ptr = malloc(size);
 
 #ifndef KN_RECKLESS
-	if (ptr == NULL)
-		die("malloc failure for size %zd", size);
+	if (ptr == NULL) {
+		fprintf(stderr, "malloc failure for size %zd", size);
+		abort();
+	}
 #endif /* !KN_RECKLESS */
 
 	return ptr;
+}
+
+void *xmalloc_value_aligned(size_t size) {
+	assert(0 <= (ssize_t) size);
+	assert(size % KN_VALUE_ALIGN == 0);
+
+	void *ptr = aligned_alloc(KN_VALUE_ALIGN, size);
+
+#ifndef KN_RECKLESS
+	if (ptr == NULL) {
+		fprintf(stderr, "aligned malloc failure for size %zd", size);
+		abort();
+	}
+#endif /* !KN_RECKLESS */
+
+	return ptr;
+
 }
 
 void *xrealloc(void *ptr, size_t size) {
@@ -52,8 +72,10 @@ void *xrealloc(void *ptr, size_t size) {
 	ptr = realloc(ptr, size);
 
 #ifndef KN_RECKLESS
-	if (ptr == NULL)
+	if (ptr == NULL) {
 		die("realloc failure for size %zd", size);
+		abort();
+	}
 #endif /* !KN_RECKLESS */
 
 	return ptr;
