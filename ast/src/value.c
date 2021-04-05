@@ -17,81 +17,43 @@
 
 /*
  * The layout of `kn_value`:
- * 0...000000 - FALSE
- * 0...010000 - NULL
- * 0...100000 - TRUE
- * 0...110000 - undefined.
- * X...XX0001 - 60-bit signed integer
- * X...XX0010 - variable (nonzero `X`)
- * X...XX0100 - string (nonzero `X`)
- * X...XX1000 - function (nonzero `X`)
+ * 0...00000 - FALSE
+ * 0...01000 - NULL
+ * 0...10000 - TRUE
+ * 0...11000 - undefined.
+ * X...XX001 - 61-bit signed integer
+ * X...XX010 - variable (nonzero `X`)
+ * X...XX011 - string (nonzero `X`)
+ * X...XX100 - function (nonzero `X`)
  * note all pointers are 16+-bit-aligned.
  */
 
-// note that since strings are used so frequently, casting them is a no-op.
-#define KN_SHIFT 5
-#define KN_TAG_NUMBER 1
-#define KN_TAG_VARIABLE 2
-#define KN_TAG_STRING 4
-#define KN_TAG_AST 8
-
-#define KN_TAG(x) ((x) & 15)
-#define KN_UNMASK(x) ((x) & ~15)
-
-bool kn_value_is_number(kn_value value) {
-	return value & KN_TAG_NUMBER;
-}
-
-bool kn_value_is_boolean(kn_value value) {
-	return value == KN_FALSE || value == KN_TRUE;
-}
-
-bool kn_value_is_string(kn_value value) {
-	return value & KN_TAG_STRING;
-}
-
-bool kn_value_is_variable(kn_value value) {
-	return value & KN_TAG_VARIABLE;
-}
-
-bool kn_value_is_ast(kn_value value) {
-	return value & KN_TAG_AST;
-}
-
-static bool kn_value_is_constant(kn_value value) {
-	return value == KN_TRUE || value == KN_FALSE || value == KN_NULL;
-}
-
-static bool kn_value_is_literal(kn_value value) {
-	return kn_value_is_constant(value) || kn_value_is_number(value);
-}
-
 kn_number kn_value_as_number(kn_value value) {
-	assert(kn_value_is_number(value));
+	assert(KN_VALUE_IS_NUMBER(value));
 
 	return ((int64_t) value) >> KN_SHIFT;
 }
 
 kn_boolean kn_value_as_boolean(kn_value value) {
-	assert(kn_value_is_boolean(value));
+	assert(value == KN_TRUE || value == KN_FALSE);
 
 	return value != KN_FALSE;
 }
 
 struct kn_string *kn_value_as_string(kn_value value) {
-	assert(kn_value_is_string(value));
+	assert(KN_VALUE_IS_STRING(value));
 
 	return (struct kn_string *) KN_UNMASK(value);
 }
 
 struct kn_variable *kn_value_as_variable(kn_value value) {
-	assert(kn_value_is_variable(value));
+	assert(KN_VALUE_IS_VARIABLE(value));
 
 	return (struct kn_variable *) KN_UNMASK(value);
 }
 
 struct kn_ast *kn_value_as_ast(kn_value value) {
-	assert(kn_value_is_ast(value));
+	assert(KN_VALUE_IS_AST(value));
 
 	return (struct kn_ast *) KN_UNMASK(value);
 }
@@ -149,7 +111,7 @@ static kn_number string_to_number(struct kn_string *string) {
 	const char *ptr = kn_string_deref(string);
 
 	// strip leading whitespace.
-	while (UNLIKELY(isspace(*ptr)))
+	while (KN_UNLIKELY(isspace(*ptr)))
 		ptr++;
 
 	bool is_neg = *ptr == '-';
@@ -169,48 +131,56 @@ static kn_number string_to_number(struct kn_string *string) {
 kn_number kn_value_to_number(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
-	if (kn_value_is_number(value))
+	switch (KN_TAG(value)) {
+	case KN_TAG_NUMBER:
 		return kn_value_as_number(value);
 
-	if (kn_value_is_constant(value))
+	case KN_TAG_CONSTANT:
 		return value == KN_TRUE;
 
-	if (kn_value_is_string(value))
+	case KN_TAG_STRING:
 		return string_to_number(kn_value_as_string(value));
 
-	assert(kn_value_is_variable(value) || kn_value_is_ast(value));
+	case KN_TAG_VARIABLE:
+	case KN_TAG_AST: {
+		// simply execute the value and call this function again.
+		kn_value ran = kn_value_run(value);
+		kn_number ret = kn_value_to_number(ran);
+		kn_value_free(ran);
+		return ret;
+	}
 
-	// simply execute the value and call this function again.
-	kn_value ran = kn_value_run(value);
-	kn_number ret = kn_value_to_number(ran);
-	kn_value_free(ran);
-
-	return ret;
+	default:
+		KN_UNREACHABLE();
+	}
 }
 
 kn_boolean kn_value_to_boolean(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
-	if (value <= KN_TRUE) {
-		assert(kn_value_is_constant(value) || kn_value_new_number(0));
-
+	switch (KN_TAG(value)) {
+	case KN_TAG_CONSTANT:
 		return value == KN_TRUE;
-	}
 
-	if (kn_value_is_number(value))
-		return 1;
+	case KN_TAG_NUMBER:
+		return value != KN_TAG_NUMBER;
 
-	if (kn_value_is_string(value))
+	case KN_TAG_STRING:
 		return kn_string_length(kn_value_as_string(value)) != 0;
 
-	assert(kn_value_is_variable(value) || kn_value_is_ast(value));
+	case KN_TAG_AST:
+	case KN_TAG_VARIABLE: {
+		// simply execute the value and call this function again.
+		kn_value ran = kn_value_run(value);
+		kn_boolean ret = kn_value_to_boolean(ran);
+		kn_value_free(ran);
 
-	// simply execute the value and call this function again.
-	kn_value ran = kn_value_run(value);
-	kn_boolean ret = kn_value_to_boolean(ran);
-	kn_value_free(ran);
+		return ret;
+	}
 
-	return ret;
+	default:
+		KN_UNREACHABLE();
+	}
 }
 
 static struct kn_string *number_to_string(kn_number num) {
@@ -220,7 +190,7 @@ static struct kn_string *number_to_string(kn_number num) {
 	static struct kn_string number_string = { .flags = KN_STRING_FL_STATIC };
 
 	// should have been checked earlier.
-	// assert(num != 0 && num != 1);
+	assert(num != 0 && num != 1);
 
 	// initialize ptr to the end of the buffer minus one, as the last is
 	// the nul terminator.
@@ -250,29 +220,42 @@ struct kn_string *kn_value_to_string(kn_value value) {
 		[KN_TAG_NUMBER] = KN_STRING_NEW_EMBED("0"),
 		[KN_NULL] = KN_STRING_NEW_EMBED("null"),
 		[KN_TRUE] = KN_STRING_NEW_EMBED("true"),
-		[17] = KN_STRING_NEW_EMBED("1"),
+		[(((uint64_t) 1) << KN_SHIFT) | KN_TAG_NUMBER] = KN_STRING_NEW_EMBED("1"),
 	};
 
 	assert(value != KN_UNDEFINED);
 
-	if (value <= KN_TRUE) {
-		return &builtin_strings[value];
-	}
 
-	if (kn_value_is_number(value))
+	// KN_CGOTO_CASE(constant, KN_TAG_CONSTANT):
+	// KN_CGOTO_CASE(number, KN_TAG_NUMBER):
+	// KN_CGOTO_CASE(variable, KN_TAG_VARIABLE):
+	// KN_CGOTO_CASE(string, KN_TAG_STRING):
+	// KN_CGOTO_CASE(ast, KN_TAG_AST):
+
+	if (value <= KN_TRUE)
+		return &builtin_strings[value];
+
+	switch (KN_TAG(value)) {
+	case KN_TAG_NUMBER:
 		return number_to_string(kn_value_as_number(value));
 
-	if (kn_value_is_string(value))
+	case KN_TAG_STRING:
 		return kn_string_clone(kn_value_as_string(value));
 
-	assert(kn_value_is_variable(value) || kn_value_is_ast(value));
+	case KN_TAG_AST:
+	case KN_TAG_VARIABLE: {
+		// simply execute the value and call this function again.
+		kn_value ran = kn_value_run(value);
+		struct kn_string *ret = kn_value_to_string(ran);
+		kn_value_free(ran);
 
-	// simply execute the value and call this function again.
-	kn_value ran = kn_value_run(value);
-	struct kn_string *ret = kn_value_to_string(ran);
-	kn_value_free(ran);
+		return ret;
+	}
 
-	return ret;
+	case KN_TAG_CONSTANT:
+	default:
+		KN_UNREACHABLE();
+	}
 }
 
 void kn_value_dump(kn_value value) {
@@ -291,18 +274,19 @@ void kn_value_dump(kn_value value) {
 		return;
 	}
 
-	if (kn_value_is_number(value)) {
+	switch (KN_TAG(value)) {
+	case KN_TAG_NUMBER:
 		printf("Number(%" PRId64 ")", kn_value_as_number(value));
 		return;
-	}
 
-	switch (KN_TAG(value)) {
 	case KN_TAG_STRING:
 		printf("String(%s)", kn_string_deref(kn_value_as_string(value)));
 		return;
+
 	case KN_TAG_VARIABLE:
 		printf("Identifier(%s)", kn_value_as_variable(value)->name);
 		return;
+
 	case KN_TAG_AST: {
 		struct kn_ast *ast = kn_value_as_ast(value);
 
@@ -318,56 +302,111 @@ void kn_value_dump(kn_value value) {
 	}
 
 	default:
-
-#ifdef KN_RECKLESS
-		;
-#else
-		die("unknown tag '%d'", KN_TAG(value));
-#endif /* KN_RECKLESS */
-
+		KN_UNREACHABLE();
 	}
 }
 
 kn_value kn_value_run(kn_value value) {
+#ifdef KN_COMPUTED_GOTOS
+	static void *tags[KN_TAG_MASK + 1] = {
+		[KN_TAG_CONSTANT] = &&constant,
+		[KN_TAG_NUMBER] = &&number,
+		[KN_TAG_VARIABLE] = &&variable,
+		[KN_TAG_STRING] = &&string,
+		[KN_TAG_AST] = &&ast,
+		[5] = &&invalid,
+		[6] = &&invalid,
+		[7] = &&invalid,
+	};
+#endif /* KN_COMPUTED_GOTOS */
 	assert(value != KN_UNDEFINED);
 
-	// the whole point of literals is they dont do anything when evaluated.
-	if (LIKELY(kn_value_is_literal(value)))
-		return value;
+	KN_CGOTO_SWITCH(KN_TAG(value), tags) {
+	KN_CGOTO_CASE(ast, KN_TAG_AST):
+		return kn_ast_run(kn_value_as_ast(value));
 
-	if (kn_value_is_variable(value))
-		return kn_variable_run(kn_value_as_variable(value));
-
-	// we need to create a new string, as it needs to be unique from `value`.
-	if (LIKELY(kn_value_is_string(value)))
+	KN_CGOTO_CASE(string, KN_TAG_STRING):
 		return kn_value_new_string(kn_string_clone(kn_value_as_string(value)));
 
-	return kn_ast_run(kn_value_as_ast(value));
+	KN_CGOTO_CASE(variable, KN_TAG_VARIABLE):
+		return kn_variable_run(kn_value_as_variable(value));
+
+	KN_CGOTO_CASE(number, KN_TAG_NUMBER):
+	KN_CGOTO_CASE(constant, KN_TAG_CONSTANT):
+		return value;
+
+	KN_CGOTO_DEFAULT(invalid):
+		KN_UNREACHABLE();
+	}
 }
 
 kn_value kn_value_clone(kn_value value) {
+#ifdef KN_COMPUTED_GOTOS
+	static void *tags[KN_TAG_MASK + 1] = {
+		[KN_TAG_CONSTANT] = &&constant,
+		[KN_TAG_NUMBER] = &&number,
+		[KN_TAG_VARIABLE] = &&variable,
+		[KN_TAG_STRING] = &&string,
+		[KN_TAG_AST] = &&ast,
+		[5] = &&invalid,
+		[6] = &&invalid,
+		[7] = &&invalid,
+	};
+#endif /* KN_COMPUTED_GOTOS */
+
 	assert(value != KN_UNDEFINED);
 
-	// Note we don't need to clone variables, as they live for the lifetime of
-	// the program.
-	if (kn_value_is_literal(value) || kn_value_is_variable(value))
+	KN_CGOTO_SWITCH(KN_TAG(value), tags) {
+	KN_CGOTO_CASE(constant, KN_TAG_CONSTANT):
+	KN_CGOTO_CASE(number, KN_TAG_NUMBER):
+	KN_CGOTO_CASE(variable, KN_TAG_VARIABLE):
+		// Note we don't need to clone variables, as they live for the lifetime of
+		// the program.
 		return value;
 
-	if (kn_value_is_string(value))
+	KN_CGOTO_CASE(ast, KN_TAG_AST):
+		return kn_value_new_ast(kn_ast_clone(kn_value_as_ast(value)));
+
+	KN_CGOTO_CASE(string, KN_TAG_STRING):
 		return kn_value_new_string(kn_string_clone(kn_value_as_string(value)));
 
-	return kn_value_new_ast(kn_ast_clone(kn_value_as_ast(value)));
+	KN_CGOTO_DEFAULT(invalid):
+		KN_UNREACHABLE();
+	}
 }
 
 void kn_value_free(kn_value value) {
+#ifdef KN_COMPUTED_GOTOS
+	static void *tags[KN_TAG_MASK + 1] = {
+		[KN_TAG_CONSTANT] = &&constant,
+		[KN_TAG_NUMBER] = &&number,
+		[KN_TAG_VARIABLE] = &&variable,
+		[KN_TAG_STRING] = &&string,
+		[KN_TAG_AST] = &&ast,
+		[5] = &&invalid,
+		[6] = &&invalid,
+		[7] = &&invalid,
+	};
+#endif /* KN_COMPUTED_GOTOS */
+
 	assert(value != KN_UNDEFINED);
 
-	// note that variables are freed when `kn_env_free` is run.
-	if (kn_value_is_literal(value) || kn_value_is_variable(value))
+	KN_CGOTO_SWITCH(KN_TAG(value), tags) {
+	KN_CGOTO_CASE(constant, KN_TAG_CONSTANT):
+	KN_CGOTO_CASE(number, KN_TAG_NUMBER):
+	KN_CGOTO_CASE(variable, KN_TAG_VARIABLE):
+		// note that variables are freed when `kn_env_free` is run.
 		return;
 
-	if (kn_value_is_string(value))
+	KN_CGOTO_CASE(string, KN_TAG_STRING):
 		kn_string_free(kn_value_as_string(value));
-	else
+		return;
+
+	KN_CGOTO_CASE(ast, KN_TAG_AST):
 		kn_ast_free(kn_value_as_ast(value));
+		return;
+
+	KN_CGOTO_DEFAULT(invalid):
+		KN_UNREACHABLE();
+	}
 }

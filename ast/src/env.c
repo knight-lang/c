@@ -119,7 +119,7 @@ struct kn_variable *kn_env_fetch(const char *identifier, bool owned) {
 	}
 
 	// if the bucket is full, then we need to reallocate it.
-	if (bucket->length == bucket->capacity) {
+	if (KN_UNLIKELY(bucket->length == bucket->capacity)) {
 		// NOTE: that this actually causes UB, as all previous variable
 		// references are then invalidated. There's a somewhat easy fix to this
 		// via allocating contiguous kn_env_map, but ive never gotten to th
@@ -162,7 +162,7 @@ void kn_variable_assign(struct kn_variable *variable, kn_value value) {
 
 kn_value kn_variable_run(struct kn_variable *variable) {
 #ifndef KN_RECKLESS
-	if (variable->value == KN_UNDEFINED)
+	if (KN_UNLIKELY(variable->value == KN_UNDEFINED))
 		die("undefined variable '%s'", variable->name);
 #endif /*! KN_RECKLESS */
 

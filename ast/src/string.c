@@ -30,12 +30,16 @@ static struct kn_string **get_cache_slot(const char *str, size_t length) {
 struct kn_string _Alignas(16) kn_string_empty = KN_STRING_NEW_EMBED("");
 
 size_t kn_string_length(const struct kn_string *string) {
+	// assert(string != NULL);
+
 	return string->flags & KN_STRING_FL_EMBED
 		? (size_t) string->embed.length
 		: string->alloc.length;
 }
 
 char *kn_string_deref(struct kn_string *string) {
+	assert(string != NULL);
+
 	return string->flags & KN_STRING_FL_EMBED
 		? string->embed.data
 		: string->alloc.str;
@@ -62,6 +66,7 @@ struct kn_string *kn_string_alloc(size_t length) {
 
 // Allocate a `kn_string` and populate it for the given `str`.
 static struct kn_string *create_string(char *str, size_t length) {
+	assert(str != NULL); 
 	assert(strlen(str) == length);
 	assert(length != 0); // should have already been checked before.
 

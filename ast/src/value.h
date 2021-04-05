@@ -37,20 +37,31 @@ struct kn_ast;
 struct kn_string;
 struct kn_variable;
 
+#define KN_SHIFT 3
+#define KN_TAG_CONSTANT 0
+#define KN_TAG_NUMBER 1
+#define KN_TAG_VARIABLE 2
+#define KN_TAG_STRING 3
+#define KN_TAG_AST 4
+// #define KN_TAG_MASK ((1 << (KN_SHIFT + 1)) - 1)
+#define KN_TAG_MASK 7
+#define KN_TAG(x) ((x) & KN_TAG_MASK)
+#define KN_UNMASK(x) ((x) & ~KN_TAG_MASK)
+
 /*
  * The false value within Knight.
  */
-#define KN_FALSE 0
+#define KN_FALSE (0 | KN_TAG_CONSTANT)
 
 /*
  * The null value within Knight.
  */
-#define KN_NULL 16
+#define KN_NULL (8 | KN_TAG_CONSTANT)
 
 /*
  * The true value within Knight.
  */
-#define KN_TRUE 32
+#define KN_TRUE (16 | KN_TAG_CONSTANT)
 
 /*
  * An undefined value, used to indicate "no value."
@@ -59,13 +70,12 @@ struct kn_variable;
  * what's returned from `kn_parse` if no values could e parsed. This value is
  * invalid to pass to any function expecting a valid `kn_value`.
  */
-#define KN_UNDEFINED 48
-
+#define KN_UNDEFINED (24 | KN_TAG_CONSTANT)
 
 /*
- * The alignment required for all numbers.
+ * The alignment required for all values.
  */
-#define KN_VALUE_ALIGN 16
+#define KN_VALUE_ALIGN 8
 
 /*
  * Creates a new number value.
@@ -107,12 +117,12 @@ kn_value kn_value_new_ast(struct kn_ast *ast);
 /*
  * Checks to see if `value` is a `kn_number`.
  */
-bool kn_value_is_number(kn_value value);
+#define KN_VALUE_IS_NUMBER(value) (((value) & KN_TAG_NUMBER) == KN_TAG_NUMBER)
 
 /*
  * Checks to see if `value` is a `KN_TRUE` or `KN_FALSE`.
  */
-bool kn_value_is_boolean(kn_value value);
+#define KN_VALUE_IS_BOOLEAN(value) ((value) == KN_FALSE || (value) == KN_TRUE)
 
 /*
  * Note there's no `kn_value_is_null`, as you can simply do `value == KN_NULL`.
@@ -121,17 +131,18 @@ bool kn_value_is_boolean(kn_value value);
 /*
  * Checks to see if `value` is a `kn_string`.
  */
-bool kn_value_is_string(kn_value value);
+#define KN_VALUE_IS_STRING(value) (((value) & KN_TAG_STRING) == KN_TAG_STRING)
 
 /*
  * Checks to see if `value` is a `kn_string`.
  */
-bool kn_value_is_variable(kn_value value);
+#define KN_VALUE_IS_VARIABLE(value) (((value) & KN_TAG_VARIABLE) == KN_TAG_VARIABLE)
 
 /*
  * Checks to see if `value` is a `kn_ast`.
  */
-bool kn_value_is_ast(kn_value value);
+#define KN_VALUE_IS_AST(value) (((value) & KN_TAG_AST) == KN_TAG_AST)
+
 
 /*
  * Retrieves the `kn_number` associated with `value`.

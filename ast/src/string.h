@@ -1,7 +1,7 @@
 #ifndef KN_STRING_H
 #define KN_STRING_H
 
-#include <stddef.h>   /* size_t */
+#include <stddef.h> /* size_t */
 
 /*
  * These flags are used to record information about how the memory of a

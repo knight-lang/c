@@ -40,7 +40,7 @@ void *xmalloc(size_t size) {
 	void *ptr = malloc(size);
 
 #ifndef KN_RECKLESS
-	if (ptr == NULL) {
+	if (KN_UNLIKELY(ptr == NULL)) {
 		fprintf(stderr, "malloc failure for size %zd", size);
 		abort();
 	}
@@ -56,7 +56,7 @@ void *xmalloc_value_aligned(size_t size) {
 	void *ptr = aligned_alloc(KN_VALUE_ALIGN, size);
 
 #ifndef KN_RECKLESS
-	if (ptr == NULL) {
+	if (KN_UNLIKELY(ptr == NULL)) {
 		fprintf(stderr, "aligned malloc failure for size %zd", size);
 		abort();
 	}
@@ -72,7 +72,7 @@ void *xrealloc(void *ptr, size_t size) {
 	ptr = realloc(ptr, size);
 
 #ifndef KN_RECKLESS
-	if (ptr == NULL) {
+	if (KN_UNLIKELY(ptr == NULL)) {
 		die("realloc failure for size %zd", size);
 		abort();
 	}
