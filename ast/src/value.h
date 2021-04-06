@@ -43,8 +43,8 @@ struct kn_variable;
 #define KN_TAG_VARIABLE 2
 #define KN_TAG_STRING 3
 #define KN_TAG_AST 4
-// #define KN_TAG_MASK ((1 << (KN_SHIFT + 1)) - 1)
-#define KN_TAG_MASK 7
+
+#define KN_TAG_MASK ((1 << KN_SHIFT) - 1)
 #define KN_TAG(x) ((x) & KN_TAG_MASK)
 #define KN_UNMASK(x) ((x) & ~KN_TAG_MASK)
 

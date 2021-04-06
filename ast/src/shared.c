@@ -49,23 +49,6 @@ void *xmalloc(size_t size) {
 	return ptr;
 }
 
-void *xmalloc_value_aligned(size_t size) {
-	assert(0 <= (ssize_t) size);
-	assert(size % KN_VALUE_ALIGN == 0);
-
-	void *ptr = aligned_alloc(KN_VALUE_ALIGN, size);
-
-#ifndef KN_RECKLESS
-	if (KN_UNLIKELY(ptr == NULL)) {
-		fprintf(stderr, "aligned malloc failure for size %zd", size);
-		abort();
-	}
-#endif /* !KN_RECKLESS */
-
-	return ptr;
-
-}
-
 void *xrealloc(void *ptr, size_t size) {
 	assert(0 <= (ssize_t) size);
 

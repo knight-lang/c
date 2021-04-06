@@ -131,7 +131,7 @@ static kn_number string_to_number(struct kn_string *string) {
 kn_number kn_value_to_number(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
-	switch (KN_TAG(value)) {
+	switch (KN_EXPECT(KN_TAG(value), KN_TAG_NUMBER)) {
 	case KN_TAG_NUMBER:
 		return kn_value_as_number(value);
 
@@ -225,17 +225,10 @@ struct kn_string *kn_value_to_string(kn_value value) {
 
 	assert(value != KN_UNDEFINED);
 
-
-	// KN_CGOTO_CASE(constant, KN_TAG_CONSTANT):
-	// KN_CGOTO_CASE(number, KN_TAG_NUMBER):
-	// KN_CGOTO_CASE(variable, KN_TAG_VARIABLE):
-	// KN_CGOTO_CASE(string, KN_TAG_STRING):
-	// KN_CGOTO_CASE(ast, KN_TAG_AST):
-
-	if (value <= KN_TRUE)
+	if (KN_UNLIKELY(value <= KN_TRUE))
 		return &builtin_strings[value];
 
-	switch (KN_TAG(value)) {
+	switch (KN_EXPECT(KN_TAG(value), KN_TAG_STRING)) {
 	case KN_TAG_NUMBER:
 		return number_to_string(kn_value_as_number(value));
 
@@ -307,106 +300,68 @@ void kn_value_dump(kn_value value) {
 }
 
 kn_value kn_value_run(kn_value value) {
-#ifdef KN_COMPUTED_GOTOS
-	static void *tags[KN_TAG_MASK + 1] = {
-		[KN_TAG_CONSTANT] = &&constant,
-		[KN_TAG_NUMBER] = &&number,
-		[KN_TAG_VARIABLE] = &&variable,
-		[KN_TAG_STRING] = &&string,
-		[KN_TAG_AST] = &&ast,
-		[5] = &&invalid,
-		[6] = &&invalid,
-		[7] = &&invalid,
-	};
-#endif /* KN_COMPUTED_GOTOS */
 	assert(value != KN_UNDEFINED);
 
-	KN_CGOTO_SWITCH(KN_TAG(value), tags) {
-	KN_CGOTO_CASE(ast, KN_TAG_AST):
+	switch (KN_EXPECT(KN_TAG(value), KN_TAG_AST)) {
+	case KN_TAG_AST:
 		return kn_ast_run(kn_value_as_ast(value));
 
-	KN_CGOTO_CASE(string, KN_TAG_STRING):
+	case KN_TAG_STRING:
 		return kn_value_new_string(kn_string_clone(kn_value_as_string(value)));
 
-	KN_CGOTO_CASE(variable, KN_TAG_VARIABLE):
+	case KN_TAG_VARIABLE:
 		return kn_variable_run(kn_value_as_variable(value));
 
-	KN_CGOTO_CASE(number, KN_TAG_NUMBER):
-	KN_CGOTO_CASE(constant, KN_TAG_CONSTANT):
+	case KN_TAG_NUMBER:
+	case KN_TAG_CONSTANT:
 		return value;
 
-	KN_CGOTO_DEFAULT(invalid):
+	default:
 		KN_UNREACHABLE();
 	}
 }
 
 kn_value kn_value_clone(kn_value value) {
-#ifdef KN_COMPUTED_GOTOS
-	static void *tags[KN_TAG_MASK + 1] = {
-		[KN_TAG_CONSTANT] = &&constant,
-		[KN_TAG_NUMBER] = &&number,
-		[KN_TAG_VARIABLE] = &&variable,
-		[KN_TAG_STRING] = &&string,
-		[KN_TAG_AST] = &&ast,
-		[5] = &&invalid,
-		[6] = &&invalid,
-		[7] = &&invalid,
-	};
-#endif /* KN_COMPUTED_GOTOS */
-
 	assert(value != KN_UNDEFINED);
 
-	KN_CGOTO_SWITCH(KN_TAG(value), tags) {
-	KN_CGOTO_CASE(constant, KN_TAG_CONSTANT):
-	KN_CGOTO_CASE(number, KN_TAG_NUMBER):
-	KN_CGOTO_CASE(variable, KN_TAG_VARIABLE):
-		// Note we don't need to clone variables, as they live for the lifetime of
-		// the program.
+	switch (KN_EXPECT(KN_TAG(value), KN_TAG_STRING)) {
+	case KN_TAG_CONSTANT:
+	case KN_TAG_NUMBER:
+	case KN_TAG_VARIABLE:
+		// Note we don't need to clone variables, as they live for the lifetime
+		// of the program.
 		return value;
 
-	KN_CGOTO_CASE(ast, KN_TAG_AST):
+	case KN_TAG_AST:
 		return kn_value_new_ast(kn_ast_clone(kn_value_as_ast(value)));
 
-	KN_CGOTO_CASE(string, KN_TAG_STRING):
+	case KN_TAG_STRING:
 		return kn_value_new_string(kn_string_clone(kn_value_as_string(value)));
 
-	KN_CGOTO_DEFAULT(invalid):
+	default:
 		KN_UNREACHABLE();
 	}
 }
 
 void kn_value_free(kn_value value) {
-#ifdef KN_COMPUTED_GOTOS
-	static void *tags[KN_TAG_MASK + 1] = {
-		[KN_TAG_CONSTANT] = &&constant,
-		[KN_TAG_NUMBER] = &&number,
-		[KN_TAG_VARIABLE] = &&variable,
-		[KN_TAG_STRING] = &&string,
-		[KN_TAG_AST] = &&ast,
-		[5] = &&invalid,
-		[6] = &&invalid,
-		[7] = &&invalid,
-	};
-#endif /* KN_COMPUTED_GOTOS */
-
 	assert(value != KN_UNDEFINED);
 
-	KN_CGOTO_SWITCH(KN_TAG(value), tags) {
-	KN_CGOTO_CASE(constant, KN_TAG_CONSTANT):
-	KN_CGOTO_CASE(number, KN_TAG_NUMBER):
-	KN_CGOTO_CASE(variable, KN_TAG_VARIABLE):
-		// note that variables are freed when `kn_env_free` is run.
+	switch (KN_EXPECT(KN_TAG(value), KN_TAG_STRING)) {
+	case KN_TAG_CONSTANT:
+	case KN_TAG_NUMBER:
+	case KN_TAG_VARIABLE:
+		// variables are freed when `kn_env_free` is run.
 		return;
 
-	KN_CGOTO_CASE(string, KN_TAG_STRING):
+	case KN_TAG_STRING:
 		kn_string_free(kn_value_as_string(value));
 		return;
 
-	KN_CGOTO_CASE(ast, KN_TAG_AST):
+	case KN_TAG_AST:
 		kn_ast_free(kn_value_as_ast(value));
 		return;
 
-	KN_CGOTO_DEFAULT(invalid):
+	default:
 		KN_UNREACHABLE();
 	}
 }

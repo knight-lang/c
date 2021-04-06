@@ -1,12 +1,9 @@
 #include "ast.h"    /* prototypes, kn_ast, kn_value, kn_value_free */
-#include "shared.h" /* xmalloc_value_aligned */
+#include "shared.h" /* xmalloc */
 #include <stdlib.h> /* free */
 
 struct kn_ast *kn_ast_alloc(unsigned argc) {
-	if ((argc * sizeof(kn_value)) % 16)
-		++argc; // adjust alignment for `xmalloc_value_aligned`.
-
-	struct kn_ast *ast = xmalloc_value_aligned(
+	struct kn_ast *ast = xmalloc(
 		sizeof(struct kn_ast) + sizeof(kn_value [argc])
 	);
 

@@ -1,6 +1,6 @@
 #include "string.h"   /* prototypes, kn_string, kn_string_flags variants,
                          size_t, KN_STRING_NEW_EMBED  */
-#include "shared.h"   /* xmalloc, kn_hash, xmalloc_value_aligned */
+#include "shared.h"   /* xmalloc, kn_hash */
 #include <stdlib.h>   /* free, NULL */
 #include <string.h>   /* strlen, strcmp, memcpy */
 #include <assert.h>   /* assert */
@@ -30,30 +30,31 @@ static struct kn_string **get_cache_slot(const char *str, size_t length) {
 struct kn_string _Alignas(16) kn_string_empty = KN_STRING_NEW_EMBED("");
 
 size_t kn_string_length(const struct kn_string *string) {
-	// assert(string != NULL);
+	assert(string != NULL);
 
-	return string->flags & KN_STRING_FL_EMBED
+	// printf("kn_string_length: %s\n", (string->flags & KN_STRING_FL_EMBED ? "embed" : "alloc"));
+	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
 		? (size_t) string->embed.length
 		: string->alloc.length;
 }
 
 char *kn_string_deref(struct kn_string *string) {
 	assert(string != NULL);
-
-	return string->flags & KN_STRING_FL_EMBED
+	// printf("kn_string_deref: %s\n", (string->flags & KN_STRING_FL_EMBED ? "embed" : "alloc"));
+	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
 		? string->embed.data
 		: string->alloc.str;
 }
 
 struct kn_string *kn_string_alloc(size_t length) {
-	if (length == 0)
+	if (KN_UNLIKELY(length == 0))
 		return &kn_string_empty;
 
-	struct kn_string *string = xmalloc_value_aligned(sizeof(struct kn_string));
+	struct kn_string *string = xmalloc(sizeof(struct kn_string));
 	string->flags = KN_STRING_FL_STRUCT_ALLOC;
 	string->refcount = 1;
 
-	if (length < KN_STRING_EMBEDDED_LENGTH) {
+	if (KN_LIKELY(length < KN_STRING_EMBEDDED_LENGTH)) {
 		string->flags |= KN_STRING_FL_EMBED;
 		string->embed.length = length;
 	} else {
@@ -70,7 +71,7 @@ static struct kn_string *create_string(char *str, size_t length) {
 	assert(strlen(str) == length);
 	assert(length != 0); // should have already been checked before.
 
-	struct kn_string *string = xmalloc_value_aligned(sizeof(struct kn_string));
+	struct kn_string *string = xmalloc(sizeof(struct kn_string));
 
 	string->flags = KN_STRING_FL_STRUCT_ALLOC;
 	string->refcount = 1;
@@ -86,7 +87,7 @@ struct kn_string *kn_string_new(char *str, size_t length) {
 	assert(str != NULL);
 	assert(strlen(str) == length);
 
-	if (length == 0) {
+	if (KN_UNLIKELY(length == 0)) {
 		free(str); // we're always given owned strings.
 		return &kn_string_empty;
 	}
@@ -137,7 +138,7 @@ void kn_string_free(struct kn_string *string) {
 #endif /* KN_STRING_CACHE */
 
 	// if we aren't embedded, free the allocated string.
-	if (!(string->flags & KN_STRING_FL_EMBED))
+	if (KN_UNLIKELY(!(string->flags & KN_STRING_FL_EMBED)))
 		free(string->alloc.str);
 
 	free(string);

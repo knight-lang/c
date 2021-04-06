@@ -6,25 +6,27 @@
 
 #ifdef KN_USE_EXTENSIONS
 # define KN_ATTRIBUTE(x) __attribute__(x)
-# define KN_LIKELY(x) (__builtin_expect(!!(x), 1))
-# define KN_UNLIKELY(x) (__builtin_expect(!!(x), 0))
+# define KN_EXPECT(x, y) (__builtin_expect(x, y))
 # ifdef NDEBUG
+#  define KN_UNREACHABLE() (__builtin_unreachable())
+# else
 #  define KN_UNREACHABLE() \
 	die("Issue at  %s:%s:%d", __FILE__, __FUNCTION__, __LINE__)
-# else
-#  define KN_UNREACHABLE() (__builtin_unreachable())
 # endif /* NDEBUG */
 #else
+# define KN_EXPECT(x, y) (x)
 # define KN_ATTRIBUTE(x)
-# define KN_LIKELY(x) (x)
-# define KN_UNLIKELY(x) (x)
 # ifdef NDEBUG
+#  define KN_UNREACHABLE() (abort())
+# else
 #  define KN_UNREACHABLE() \
 	die("Issue at  %s:%s:%d", __FILE__, __FUNCTION__, __LINE__)
-# else
-#  define KN_UNREACHABLE() (abort())
 # endif /* NDEBUG */
 #endif /* KN_USE_EXTENSIONS */
+	
+#define KN_LIKELY(x) (__builtin_expect(!!(x), 1))
+#define KN_UNLIKELY(x) (__builtin_expect(!!(x), 0))
+
 
 /*
  * A function that's used to halt the execution of the program, writing the
@@ -50,14 +52,6 @@ unsigned long kn_hash(const char *str);
 void *xmalloc(size_t size) KN_ATTRIBUTE((malloc));
 
 /*
- * Allocates `size_t` bytes of memory and returns a pointer to them.
- *
- * Note that `size` must be an integral multiple of `KN_VALUE_ALIGN`, as well as
- * as positive nonnegative.
- */
-void *xmalloc_value_aligned(size_t size) KN_ATTRIBUTE((malloc));
-
-/*
  * Resizes the pointer to a segment of at least `size` bytes of memory and
  * returns the new segment's pointer.
  *
@@ -70,13 +64,13 @@ void *xrealloc(void *ptr, size_t size);
 
 #ifdef KN_COMPUTED_GOTOS
 # define KN_CGOTO_SWITCH(value, tabel) goto *tabel[(size_t) value];
+# define KN_CGOTO_DEFAULT(lbl) lbl
 # define KN_CGOTO_CASE(lbl, ...) lbl
 # define KN_CGOTO_LABEL(lbl) lbl:
 # define KN_CGOTO_CASES(...)
-# define KN_CGOTO_DEFAULT(lbl) lbl
 #else
-# define KN_CGOTO_DEFAULT(lbl) default
 # define KN_CGOTO_SWITCH(value, tabel) switch(value)
+# define KN_CGOTO_DEFAULT(lbl) default
 # define KN_CGOTO_CASE(lbl, ...) KN_CGOTO_CASES_(__VA_ARGS__)
 # define KN_CGOTO_LABEL(lbl)
 # define KN_CGOTO_CASES(...) KN_CGOTO_CASES_(__VA_ARGS__):
