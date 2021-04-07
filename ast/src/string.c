@@ -32,6 +32,7 @@ struct kn_string _Alignas(16) kn_string_empty = KN_STRING_NEW_EMBED("");
 size_t kn_string_length(const struct kn_string *string) {
 	assert(string != NULL);
 
+	// printf("kn_string_length: %s\n", (string->flags & KN_STRING_FL_EMBED ? "embed" : "alloc"));
 	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
 		? (size_t) string->embed.length
 		: string->alloc.length;
@@ -39,6 +40,7 @@ size_t kn_string_length(const struct kn_string *string) {
 
 char *kn_string_deref(struct kn_string *string) {
 	assert(string != NULL);
+	// printf("kn_string_deref: %s\n", (string->flags & KN_STRING_FL_EMBED ? "embed" : "alloc"));
 	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
 		? string->embed.data
 		: string->alloc.str;
