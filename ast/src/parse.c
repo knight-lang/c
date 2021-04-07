@@ -9,7 +9,7 @@
                          KN_TRUE, KN_FALSE, KN_NULL */
 #include "string.h"   /* kn_string, kn_string_empty, kn_string_deref */
 #include "ast.h"      /* kn_ast, kn_ast_alloc */
-#include "shared.h"   /* die */
+#include "shared.h"   /* die, KN_UNREACHABLE */
 #include "function.h" /* kn_function, <all the function definitions> */
 #include "env.h"      /* kn_variable, kn_env_fetch */
 
@@ -65,7 +65,6 @@ static int isident(char c) {
 # define CASES1(a) case a:
 #endif /* KN_COMPUTED_GOTOS */
 
-
 // Used for functions which are only a single character, eg `+`.
 #define SYMBOL_FUNC(name, sym) \
 	LABEL(function_##name) CASES1(sym) \
@@ -80,9 +79,8 @@ static int isident(char c) {
 	goto parse_kw_function
 
 kn_value kn_parse(register const char **stream) {
-
-// the global lookup table, which is used for the slightly-more-efficient, ut
-// mnon-standard computed gotos version of the parser.
+// the global lookup table, which is used for the slightly-more-efficient, but
+// non-standard computed gotos version of the parser.
 #ifdef KN_COMPUTED_GOTOS
 	static const void *labels[256] = {
 		['\0'] = &&expected_token,
@@ -175,13 +173,13 @@ start:
 	c = PEEK();
 
 #ifdef KN_COMPUTED_GOTOS
-       goto *LABELS[(size_t) c];
+       goto *labels[(size_t) c];
 #else
        switch (c) {
 #endif /* KN_COMPUTED_GOTOS */
 
 	LABEL(comment)
-	CASES1('#'):
+	CASES1('#')
 	while (KN_LIKELY((c = ADVANCE_PEEK()) != '\n')) {
 
 #ifndef KN_RECKLESS
@@ -345,6 +343,13 @@ CASES1('\0')
 LABEL(invalid)
 #ifndef KN_COMPUTED_GOTOS
 default:
-#endif /* KN_COMPUTED_GOTOS */
+#endif /* !KN_COMPUTED_GOTOS */
+
 	die("unknown token start '%c'", c);
+
+#ifndef KN_COMPUTED_GOTOS
+	}
+#endif /* !KN_COMPUTED_GOTOS */
+
+	KN_UNREACHABLE();
 }
