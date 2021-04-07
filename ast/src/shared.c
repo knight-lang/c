@@ -1,9 +1,8 @@
 #include <stdio.h>  /* vfprintf, fprintf, stderr */
 #include <stdarg.h> /* va_list, va_start, va_end */
-#include <stdlib.h> /* exit, malloc, realloc, aligned_alloc */
+#include <stdlib.h> /* exit, malloc, realloc */
 #include <assert.h> /* assert */
-#include "shared.h" /* prototypes, size_t, ssize_t, NULL */
-#include "value.h"  /* KN_VALUE_ALIGN */
+#include "shared.h" /* prototypes, size_t, ssize_t, NULL, KN_UNLIKELY */
 
 void die(const char *fmt, ...) {
 	va_list args;
