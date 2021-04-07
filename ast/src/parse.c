@@ -247,11 +247,7 @@ CASES2('\'', '\"')
 	if (!length)
 		return kn_value_new_string(&kn_string_empty);
 
-	struct kn_string *string = kn_string_alloc(length);
-	memcpy(kn_string_deref(string), start, length);
-
-	kn_string_deref(string)[length] = '\0';
-	return kn_value_new_string(string);
+	return kn_value_new_string(kn_string_new_unowned(start, length));
 }
 
 LABEL(literal_true)
@@ -326,7 +322,7 @@ parse_function:
 
 #ifndef KN_RECKLESS
 		if (ast->args[i] == KN_UNDEFINED)
-			die("unable to parse argument %d for function '%c'",
+			die("unable to parse argument %zu for function '%c'",
 				i, function->name);
 #endif /* !KN_RECKLESS */
 	}

@@ -508,20 +508,13 @@ KN_FUNCTION_DECLARE(get, 3, 'G') {
 	// empty string.
 	if (KN_UNLIKELY(stringlen <= start)) {
 		substring = &kn_string_empty;
-		goto free_and_return;
+	} else {
+		// if the total length is too much, simply wrap around to the end.
+		if (stringlen <= start + length)
+			length = stringlen - start;
+
+		substring = kn_string_new_unowned(kn_string_deref(string) + start, length);
 	}
-
-	// if the total length is too much, simply wrap around to the end.
-	if (stringlen <= start + length)
-		length = stringlen - start;
-
-	substring = kn_string_alloc(length);
-	char *substr = kn_string_deref(substring);
-
-	memcpy(substr, kn_string_deref(string) + start, length);
-	substr[length] = '\0';
-
-free_and_return:
 
 	kn_string_free(string);
 
@@ -550,6 +543,11 @@ KN_FUNCTION_DECLARE(substitute, 4, 'S') {
 
 	substringlength = kn_string_length(substring);
 
+	if (start == 0 && substringlength == 0) {
+		result = kn_string_new_unowned(kn_string_deref(string) + amnt, stringlength - amnt);
+		kn_string_free(string);
+		return kn_value_new_string(result);
+	}
 	length = stringlength - amnt + substringlength;
 	result = kn_string_alloc(length);
 	char *ptr = kn_string_deref(result);

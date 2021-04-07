@@ -139,6 +139,11 @@ struct kn_string *kn_string_alloc(size_t length);
  */
 struct kn_string *kn_string_new(char *str, size_t length);
 
+#ifdef KN_STRING_CACHE
+// note that `length` can be shorter than `str`.
+struct kn_string *kn_string_new_unowned(const char *str, size_t length);
+#endif /* KN_STRING_CACHE */
+
 /*
  * Returns the length of the string, in bytes.
  */

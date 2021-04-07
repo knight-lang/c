@@ -2,7 +2,8 @@
 #define KN_SHARED_H
 
 #include <stddef.h> /* size_t */
-#include <stdlib.h> /* abort */
+#include <stdlib.h> /* exit, abort */
+#include <stdio.h>  /* fprintf, stderr */
 
 #ifdef KN_USE_EXTENSIONS
 # define KN_ATTRIBUTE(x) __attribute__(x)
@@ -28,17 +29,20 @@
 #define KN_UNLIKELY(x) (__builtin_expect(!!(x), 0))
 
 /*
- * A function that's used to halt the execution of the program, writing the
+ * A macros that's used to halt the execution of the program, writing the
  * given message to stderr before exiting with code 1.
- *
- * Since this aborts the program, it's marked both `noreturn` and `cold`.
  */
-void die(const char *msg, ...) KN_ATTRIBUTE((noreturn,cold));
+#define die(...) (fprintf(stderr, __VA_ARGS__), fprintf(stderr, "\n"), exit(1))
 
 /*
  * Returns a hash for the given string.
  */
 unsigned long kn_hash(const char *str);
+
+/*
+ * Returns a hash for the first `length` characters of `str`.
+ */
+unsigned long kn_hashn(const char *str, size_t length);
 
 /*
  * Allocates `size` bytes of memory and returns a pointer to them.

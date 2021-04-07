@@ -1,20 +1,8 @@
 #include <stdio.h>  /* vfprintf, fprintf, stderr */
-#include <stdarg.h> /* va_list, va_start, va_end */
 #include <stdlib.h> /* exit, malloc, realloc */
 #include <assert.h> /* assert */
 #include "shared.h" /* prototypes, size_t, ssize_t, NULL, KN_UNLIKELY */
 
-void die(const char *fmt, ...) {
-	va_list args;
-
-	va_start(args, fmt);
-	vfprintf(stderr, fmt, args);
-	va_end(args);
-
-	fprintf(stderr, "\n");
-
-	exit(1);
-}
 
 unsigned long kn_hash(const char *str) {
 	unsigned long hash;
@@ -33,7 +21,27 @@ unsigned long kn_hash(const char *str) {
 	return hash;
 }
 
+
+unsigned long kn_hashn(const char *str, size_t length) {
+	unsigned long hash;
+
+	assert(str != NULL);
+
+	// This is the MurmurHash.
+	hash = 525201411107845655;
+
+	while (length--) {
+		assert(*str != '\0'); // make sure not eos before `length` is over.
+		hash ^= *str++;
+		hash *= 0x5bd1e9955bd1e995;
+		hash ^= hash >> 47;
+	}
+
+	return hash;
+}
+
 void *xmalloc(size_t size) {
+	// printf("allocate: %zu\n", size);
 	assert(0 <= (ssize_t) size);
 
 	void *ptr = malloc(size);

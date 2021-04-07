@@ -115,8 +115,9 @@ struct kn_string *kn_string_new(char *str, size_t length) {
 
 }
 
-void kn_string_free(struct kn_string *string) {
+void free_string(struct kn_string *string) {
 	assert(string != NULL);
+	assert(!string->refcount);
 
 	// if we didn't allocate the struct, simply return.
 	if (!(string->flags & KN_STRING_FL_STRUCT_ALLOC)) {
@@ -125,22 +126,55 @@ void kn_string_free(struct kn_string *string) {
 		return;
 	}
 
-	assert(string->refcount);
-
-	// if we aren't the last reference, then just return.
-	if (--string->refcount)
-		return;
-
-#ifdef KN_STRING_CACHE
-	if (string->alloc.length <= KN_STRING_CACHE_MAXLEN)
-		*get_cache_slot(string->alloc.str, string->alloc.length) = 0;
-#endif /* KN_STRING_CACHE */
-
-	// if we aren't embedded, free the allocated string.
 	if (KN_UNLIKELY(!(string->flags & KN_STRING_FL_EMBED)))
 		free(string->alloc.str);
 
 	free(string);
+}
+
+#ifdef KN_STRING_CACHE
+struct kn_string **cache_fetch(size_t length, unsigned long hash) {
+	assert(length != 0);
+	assert(length <= KN_STRING_CACHE_MAXLEN);
+
+	return &string_cache[length - 1][hash & (KN_STRING_CACHE_LINESIZE - 1)];
+}
+
+struct kn_string *kn_string_new_unowned(const char *str, size_t length) {
+	if (KN_UNLIKELY(length == 0))
+		return &kn_string_empty;
+
+	if (KN_STRING_CACHE_MAXLEN < length)
+		return create_string(strndup(str, length), length);
+
+	unsigned long hash = kn_hashn(str, length);
+
+	struct kn_string **cache = cache_fetch(length, hash);
+	struct kn_string *string = *cache;
+
+	if (KN_LIKELY(string != NULL)) {
+		// if the string is the same, then that means we want the cached one.
+		if (KN_LIKELY(!strncmp(kn_string_deref(string), str, length)))
+			return kn_string_clone(string);
+
+ 		if (string->refcount == 0)// if the string has no refcount, free it.
+			free_string(string);
+	}
+
+	*cache = string = kn_string_alloc(length);
+
+	memcpy(kn_string_deref(string), str, length);
+	kn_string_deref(string)[length] = '\0';
+
+	return string;
+}
+#endif /* KN_STRING_CACHE */
+
+void kn_string_free(struct kn_string *string) {
+	assert(string != NULL);
+
+	// this is irrelevant for non-allocated strings.
+	--string->refcount;
 }
 
 struct kn_string *kn_string_clone(struct kn_string *string) {
@@ -156,10 +190,5 @@ struct kn_string *kn_string_clone_static(struct kn_string *string) {
 	if (!(string->flags & KN_STRING_FL_STATIC))
 		return string;
 
-	size_t length = string->alloc.length;
-	struct kn_string *result = kn_string_alloc(length);
-
-	memcpy(kn_string_deref(result), string->alloc.str, length + 1);
-
-	return result;
+	return kn_string_new_unowned(kn_string_deref(string), kn_string_length(string));
 }
