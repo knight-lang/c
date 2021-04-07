@@ -6,8 +6,6 @@
                        kn_string_deref, kn_string_length, KN_STRING_FL_STATIC,
                        KN_STRING_NEW_EMBED */
 #include "shared.h" /* die */
-#ifndef KN_RECKLESS
-#endif /* !KN_RECKLESS */
 
 #include <inttypes.h> /* PRId64 */
 #include <stdlib.h>   /* free, NULL */
@@ -27,36 +25,16 @@
  * X...XX100 - function (nonzero `X`)
  * note all pointers are 16+-bit-aligned.
  */
+#define KN_SHIFT 3
+#define KN_TAG_CONSTANT 0
+#define KN_TAG_NUMBER 1
+#define KN_TAG_VARIABLE 2
+#define KN_TAG_STRING 3
+#define KN_TAG_AST 4
 
-kn_number kn_value_as_number(kn_value value) {
-	assert(KN_VALUE_IS_NUMBER(value));
-
-	return ((int64_t) value) >> KN_SHIFT;
-}
-
-kn_boolean kn_value_as_boolean(kn_value value) {
-	assert(value == KN_TRUE || value == KN_FALSE);
-
-	return value != KN_FALSE;
-}
-
-struct kn_string *kn_value_as_string(kn_value value) {
-	assert(KN_VALUE_IS_STRING(value));
-
-	return (struct kn_string *) KN_UNMASK(value);
-}
-
-struct kn_variable *kn_value_as_variable(kn_value value) {
-	assert(KN_VALUE_IS_VARIABLE(value));
-
-	return (struct kn_variable *) KN_UNMASK(value);
-}
-
-struct kn_ast *kn_value_as_ast(kn_value value) {
-	assert(KN_VALUE_IS_AST(value));
-
-	return (struct kn_ast *) KN_UNMASK(value);
-}
+#define KN_TAG_MASK ((1 << KN_SHIFT) - 1)
+#define KN_TAG(x) ((x) & KN_TAG_MASK)
+#define KN_UNMASK(x) ((x) & ~KN_TAG_MASK)
 
 kn_value kn_value_new_number(kn_number number) {
 	assert(number == ((number << KN_SHIFT) >> KN_SHIFT));
@@ -65,8 +43,7 @@ kn_value kn_value_new_number(kn_number number) {
 }
 
 kn_value kn_value_new_boolean(kn_boolean boolean) {
-	// return ((uint64_t) boolean) << 2; // micro-optimizations hooray!
-	return boolean ? KN_TRUE : KN_FALSE;
+	return ((uint64_t) boolean) << 4; // micro-optimizations hooray!
 }
 
 kn_value kn_value_new_string(struct kn_string *string) {
@@ -94,6 +71,56 @@ kn_value kn_value_new_ast(struct kn_ast *ast) {
 	assert(KN_TAG((uint64_t) ast) == 0);
 
 	return ((uint64_t) ast) | KN_TAG_AST;
+}
+
+bool kn_value_is_number(kn_value value) {
+	return (value & KN_TAG_NUMBER) == KN_TAG_NUMBER;
+}
+
+bool kn_value_is_boolean(kn_value value) {
+	return value == KN_FALSE || value == KN_TRUE;
+}
+
+bool kn_value_is_string(kn_value value) {
+	return (value & KN_TAG_STRING) == KN_TAG_STRING;
+}
+
+bool kn_value_is_variable(kn_value value) {
+	return (value & KN_TAG_VARIABLE) == KN_TAG_VARIABLE;
+}
+
+bool kn_value_is_ast(kn_value value) {
+	return (value & KN_TAG_AST) == KN_TAG_AST;
+}
+
+kn_number kn_value_as_number(kn_value value) {
+	assert(kn_value_is_number(value));
+
+	return ((int64_t) value) >> KN_SHIFT;
+}
+
+kn_boolean kn_value_as_boolean(kn_value value) {
+	assert(kn_value_is_boolean(value));
+
+	return value != KN_FALSE;
+}
+
+struct kn_string *kn_value_as_string(kn_value value) {
+	assert(kn_value_is_string(value));
+
+	return (struct kn_string *) KN_UNMASK(value);
+}
+
+struct kn_variable *kn_value_as_variable(kn_value value) {
+	assert(kn_value_is_variable(value));
+
+	return (struct kn_variable *) KN_UNMASK(value);
+}
+
+struct kn_ast *kn_value_as_ast(kn_value value) {
+	assert(kn_value_is_ast(value));
+
+	return (struct kn_ast *) KN_UNMASK(value);
 }
 
 /*

@@ -2,7 +2,7 @@
 #include "knight.h"   /* kn_run */
 #include "env.h"      /* kn_env_fetch, kn_variable, kn_variable_run,
                          kn_variable_assign */
-#include "shared.h"   /* die, xmalloc, xrealloc */
+#include "shared.h"   /* die, xmalloc, xrealloc, KN_LIKELY, KN_UNLIKELY */
 #include "string.h"   /* kn_string, kn_string_new, kn_string_alloc,
                          kn_string_free, kn_string_empty, kn_string_deref,
                          kn_string_length, kn_string_clone_static */
@@ -242,7 +242,7 @@ KN_FUNCTION_DECLARE(add, 2, '+') {
 	kn_value lhs = kn_value_run(args[0]);
 
 	// If lhs is a string, convert both to a string and concatenate.
-	if (KN_VALUE_IS_STRING(lhs))
+	if (kn_value_is_string(lhs))
 		return add_string(kn_value_as_string(lhs), kn_value_to_string(args[1]));
 
 	kn_number lhs_num = kn_value_as_number(lhs);
@@ -297,7 +297,7 @@ KN_FUNCTION_DECLARE(mul, 2, '*') {
 	kn_value lhs = kn_value_run(args[0]);
 
 	// If lhs is a string, convert rhs to a number and multiply.
-	if (KN_VALUE_IS_STRING(lhs)) {
+	if (kn_value_is_string(lhs)) {
 		size_t amnt = (size_t) kn_value_to_number(args[1]);
 		return mul_string(kn_value_as_string(lhs), amnt);
 	}
@@ -367,7 +367,7 @@ KN_FUNCTION_DECLARE(eql, 2, '?') {
 	if ((eql = (lhs == rhs)))
 		goto free_and_return;
 
-	if (!(eql = (KN_VALUE_IS_STRING(lhs) && KN_VALUE_IS_STRING(rhs))))
+	if (!(eql = (kn_value_is_string(lhs) && kn_value_is_string(rhs))))
 		goto free_and_return;
 
 	struct kn_string *lstr = kn_value_as_string(lhs);
@@ -388,7 +388,7 @@ KN_FUNCTION_DECLARE(lth, 2, '<') {
 	kn_value lhs = kn_value_run(args[0]);
 	bool less;
 
-	if (KN_VALUE_IS_STRING(lhs)) {
+	if (kn_value_is_string(lhs)) {
 		struct kn_string *lstr = kn_value_as_string(lhs);
 		struct kn_string *rstr = kn_value_to_string(args[1]);
 
@@ -396,7 +396,7 @@ KN_FUNCTION_DECLARE(lth, 2, '<') {
 
 		kn_string_free(lstr);
 		kn_string_free(rstr);
-	} else if (KN_VALUE_IS_NUMBER(lhs)) {
+	} else if (kn_value_is_number(lhs)) {
 		less = kn_value_as_number(lhs) < kn_value_to_number(args[1]);
 	} else {
 		less = kn_value_to_boolean(args[1]) && lhs == KN_FALSE;
@@ -409,7 +409,7 @@ KN_FUNCTION_DECLARE(gth, 2, '>') {
 	kn_value lhs = kn_value_run(args[0]);
 	bool more;
 
-	if (KN_VALUE_IS_STRING(lhs)) {
+	if (kn_value_is_string(lhs)) {
 		struct kn_string *lstr = kn_value_as_string(lhs);
 		struct kn_string *rstr = kn_value_to_string(args[1]);
 
@@ -417,7 +417,7 @@ KN_FUNCTION_DECLARE(gth, 2, '>') {
 
 		kn_string_free(lstr);
 		kn_string_free(rstr);
-	} else if (KN_VALUE_IS_NUMBER(lhs)) {
+	} else if (kn_value_is_number(lhs)) {
 		more = kn_value_as_number(lhs) > kn_value_to_number(args[1]);
 	} else {
 		more = !kn_value_to_boolean(args[1]) && lhs == KN_TRUE;

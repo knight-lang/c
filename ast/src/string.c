@@ -1,9 +1,9 @@
-#include "string.h"   /* prototypes, kn_string, kn_string_flags variants,
-                         size_t, KN_STRING_NEW_EMBED  */
-#include "shared.h"   /* xmalloc, kn_hash */
-#include <stdlib.h>   /* free, NULL */
-#include <string.h>   /* strlen, strcmp, memcpy */
-#include <assert.h>   /* assert */
+#include "string.h" /* prototypes, kn_string, kn_string_flags variants, size_t,
+                       KN_STRING_NEW_EMBED */
+#include "shared.h" /* xmalloc, kn_hash, KN_LIKELY, KN_UNLIKELY */
+#include <stdlib.h> /* free, NULL */
+#include <string.h> /* strlen, strcmp, memcpy */
+#include <assert.h> /* assert */
 
 #ifdef KN_STRING_CACHE
 # ifndef KN_STRING_CACHE_MAXLEN
@@ -39,6 +39,7 @@ size_t kn_string_length(const struct kn_string *string) {
 
 char *kn_string_deref(struct kn_string *string) {
 	assert(string != NULL);
+
 	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
 		? string->embed.data
 		: string->alloc.str;
@@ -65,7 +66,7 @@ struct kn_string *kn_string_alloc(size_t length) {
 
 // Allocate a `kn_string` and populate it for the given `str`.
 static struct kn_string *create_string(char *str, size_t length) {
-	assert(str != NULL); 
+	assert(str != NULL);
 	assert(strlen(str) == length);
 	assert(length != 0); // should have already been checked before.
 

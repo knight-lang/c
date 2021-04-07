@@ -18,7 +18,7 @@
 #include <stdbool.h> /* bool, true, false */
 #include "env.h"     /* prototypes, size_t, kn_variable, kn_value, KN_UNDEFINED,
                         kn_value_free, kn_value_clone */
-#include "shared.h"  /* die, xmalloc, xrealloc, kn_hash */
+#include "shared.h"  /* die, xmalloc, xrealloc, kn_hash, KN_UNLIKELY */
 
 /*
  * The amount of buckets that the `kn_env_map` will have.

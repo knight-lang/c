@@ -60,11 +60,8 @@ static void usage(char *program) {
 int main(int argc, char **argv) {
 	char *str;
 
-	if (KN_UNLIKELY(
-		argc != 3 || (!strcmp(argv[1], "-e") && !strcmp(argv[1], "-f"))
-	)) {
+	if (argc != 3 || (!strcmp(argv[1], "-e") && !strcmp(argv[1], "-f")))
 		usage(argv[0]);
-	}
 
 	switch (argv[1][1]) {
 	case 'e':
