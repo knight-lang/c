@@ -16,7 +16,7 @@
                          kn_value_as_number, kn_value_as_string,
                          kn_value_as_variable, kn_value_to_boolean,
                          kn_value_to_number, kn_value_to_string, kn_value_run */
-#include <string.h>   /* memcpy, strcmp, strndup, strerror */
+#include <string.h>   /* memcpy, strcmp, strndup, strerror, strlen */
 #include <assert.h>   /* assert */
 #include <stdlib.h>   /* rand, srand, free, exit, size_t, NULL */
 #include <stdbool.h>  /* bool */
@@ -32,33 +32,48 @@ void kn_function_startup(void) {
 KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 	(void) args;
 
-	size_t capacity = 0;
-	ssize_t length; // todo: remove the ssize_t
-	char *line = NULL;
-
-	// TODO: use fgets instead
+	size_t capacity = 4096;
+	size_t length = 0;
+	char *line = xmalloc(capacity);
 
 	// try to read a line from stdin.
-	if ((length = getline(&line, &capacity, stdin)) == -1) {
+	if (fgets(line, capacity, stdin) != NULL) {
 		assert(line != NULL);
-		free(line);
+		length = strlen(line);
 
+		// remove /r/n , if any.
+		if (length >= 2) {
+			if (line[length - 2] && line[length - 2] == '\r') {
+				line[length - 2] = 0;
+			    length--;
+			}
+		}
+
+		if (length >= 1) {
+			if (line[length - 1] && line[length - 1] == '\n') {
+				line[length - 1] = 0;
+				length--;
+			}
+		}
+		capacity = length + 1;
+	}
+
+	if (length == 0) {
 #ifndef KN_RECKLESS
 		// if we're not at eof, abort.
 		if (KN_UNLIKELY(!feof(stdin)))
 			die("unable to read line");
 #endif /* !KN_RECKLESS */
-
+		free(line);
 		return kn_value_new_string(&kn_string_empty);
 	}
-
 	assert(0 <= length);
 	assert(line != NULL);
-
-	char *ret = strndup(line, length);
+	char *linecpy = xmalloc(capacity);
+	assert(linecpy != NULL);
+	strcpy(linecpy, line);
 	free(line);
-
-	return kn_value_new_string(kn_string_new_owned(ret, length));
+	return kn_value_new_string(kn_string_new_owned(linecpy, length));
 }
 
 
