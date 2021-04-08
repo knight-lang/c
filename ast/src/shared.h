@@ -35,14 +35,11 @@
 #define die(...) (fprintf(stderr, __VA_ARGS__), fprintf(stderr, "\n"), exit(1))
 
 /*
- * Returns a hash for the given string.
- */
-unsigned long kn_hash(const char *str);
-
-/*
  * Returns a hash for the first `length` characters of `str`.
+ *
+ * `str` must be at least `length` characters long, excluding any trailing `\0`
  */
-unsigned long kn_hashn(const char *str, size_t length);
+unsigned long kn_hash(const char *str, size_t length);
 
 /*
  * Allocates `size` bytes of memory and returns a pointer to them.

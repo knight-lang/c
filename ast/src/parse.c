@@ -5,9 +5,9 @@
 
 #include "parse.h"    /* prototypes, kn_value, kn_number, kn_value_new_number,
                          kn_value_new_variable, kn_value_new_string,
-                         kn_value_new_ast, kn_string_alloc, KN_UNDEFINED,
-                         KN_TRUE, KN_FALSE, KN_NULL */
-#include "string.h"   /* kn_string, kn_string_empty, kn_string_deref */
+                         kn_value_new_ast, KN_UNDEFINED, KN_TRUE, KN_FALSE,
+                         KN_NULL */
+#include "string.h"   /* kn_string_new_unowned */
 #include "ast.h"      /* kn_ast, kn_ast_alloc */
 #include "shared.h"   /* die, KN_UNREACHABLE */
 #include "function.h" /* kn_function, <all the function definitions> */
@@ -220,9 +220,9 @@ CASES7('u', 'v', 'w', 'x', 'y', 'z', '_')
 
 	while (isident(ADVANCE_PEEK()));
 
-	char *identifier = strndup(start, *stream - start);
-	struct kn_variable *variable = kn_env_fetch(identifier, true);
-	return kn_value_new_variable(variable);
+	size_t length = *stream - start;
+
+	return kn_value_new_variable(kn_env_fetch(start, length));
 }
 
 LABEL(string)
@@ -233,19 +233,13 @@ CASES2('\'', '\"')
 	const char *start = *stream;
 
 	while (quote != (c = PEEK_ADVANCE())) {
-
 #ifndef KN_RECKLESS
 		if (c == '\0')
 			die("unterminated quote encountered: '%s'", start);
 #endif /* !KN_RECKLESS */
-
 	}
 
 	size_t length = *stream - start - 1;
-
-	// optimize for the empty string
-	if (!length)
-		return kn_value_new_string(&kn_string_empty);
 
 	return kn_value_new_string(kn_string_new_unowned(start, length));
 }

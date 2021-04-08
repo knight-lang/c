@@ -71,7 +71,7 @@ struct kn_string {
 	 * `kn_string_free`d, and when it reaches zero, the struct will
 	 * be freed.
 	 */
-	int refcount;
+	unsigned refcount;
 
 	/* All strings are either embedded or allocated. */
 	union {
@@ -137,12 +137,10 @@ struct kn_string *kn_string_alloc(size_t length);
  * (After all, a pointer's already allocated, which is what embedding is trying
  * to avoid.)
  */
-struct kn_string *kn_string_new(char *str, size_t length);
+struct kn_string *kn_string_new_owned(char *str, size_t length);
 
-#ifdef KN_STRING_CACHE
 // note that `length` can be shorter than `str`.
 struct kn_string *kn_string_new_unowned(const char *str, size_t length);
-#endif /* KN_STRING_CACHE */
 
 /*
  * Returns the length of the string, in bytes.

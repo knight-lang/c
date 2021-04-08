@@ -3,35 +3,15 @@
 #include <assert.h> /* assert */
 #include "shared.h" /* prototypes, size_t, ssize_t, NULL, KN_UNLIKELY */
 
-
-unsigned long kn_hash(const char *str) {
-	unsigned long hash;
-
+unsigned long kn_hash(const char *str, size_t length) {
 	assert(str != NULL);
 
 	// This is the MurmurHash.
-	hash = 525201411107845655;
-
-	while (*str != '\0') {
-		hash ^= *str++;
-		hash *= 0x5bd1e9955bd1e995;
-		hash ^= hash >> 47;
-	}
-
-	return hash;
-}
-
-
-unsigned long kn_hashn(const char *str, size_t length) {
-	unsigned long hash;
-
-	assert(str != NULL);
-
-	// This is the MurmurHash.
-	hash = 525201411107845655;
+	unsigned long hash = 525201411107845655;
 
 	while (length--) {
-		assert(*str != '\0'); // make sure not eos before `length` is over.
+		assert(*str != '\0'); // make sure not EOS before `length` is over.
+
 		hash ^= *str++;
 		hash *= 0x5bd1e9955bd1e995;
 		hash ^= hash >> 47;

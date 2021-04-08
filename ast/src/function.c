@@ -3,7 +3,7 @@
 #include "env.h"      /* kn_env_fetch, kn_variable, kn_variable_run,
                          kn_variable_assign */
 #include "shared.h"   /* die, xmalloc, xrealloc, KN_LIKELY, KN_UNLIKELY */
-#include "string.h"   /* kn_string, kn_string_new, kn_string_alloc,
+#include "string.h"   /* kn_string, kn_string_new_owned, kn_string_alloc,
                          kn_string_free, kn_string_empty, kn_string_deref,
                          kn_string_length, kn_string_clone_static */
 #include "value.h"    /* kn_value, kn_number, KN_TRUE, KN_FALSE, KN_NULL,
@@ -18,7 +18,7 @@
 #include <string.h>  /* memcpy, strcmp, strndup */
 #include <assert.h>  /* assert */
 #include <stdlib.h>  /* rand, srand, free, exit, size_t, NULL */
-#include <stdbool.h> /* bool, false */
+#include <stdbool.h> /* bool */
 #include <stdio.h>   /* fflush, fputs, putc, puts, feof, ferror, perror, getline,
                         clearerr, stdout, stdin, popen, fread, pclose, FILE */
 #include <time.h>    /* time */
@@ -57,7 +57,7 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 	char *ret = strndup(line, length);
 	free(line);
 
-	return kn_value_new_string(kn_string_new(ret, length));
+	return kn_value_new_string(kn_string_new_owned(ret, length));
 }
 
 
@@ -131,7 +131,7 @@ KN_FUNCTION_DECLARE(system, 1, '`') {
 		die("unable to close command stream.");
 #endif /* !KN_RECKLESS */
 
-	return kn_value_new_string(kn_string_new(result, length));
+	return kn_value_new_string(kn_string_new_owned(result, length));
 }
 
 KN_FUNCTION_DECLARE(quit, 1, 'Q') {
@@ -195,7 +195,7 @@ KN_FUNCTION_DECLARE(output, 1, 'O') {
 #ifdef KN_EXT_VALUE
 KN_FUNCTION_DECLARE(value, 1, 'V') {
 	struct kn_string *string = kn_value_to_string(args[0]);
-	struct kn_variable *variable = kn_env_fetch(kn_string_deref(string), false);
+	struct kn_variable *variable = kn_env_fetch(kn_string_deref(string));
 
 	kn_string_free(string);
 	return kn_variable_run(variable);
@@ -470,8 +470,7 @@ KN_FUNCTION_DECLARE(assign, 2, '=') {
 	} else {
 		// otherwise, evaluate the expression, convert to a string,
 		// and then use that as the variable.
-		variable =
-			kn_env_fetch(kn_string_deref(kn_value_to_string(args[0])), false);
+		variable = kn_env_fetch(kn_string_deref(kn_value_to_string(args[0])));
 		ret = kn_value_run(args[1]);
 	}
 #endif /* KN_EXT_EQL_INTERPOLATE */

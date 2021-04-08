@@ -3,6 +3,7 @@
 
 #include "value.h"   /* kn_value */
 #include <stdbool.h> /* bool */
+#include <stddef.h>  /* size_t */
 
 /*
  * A variable within Knight.
@@ -44,13 +45,9 @@ void kn_env_shutdown(void);
 /*
  * Fetches the variable associated with the given identifier.
  *
- * If ownership of `identifier` is being transferred to this function, `owned`
- * should be set to `true`; if simply a reference is being given, it should be
- * `false`.
- *
  * This will always return a `kn_variable`, which may have been newly created.
  */
-struct kn_variable *kn_env_fetch(const char *identifier, bool owned);
+struct kn_variable *kn_env_fetch(const char *identifier, size_t length);
 
 /*
  * Assigns a value to this variable, overwriting whatever was there previously.

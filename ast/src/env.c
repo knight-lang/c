@@ -12,7 +12,7 @@
  * an entry, even if it's never actually assigned.
  */
 
-#include <string.h>  /* strdup, strcmp */
+#include <string.h>  /* strdup, strcmp, strlen */
 #include <assert.h>  /* assert */
 #include <stdlib.h>  /* free */
 #include <stdbool.h> /* bool, true, false */
@@ -98,24 +98,20 @@ void kn_env_shutdown() {
 	}
 }
 
-struct kn_variable *kn_env_fetch(const char *identifier, bool owned) {
+struct kn_variable *kn_env_fetch(const char *identifier, size_t length) {
 	struct kn_env_bucket *bucket;
 	struct kn_variable *variable;
 
 	assert(identifier != NULL);
 
-	bucket = &kn_env_map[kn_hash(identifier) & (KN_ENV_NBUCKETS - 1)];
+	bucket = &kn_env_map[kn_hash(identifier, length) & (KN_ENV_NBUCKETS - 1)];
 
 	for (size_t i = 0; i < bucket->length; ++i) {
 		variable = &bucket->variables[i];
 
 		// if the variable already exists, return it.
-		if (strcmp(variable->name, identifier) == 0) {
-			if (owned)
-				free((char *) identifier);
-
+		if (strncmp(variable->name, identifier, length) == 0)
 			return variable;
-		}
 	}
 
 	// if the bucket is full, then we need to reallocate it.
@@ -138,13 +134,8 @@ struct kn_variable *kn_env_fetch(const char *identifier, bool owned) {
 */
 	}
 
-	// Since we're making a new variable, we need ownership of the
-	// identifier. So we duplicate it if we don't own it.
-	if (!owned)
-		identifier = strdup(identifier);
-
 	variable = &bucket->variables[bucket->length++];
-	variable->name = identifier;
+	variable->name = strndup(identifier, length);
 
 	// Uninitialized variables start with an undefined starting value. the new variable with an undefined starting value, so that any
 	// attempt to access it will be invalid.
