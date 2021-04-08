@@ -12,7 +12,7 @@
  * an entry, even if it's never actually assigned.
  */
 
-#include <string.h>  /* strdup, strcmp, strlen */
+#include <string.h>  /* strdup, strcmp */
 #include <assert.h>  /* assert */
 #include <stdlib.h>  /* free */
 #include <stdbool.h> /* bool, true, false */

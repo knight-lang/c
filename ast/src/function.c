@@ -52,13 +52,24 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 		return kn_value_new_string(&kn_string_empty);
 	}
 
-	assert(0 <= length);
+	assert(0 < length);
 	assert(line != NULL);
 
-	char *ret = strndup(line, length);
+	if (KN_LIKELY(length-- != 0 && line[length] == '\n')) {
+		if (KN_LIKELY(length != 0) && line[length - 1] == '\r')
+			length--;
+	} else {
+		++length; // as we subtracted it earlier preemptively.
+	}
+
+	struct kn_string *string =
+		KN_UNLIKELY(length == 0)
+			? &kn_string_empty
+			: kn_string_new_owned(strndup(line, length), length);
+
 	free(line);
 
-	return kn_value_new_string(kn_string_new_owned(ret, length));
+	return kn_value_new_string(string);
 }
 
 
