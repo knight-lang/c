@@ -31,7 +31,6 @@ void kn_function_startup(void) {
 
 KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 	(void) args;
-
 	size_t capacity = 4096;
 	size_t length = 0;
 	char *line = xmalloc(capacity);
@@ -45,7 +44,7 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 		if (length >= 2) {
 			if (line[length - 2] && line[length - 2] == '\r') {
 				line[length - 2] = 0;
-			    length--;
+				length--;
 			}
 		}
 
@@ -55,20 +54,19 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 				length--;
 			}
 		}
+
 		capacity = length + 1;
 	}
 
-	if (length == 0) {
-#ifndef KN_RECKLESS
-		// if we're not at eof, abort.
-		if (KN_UNLIKELY(!feof(stdin)))
-			die("unable to read line");
-#endif /* !KN_RECKLESS */
-		free(line);
-		return kn_value_new_string(&kn_string_empty);
-	}
-	assert(0 <= length);
 	assert(line != NULL);
+
+	if (length == 0) {
+		free(line);
+		return &kn_string_empty;
+	}
+
+	assert(0 <= length);
+	
 	char *linecpy = xmalloc(capacity);
 	assert(linecpy != NULL);
 	strcpy(linecpy, line);

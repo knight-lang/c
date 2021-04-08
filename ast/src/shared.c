@@ -1,7 +1,7 @@
 #include <stdio.h>  /* vfprintf, fprintf, stderr */
 #include <stdlib.h> /* exit, malloc, realloc */
 #include <assert.h> /* assert */
-#include "shared.h" /* prototypes, size_t, ssize_t, NULL, KN_UNLIKELY */
+#include "shared.h" /* prototypes, size_t, NULL, KN_UNLIKELY */
 
 unsigned long kn_hash_acc(const char *str, size_t length, unsigned long hash) {
 	assert(str != NULL);
@@ -23,8 +23,6 @@ unsigned long kn_hash(const char *str, size_t length) {
 }
 
 void *xmalloc(size_t size) {
-	assert(0 <= (ssize_t) size);
-
 	void *ptr = malloc(size);
 
 #ifndef KN_RECKLESS
@@ -38,8 +36,6 @@ void *xmalloc(size_t size) {
 }
 
 void *xrealloc(void *ptr, size_t size) {
-	assert(0 <= (ssize_t) size);
-
 	ptr = realloc(ptr, size);
 
 #ifndef KN_RECKLESS
