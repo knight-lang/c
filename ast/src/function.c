@@ -226,8 +226,11 @@ static kn_value add_string(struct kn_string *lhs, struct kn_string *rhs) {
 	hash = kn_hash_acc(kn_string_deref(rhs), kn_string_length(rhs), hash);
 
 	size_t length = lhslen + rhslen;
-	struct kn_string *string = kn_string_hash_lookup(hash, length);
 
+	if (KN_STRING_CACHE_MAXLEN < length)
+		goto allocate_and_cache;
+
+	struct kn_string *string = kn_string_hash_lookup(hash, length);
 	if (string == NULL)
 		goto allocate_and_cache;
 

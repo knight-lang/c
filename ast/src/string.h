@@ -28,6 +28,12 @@ enum kn_string_flags {
 	 * `kn_string_clone_static` is called.
 	 */
 	KN_STRING_FL_STATIC = 4,
+
+	/*
+	 * Indicates that the string is cached, and thus should not delete itself
+	 * when its refcount goes to zero.
+	 */
+	KN_STRING_FL_CACHED = 8
 };
 
 /*
