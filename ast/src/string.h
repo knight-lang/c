@@ -171,7 +171,7 @@ struct kn_string *kn_string_new_owned(char *str, size_t length);
  * Note that, unlike `kn_string_new_owned`, `length` does _not_ have to be the
  * length of `str`--it can be smaller.
  */
-struct kn_string *kn_string_new_unowned(const char *str, size_t length);
+struct kn_string *kn_string_new_borrowed(const char *str, size_t length);
 
 /*
  * Looks up the string corresponding to the given `hash`.

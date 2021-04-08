@@ -1,8 +1,8 @@
 #include "string.h" /* prototypes, kn_string, kn_string_flags variants, size_t,
-                       KN_STRING_NEW_EMBED, KN_STRING_CACHE_MAXLEN */
+                       KN_STRING_NEW_EMBED */
 #include "shared.h" /* xmalloc, kn_hash, KN_LIKELY, KN_UNLIKELY */
 #include <stdlib.h> /* free, NULL */
-#include <string.h> /* strlen, strcmp, memcpy */
+#include <string.h> /* strlen, strcmp, memcpy, strndup, strncmp */
 #include <assert.h> /* assert */
 
 // The empty string.
@@ -27,7 +27,7 @@ static struct kn_string **cache_lookup(unsigned long hash, size_t length) {
 	return &cache[length - 1][hash & (KN_STRING_CACHE_LINESIZE - 1)];
 }
 
-struct kn_string *kn_string_hash_lookup(unsigned long hash, size_t length) {
+struct kn_string *kn_string_cache_lookup(unsigned long hash, size_t length) {
 	return *cache_lookup(hash, length);
 }
 
@@ -150,7 +150,6 @@ void kn_string_cache(struct kn_string *string) {
 
 struct kn_string *kn_string_new_owned(char *str, size_t length) {
 	// sanity check for inputs.
-	assert(0 <= (ssize_t) length);
 	assert(str != NULL);
 	assert(strlen(str) == length);
 
@@ -183,7 +182,7 @@ struct kn_string *kn_string_new_owned(char *str, size_t length) {
 	return string;
 }
 
-struct kn_string *kn_string_new_unowned(const char *str, size_t length) {
+struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 	if (KN_UNLIKELY(length == 0))
 		return &kn_string_empty;
 
@@ -232,7 +231,7 @@ struct kn_string *kn_string_clone_static(struct kn_string *string) {
 	if (!(string->flags & KN_STRING_FL_STATIC))
 		return string;
 
-	return kn_string_new_unowned(
+	return kn_string_new_borrowed(
 		kn_string_deref(string),
 		kn_string_length(string)
 	);

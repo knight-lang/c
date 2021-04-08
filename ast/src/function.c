@@ -2,10 +2,12 @@
 #include "knight.h"   /* kn_run */
 #include "env.h"      /* kn_env_fetch, kn_variable, kn_variable_run,
                          kn_variable_assign */
-#include "shared.h"   /* die, xmalloc, xrealloc, KN_LIKELY, KN_UNLIKELY */
-#include "string.h"   /* kn_string, kn_string_new_owned, kn_string_alloc,
-                         kn_string_free, kn_string_empty, kn_string_deref,
-                         kn_string_length, kn_string_clone_static */
+#include "shared.h"   /* die, xmalloc, xrealloc, kn_hash, kn_hash_acc,
+                         KN_LIKELY, KN_UNLIKELY */
+#include "string.h"   /* kn_string, kn_string_new_owned, kn_string_new_borrowed,
+                         kn_string_alloc, kn_string_free, kn_string_empty,
+                         kn_string_deref, kn_string_length, kn_string_cache,
+                         kn_string_clone_static, kn_string_cache_lookup */
 #include "value.h"    /* kn_value, kn_number, KN_TRUE, KN_FALSE, KN_NULL,
                          KN_UNDEFINED, kn_value_new_number, kn_value_new_string,
                          kn_value_new_boolean, kn_value_clone, kn_value_free,
@@ -14,14 +16,13 @@
                          kn_value_as_number, kn_value_as_string,
                          kn_value_as_variable, kn_value_to_boolean,
                          kn_value_to_number, kn_value_to_string, kn_value_run */
-
-#include <string.h>  /* memcpy, strcmp, strndup */
-#include <assert.h>  /* assert */
-#include <stdlib.h>  /* rand, srand, free, exit, size_t, NULL */
-#include <stdbool.h> /* bool */
-#include <stdio.h>   /* fflush, fputs, putc, puts, feof, ferror, perror, getline,
-                        clearerr, stdout, stdin, popen, fread, pclose, FILE */
-#include <time.h>    /* time */
+#include <string.h>   /* memcpy, strcmp, strndup, strerror */
+#include <assert.h>   /* assert */
+#include <stdlib.h>   /* rand, srand, free, exit, size_t, NULL */
+#include <stdbool.h>  /* bool */
+#include <stdio.h>    /* fflush, fputs, putc, puts, feof, ferror, FILE, getline,
+                         clearerr, stdout, stdin, popen, fread, pclose */
+#include <time.h>     /* time */
 
 void kn_function_startup(void) {
 	// all we have to do on startup is seed the random number.
@@ -44,8 +45,10 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 
 #ifndef KN_RECKLESS
 		// if we're not at eof, abort.
-		if (KN_UNLIKELY(!feof(stdin)))
-			perror("unable to read line");
+		if (KN_UNLIKELY(!feof(stdin))) {
+			die("unable to read line: %s", strerror(errno));
+
+		}
 #endif /* !KN_RECKLESS */
 
 		return kn_value_new_string(&kn_string_empty);
@@ -541,7 +544,7 @@ KN_FUNCTION_DECLARE(get, 3, 'G') {
 		if (stringlen <= start + length)
 			length = stringlen - start;
 
-		substring = kn_string_new_unowned(kn_string_deref(string) + start, length);
+		substring = kn_string_new_borrowed(kn_string_deref(string) + start, length);
 	}
 
 	kn_string_free(string);
@@ -572,7 +575,7 @@ KN_FUNCTION_DECLARE(substitute, 4, 'S') {
 	substringlength = kn_string_length(substring);
 
 	if (start == 0 && substringlength == 0) {
-		result = kn_string_new_unowned(kn_string_deref(string) + amnt, stringlength - amnt);
+		result = kn_string_new_borrowed(kn_string_deref(string) + amnt, stringlength - amnt);
 		kn_string_free(string);
 		return kn_value_new_string(result);
 	}
