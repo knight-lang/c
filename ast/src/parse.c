@@ -7,7 +7,7 @@
                          kn_value_new_variable, kn_value_new_string,
                          kn_value_new_ast, KN_UNDEFINED, KN_TRUE, KN_FALSE,
                          KN_NULL */
-#include "string.h"   /* kn_string_new_unowned */
+#include "string.h"   /* kn_string_new_borrowed */
 #include "ast.h"      /* kn_ast, kn_ast_alloc */
 #include "shared.h"   /* die, KN_UNREACHABLE */
 #include "function.h" /* kn_function, <all the function definitions> */
@@ -241,7 +241,7 @@ CASES2('\'', '\"')
 
 	size_t length = *stream - start - 1;
 
-	return kn_value_new_string(kn_string_new_unowned(start, length));
+	return kn_value_new_string(kn_string_new_borrowed(start, length));
 }
 
 LABEL(literal_true)

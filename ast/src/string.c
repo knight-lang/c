@@ -28,6 +28,9 @@ static struct kn_string **cache_lookup(unsigned long hash, size_t length) {
 }
 
 struct kn_string *kn_string_cache_lookup(unsigned long hash, size_t length) {
+	if (length == 0 || KN_STRING_CACHE_MAXLEN < length)
+		return NULL;
+
 	return *cache_lookup(hash, length);
 }
 

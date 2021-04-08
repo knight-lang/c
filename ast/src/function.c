@@ -45,10 +45,8 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 
 #ifndef KN_RECKLESS
 		// if we're not at eof, abort.
-		if (KN_UNLIKELY(!feof(stdin))) {
-			die("unable to read line: %s", strerror(errno));
-
-		}
+		if (KN_UNLIKELY(!feof(stdin)))
+			die("unable to read line");
 #endif /* !KN_RECKLESS */
 
 		return kn_value_new_string(&kn_string_empty);
@@ -229,9 +227,6 @@ static kn_value add_string(struct kn_string *lhs, struct kn_string *rhs) {
 	hash = kn_hash_acc(kn_string_deref(rhs), kn_string_length(rhs), hash);
 
 	size_t length = lhslen + rhslen;
-
-	if (KN_STRING_CACHE_MAXLEN < length)
-		goto allocate_and_cache;
 
 	struct kn_string *string = kn_string_cache_lookup(hash, length);
 	if (string == NULL)
