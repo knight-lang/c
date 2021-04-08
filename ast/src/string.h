@@ -110,6 +110,11 @@ struct kn_string {
  */
 extern struct kn_string kn_string_empty;
 
+
+#ifndef KN_STRING_CACHE_MAXLEN
+# define KN_STRING_CACHE_MAXLEN 32
+#endif /* !KN_STRING_CACHE_MAXLEN */
+
 /*
  * A macro to create a new embedded struct.
  *
@@ -141,6 +146,8 @@ struct kn_string *kn_string_new_owned(char *str, size_t length);
 
 // note that `length` can be shorter than `str`.
 struct kn_string *kn_string_new_unowned(const char *str, size_t length);
+struct kn_string *kn_string_hash_lookup(unsigned long hash, size_t length);
+void kn_string_cache(struct kn_string *string);
 
 /*
  * Returns the length of the string, in bytes.

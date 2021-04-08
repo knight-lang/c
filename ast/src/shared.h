@@ -40,6 +40,7 @@
  * `str` must be at least `length` characters long, excluding any trailing `\0`
  */
 unsigned long kn_hash(const char *str, size_t length);
+unsigned long kn_hash_acc(const char *str, size_t length, unsigned long hash);
 
 /*
  * Allocates `size` bytes of memory and returns a pointer to them.

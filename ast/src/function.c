@@ -214,23 +214,49 @@ static kn_value add_string(struct kn_string *lhs, struct kn_string *rhs) {
 	// return early if either
 	if ((lhslen = kn_string_length(lhs)) == 0) {
 		assert(lhs == &kn_string_empty);
-
 		return kn_value_new_string(kn_string_clone_static(rhs));
 	}
 
 	if ((rhslen = kn_string_length(rhs)) == 0) {
 		assert(rhs == &kn_string_empty);
-
 		return kn_value_new_string(lhs);
 	}
 
+	unsigned long hash = kn_hash(kn_string_deref(lhs), kn_string_length(lhs));
+	hash = kn_hash_acc(kn_string_deref(rhs), kn_string_length(rhs), hash);
+
 	size_t length = lhslen + rhslen;
-	struct kn_string *string = kn_string_alloc(length);
+	struct kn_string *string = kn_string_hash_lookup(hash, length);
+
+	if (string == NULL)
+		goto allocate_and_cache;
+
+	char *cached = kn_string_deref(string);
+	char *tmp = kn_string_deref(lhs);
+
+	for (size_t i = 0; i < kn_string_length(lhs); i++, cached++)
+		if (*cached != tmp[i])
+			goto allocate_and_cache;
+
+	tmp = kn_string_deref(rhs);
+
+	for (size_t i = 0; i < kn_string_length(rhs); i++, cached++)
+		if (*cached != tmp[i])
+			goto allocate_and_cache;
+
+	string = kn_string_clone(string);
+	goto free_and_return;
+
+allocate_and_cache:
+	string = kn_string_alloc(length);
 	char *str = kn_string_deref(string);
 
 	memcpy(str, kn_string_deref(lhs), lhslen);
 	memcpy(str + lhslen, kn_string_deref(rhs), rhslen);
 	str[length] = '\0';
+
+	kn_string_cache(string);
+free_and_return:
 
 	kn_string_free(lhs);
 	kn_string_free(rhs);
@@ -557,6 +583,7 @@ KN_FUNCTION_DECLARE(substitute, 4, 'S') {
 	memcpy(ptr, kn_string_deref(substring), substringlength);
 	ptr += substringlength;
 	memcpy(ptr, kn_string_deref(string) + start + amnt, stringlength - amnt);
+	kn_string_cache(result);
 
 	kn_string_free(string);
 	kn_string_free(substring);

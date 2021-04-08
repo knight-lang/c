@@ -1,5 +1,5 @@
 #include "string.h" /* prototypes, kn_string, kn_string_flags variants, size_t,
-                       KN_STRING_NEW_EMBED */
+                       KN_STRING_NEW_EMBED, KN_STRING_CACHE_MAXLEN */
 #include "shared.h" /* xmalloc, kn_hash, KN_LIKELY, KN_UNLIKELY */
 #include <stdlib.h> /* free, NULL */
 #include <string.h> /* strlen, strcmp, memcpy */
@@ -8,10 +8,6 @@
 // The empty string.
 // we need the alignment for embedding.
 struct kn_string _Alignas(16) kn_string_empty = KN_STRING_NEW_EMBED("");
-
-#ifndef KN_STRING_CACHE_MAXLEN
-# define KN_STRING_CACHE_MAXLEN 32
-#endif /* !KN_STRING_CACHE_MAXLEN */
 
 #ifndef KN_STRING_CACHE_LINESIZE
 # define KN_STRING_CACHE_LINESIZE (1<<14)
@@ -98,6 +94,27 @@ static void deallocate_string(struct kn_string *string) {
 	free(string);
 }
 
+void kn_string_cache(struct kn_string *string) {
+	assert(kn_string_length(string) != 0);
+
+	if (KN_STRING_CACHE_MAXLEN < kn_string_length(string))
+		return; // cant cache it if it's not within bounds.
+
+	struct kn_string **cacheline = get_cache_slot(
+		kn_string_deref(string),
+		kn_string_length(string)
+	);
+
+	if (KN_LIKELY(*cacheline != NULL)) {
+ 		if ((*cacheline)->refcount == 0) {
+			deallocate_string(string);
+ 		}
+	}
+
+	*cacheline = string;
+	
+}
+
 struct kn_string *kn_string_new_owned(char *str, size_t length) {
 	// sanity check for inputs.
 	assert(0 <= (ssize_t) length);
@@ -131,6 +148,12 @@ struct kn_string *kn_string_new_owned(char *str, size_t length) {
 	return *cacheline = allocated_heap_string(str, length);
 }
 
+struct kn_string *kn_string_hash_lookup(unsigned long hash, size_t length) {
+	if (length == 0 || length > KN_STRING_CACHE_MAXLEN)
+		return NULL;
+	return string_cache[length - 1][hash & (KN_STRING_CACHE_LINESIZE - 1)];
+}
+
 struct kn_string *kn_string_new_unowned(const char *str, size_t length) {
 	if (KN_UNLIKELY(length == 0))
 		return &kn_string_empty;
@@ -161,7 +184,7 @@ struct kn_string *kn_string_new_unowned(const char *str, size_t length) {
 
 void kn_string_free(struct kn_string *string) {
 	assert(string != NULL);
-	assert(string->refcount != 0); // can't free an already freed string...
+	assert(!(string->flags & KN_STRING_FL_STRUCT_ALLOC) || !string->refcount); // can't free an already freed string...
 
 	--string->refcount; // this is irrelevant for non-allocated strings.
 }

@@ -37,7 +37,7 @@
 #define KN_UNMASK(x) ((x) & ~KN_TAG_MASK)
 
 kn_value kn_value_new_number(kn_number number) {
-	assert(number == ((number << KN_SHIFT) >> KN_SHIFT));
+	assert(number == (((kn_number) ((kn_value) number << KN_SHIFT)) >> KN_SHIFT));
 
 	return (((uint64_t) number) << KN_SHIFT) | KN_TAG_NUMBER;
 }

@@ -3,12 +3,10 @@
 #include <assert.h> /* assert */
 #include "shared.h" /* prototypes, size_t, ssize_t, NULL, KN_UNLIKELY */
 
-unsigned long kn_hash(const char *str, size_t length) {
+unsigned long kn_hash_acc(const char *str, size_t length, unsigned long hash) {
 	assert(str != NULL);
 
 	// This is the MurmurHash.
-	unsigned long hash = 525201411107845655;
-
 	while (length--) {
 		assert(*str != '\0'); // make sure not EOS before `length` is over.
 
@@ -20,8 +18,11 @@ unsigned long kn_hash(const char *str, size_t length) {
 	return hash;
 }
 
+unsigned long kn_hash(const char *str, size_t length) {
+	return kn_hash_acc(str, length, 525201411107845655l);
+}
+
 void *xmalloc(size_t size) {
-	// printf("allocate: %zu\n", size);
 	assert(0 <= (ssize_t) size);
 
 	void *ptr = malloc(size);
