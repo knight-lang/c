@@ -230,7 +230,7 @@ static kn_value add_string(struct kn_string *lhs, struct kn_string *rhs) {
 	if (KN_STRING_CACHE_MAXLEN < length)
 		goto allocate_and_cache;
 
-	struct kn_string *string = kn_string_hash_lookup(hash, length);
+	struct kn_string *string = kn_string_cache_lookup(hash, length);
 	if (string == NULL)
 		goto allocate_and_cache;
 

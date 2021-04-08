@@ -51,7 +51,7 @@ enum kn_string_flags {
 	(sizeof(size_t) \
 		+ sizeof(char *) \
 		+ sizeof(char [KN_STRING_PADDING_LENGTH]) \
-		- 1)
+		- 1) // for null ptr
 
 /*
  * The string type in Knight.
@@ -67,25 +67,33 @@ enum kn_string_flags {
  * properly dispose of its resources when you're finished with it.
  */
 struct kn_string {
-	/* The flags that dictate how to manage this struct's memory. */
-	_Alignas(16) enum kn_string_flags flags;
+	/*
+	 * The flags that dictate how to manage this struct's memory.
+	 *
+	 * Note that the struct _must_ have an 8-bit alignment, so as to work with
+	 * `kn_value`'s layout.
+	 */
+	_Alignas(8) enum kn_string_flags flags;
 
 	/*
 	 * The amount of references to this string.
 	 *
 	 * This is increased when `kn_string_clone`d and decreased when
-	 * `kn_string_free`d, and when it reaches zero, the struct will
-	 * be freed.
+	 * `kn_string_free`d, and when it reaches zero, the struct will be freed.
 	 */
 	unsigned refcount;
 
 	/* All strings are either embedded or allocated. */
 	union {
 		struct {
-			/* The length of the embedded string. */
+			/*
+			 * The length of the embedded string.
+			 */
 			char length;
 
-			/* The actual data for the embedded string. */
+			/*
+			 * The actual data for the embedded string.
+			 */
 			char data[KN_STRING_EMBEDDED_LENGTH];
 		} embed;
 
@@ -97,16 +105,18 @@ struct kn_string {
 			 */
 			size_t length;
 
-			/* The data for an allocate. */
+			/*
+			 * The data for an allocated string.
+			 */
 			char *str;
 		} alloc;
 	};
 
 	/*
-	 * Extra padding for the struct.
+	 * Extra padding for the struct, to make embedded strings have more room.
 	 *
-	 * This is generally a number that makes this struct's size a multiple of
-	 * two, but the precise length can be customized if desired.
+	 * This is generally a number that makes this struct's size an even multiple
+	 * of two (so as to fill the space an allocator gives us).
 	 */
 	char _padding[KN_STRING_PADDING_LENGTH];
 };
@@ -115,11 +125,6 @@ struct kn_string {
  * The empty string.
  */
 extern struct kn_string kn_string_empty;
-
-
-#ifndef KN_STRING_CACHE_MAXLEN
-# define KN_STRING_CACHE_MAXLEN 32
-#endif /* !KN_STRING_CACHE_MAXLEN */
 
 /*
  * A macro to create a new embedded struct.
@@ -135,25 +140,45 @@ extern struct kn_string kn_string_empty;
 
 /*
  * Allocates a new `kn_string` that can hold at least the given length.
+ *
+ * Note that the return value of this is not yet cached, and after the struct is
+ * done being populated, it should be passed to `kn_string_cache` to enable
+ * future structs to use it.
  */
 struct kn_string *kn_string_alloc(size_t length);
+
+/*
+ * Caches a string, such that `kn_string_new_xxx` can possibly use the string
+ * in the future.
+ *
+ * This should only be used in conjunction with `kn_string_alloc`, as the other
+ * string creation functions will automatically cache any strings they create.
+ */
+void kn_string_cache(struct kn_string *string);
 
 /*
  * Creates a new `kn_string` of the given length, and then initializes it to
  * `str`; the `str`'s ownership should be given given to this function.
  *
  * Note that `length` should equal `strlen(str)`.
- *
- * Also note that this will _always_ allocate strings, and never embed them.
- * (After all, a pointer's already allocated, which is what embedding is trying
- * to avoid.)
  */
 struct kn_string *kn_string_new_owned(char *str, size_t length);
 
-// note that `length` can be shorter than `str`.
+/*
+ * Creates a new `kn_string` of the given unowned `str` (of length `length`).
+ * The given string's ownership is not passed to the function.
+ *
+ * Note that, unlike `kn_string_new_owned`, `length` does _not_ have to be the
+ * length of `str`--it can be smaller.
+ */
 struct kn_string *kn_string_new_unowned(const char *str, size_t length);
-struct kn_string *kn_string_hash_lookup(unsigned long hash, size_t length);
-void kn_string_cache(struct kn_string *string);
+
+/*
+ * Looks up the string corresponding to the given `hash`.
+ *
+ * This function's a bit hacky, and probably could be redesigned a bit better...
+ */
+struct kn_string *kn_string_cache_lookup(unsigned long hash, size_t length);
 
 /*
  * Returns the length of the string, in bytes.
@@ -186,13 +211,11 @@ struct kn_string *kn_string_clone_static(struct kn_string *string);
 /*
  * Indicates that the caller is done using this string.
  *
- * For structs without the `KN_STRING_FL_EMBED` flag (ie with the `alloc` field
- * active), the refcount of the string will be decremented, and if it's zero,
- * the `str` field will be freed.
- *
- * For structs with the `KN_STRING_FL_STRUCT_ALLOC`, the entire struct itself
- * will be freed. (This is not the case when the `refcount` of an non-embedded
- * struct is not zero.)
+ * If this is the last live reference to the string, and the string is not
+ * cached (generally due to it being evicted whilst a live reference still
+ * existed), then the struct itself will be deallocated. However, if the string
+ * is cached, it actually won't be deallocated until it's evicted---that way,
+ * we don't end up allocating multiple times for the same string.
  */
 void kn_string_free(struct kn_string *string);
 

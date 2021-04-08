@@ -7,12 +7,15 @@
 
 // The empty string.
 // we need the alignment for embedding.
-struct kn_string _Alignas(16) kn_string_empty = KN_STRING_NEW_EMBED("");
+struct kn_string _Alignas(8) kn_string_empty = KN_STRING_NEW_EMBED("");
+
+#ifndef KN_STRING_CACHE_MAXLEN
+# define KN_STRING_CACHE_MAXLEN 32
+#endif /* !KN_STRING_CACHE_MAXLEN */
 
 #ifndef KN_STRING_CACHE_LINESIZE
 # define KN_STRING_CACHE_LINESIZE (1<<14)
 #endif /* !KN_STRING_CACHE_LINESIZE */
-
 
 static struct kn_string **cache_lookup(unsigned long hash, size_t length) {
 	static struct kn_string *cache[
