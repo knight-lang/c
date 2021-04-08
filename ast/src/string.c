@@ -145,31 +145,13 @@ void kn_string_cache(struct kn_string *string) {
 	*cacheline = string;
 }
 
-// struct kn_string *fetch_from_Cache
-// 	struct kn_string **cacheline = get_cache_slot(str, length);
-// 	struct kn_string *string = *cacheline;
-
-// 	if (KN_LIKELY(string != NULL)) {
-// 		// if it's the same as `str`, use the cached version.
-// 		if (KN_LIKELY(strcmp(kn_string_deref(string), str) == 0)) {
-// 			free(str); // we don't need this string anymore, free it.
-// 			return kn_string_clone(string);
-// 		}
-
-// 		// if the string has no refcount, free it before replacing it.
-//  		if (string->refcount == 0)
-// 			deallocate_string(string);
-// 	}
-
-// 	return *cacheline = allocate_heap_string(str, length);
-
-
 struct kn_string *kn_string_new_owned(char *str, size_t length) {
 	// sanity check for inputs.
 	assert(0 <= (ssize_t) length);
 	assert(str != NULL);
 	assert(strlen(str) == length);
 
+	// If the input is empty, then just return an owned string.
 	if (KN_UNLIKELY(length == 0)) {
 		free(str); // free the owned string.
 		return &kn_string_empty;

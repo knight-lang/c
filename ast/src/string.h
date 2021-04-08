@@ -31,7 +31,7 @@ enum kn_string_flags {
 
 	/*
 	 * Indicates that the string is cached, and thus should not delete itself
-	 * when its refcount goes to zero.
+	 * when its `refcount` goes to zero.
 	 */
 	KN_STRING_FL_CACHED = 8
 };
@@ -41,7 +41,7 @@ enum kn_string_flags {
  * embedded, but the more memory used.
  */
 #ifndef KN_STRING_PADDING_LENGTH
-# define KN_STRING_PADDING_LENGTH 16
+# define KN_STRING_PADDING_LENGTH 8
 #endif /* !KN_STRING_PADDING_LENGTH */
 
 /*
