@@ -47,8 +47,6 @@ unsigned long kn_hash_acc(const char *str, size_t length, unsigned long hash);
  *
  * This is identical to the stdlib's `malloc`, except the program is aborted
  * instead of returning `NULL`.
- *
- * The `size`, when converted to an `ssize_t`, must be nonnegative.
  */
 void *xmalloc(size_t size) KN_ATTRIBUTE((malloc));
 
@@ -58,8 +56,6 @@ void *xmalloc(size_t size) KN_ATTRIBUTE((malloc));
  *
  * This is identical to the stdlib's `realloc`, except the program is aborted
  * instead of returning `NULL`.
- *
- * The `size`, when converted to an `ssize_t`, must be nonnegative.
  */
 void *xrealloc(void *ptr, size_t size);
 
