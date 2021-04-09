@@ -52,7 +52,7 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 
 	assert(line != NULL);
 
-	if (length == 0) {
+	if (KN_LIKELY(length == 0)) {
 		free(line);
 		return &kn_string_empty;
 	}
