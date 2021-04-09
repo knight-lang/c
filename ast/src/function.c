@@ -39,7 +39,6 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 	if (fgets(line, capacity, stdin) != NULL) {
 		assert(line != NULL);
 		length = strlen(line);
-		capacity = length + 1;
 	}
 
 	// clean up /r/n
@@ -58,7 +57,7 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 	}
 
 	assert(0 <= length);
-	
+	capacity = length + 1;
 	char *linecpy = xmalloc(capacity);
 	assert(linecpy != NULL);
 	strncpy(linecpy, line, length);
