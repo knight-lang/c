@@ -39,23 +39,15 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 	if (fgets(line, capacity, stdin) != NULL) {
 		assert(line != NULL);
 		length = strlen(line);
-
-		// remove /r/n , if any.
-		if (length >= 2) {
-			if (line[length - 2] && line[length - 2] == '\r') {
-				line[length - 2] = 0;
-				length--;
-			}
-		}
-
-		if (length >= 1) {
-			if (line[length - 1] && line[length - 1] == '\n') {
-				line[length - 1] = 0;
-				length--;
-			}
-		}
-
 		capacity = length + 1;
+	}
+
+	// clean up /r/n
+	if (KN_LIKELY(length-- != 0 && line[length] == '\n')) {
+		if (KN_LIKELY(length != 0) && line[length - 1] == '\r')
+			length--;
+	} else {
+		++length; // as we subtracted it earlier preemptively.
 	}
 
 	assert(line != NULL);
@@ -69,7 +61,8 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 	
 	char *linecpy = xmalloc(capacity);
 	assert(linecpy != NULL);
-	strcpy(linecpy, line);
+	strncpy(linecpy, line, length);
+	linecpy[length] = 0;
 	free(line);
 	return kn_value_new_string(kn_string_new_owned(linecpy, length));
 }
