@@ -40,29 +40,29 @@ static int isident(char c) {
 // Macros used either for computed gotos or switch statements (the switch
 // statement is only used when `KN_COMPUTED_GOTOS` is not defined.)
 #ifdef KN_COMPUTED_GOTOS
-# define LABEL(x) x:
-# define CASES10(a, ...)
-# define CASES9(a, ...)
-# define CASES8(a, ...)
-# define CASES7(a, ...)
-# define CASES6(a, ...)
-# define CASES5(a, ...)
-# define CASES4(a, ...)
-# define CASES3(a, ...)
-# define CASES2(a, ...)
-# define CASES1(a)
+#	define LABEL(x) x:
+#	define CASES10(a, ...)
+#	define CASES9(a, ...)
+#	define CASES8(a, ...)
+#	define CASES7(a, ...)
+#	define CASES6(a, ...)
+#	define CASES5(a, ...)
+#	define CASES4(a, ...)
+#	define CASES3(a, ...)
+#	define CASES2(a, ...)
+#	define CASES1(a)
 #else
-# define LABEL(x)
-# define CASES10(a, ...)case a: CASES9(__VA_ARGS__)
-# define CASES9(a, ...) case a: CASES8(__VA_ARGS__)
-# define CASES8(a, ...) case a: CASES7(__VA_ARGS__)
-# define CASES7(a, ...) case a: CASES6(__VA_ARGS__)
-# define CASES6(a, ...) case a: CASES5(__VA_ARGS__)
-# define CASES5(a, ...) case a: CASES4(__VA_ARGS__)
-# define CASES4(a, ...) case a: CASES3(__VA_ARGS__)
-# define CASES3(a, ...) case a: CASES2(__VA_ARGS__)
-# define CASES2(a, ...) case a: CASES1(__VA_ARGS__)
-# define CASES1(a) case a:
+#	define LABEL(x)
+#	define CASES10(a, ...)case a: CASES9(__VA_ARGS__)
+#	define CASES9(a, ...) case a: CASES8(__VA_ARGS__)
+#	define CASES8(a, ...) case a: CASES7(__VA_ARGS__)
+#	define CASES7(a, ...) case a: CASES6(__VA_ARGS__)
+#	define CASES6(a, ...) case a: CASES5(__VA_ARGS__)
+#	define CASES5(a, ...) case a: CASES4(__VA_ARGS__)
+#	define CASES4(a, ...) case a: CASES3(__VA_ARGS__)
+#	define CASES3(a, ...) case a: CASES2(__VA_ARGS__)
+#	define CASES2(a, ...) case a: CASES1(__VA_ARGS__)
+#	define CASES1(a) case a:
 #endif /* KN_COMPUTED_GOTOS */
 
 // Used for functions which are only a single character, eg `+`.
@@ -133,11 +133,11 @@ kn_value kn_parse(register const char **stream) {
 		['T']  = &&literal_true,
 		['U']  = &&invalid,
 
-# ifdef KN_EXT_VALUE
+#	ifdef KN_EXT_VALUE
 		['V']  = &&function_value,
-# else
+#	else
 		['V']  = &&invalid,
-# endif /* KN_EXT_VALUE */
+#	endif /* KN_EXT_VALUE */
 
 		['W']  = &&function_while,
 		['Y']  = &&invalid,
@@ -153,11 +153,11 @@ kn_value kn_parse(register const char **stream) {
 		['|']  = &&function_or,
 		['}']  = &&whitespace,
 
-#ifdef KN_EXT_NEGATE
+#	ifdef KN_EXT_NEGATE
 		['~']  = &&function_negate,
-#else
+#	else
 		['~']  = &&invalid,
-#endif /* KN_EXT_NEGATE */
+#	endif /* KN_EXT_NEGATE */
 
 		[0x7f ... 0xff] = &&invalid
 	};

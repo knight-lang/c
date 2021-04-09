@@ -26,7 +26,7 @@
  * The greater the number, the fewer cache collisions, but the more memory used.
  */
 #ifndef KN_ENV_NBUCKETS
-# define KN_ENV_NBUCKETS 65536
+#	define KN_ENV_NBUCKETS 65536
 #endif /* !KN_ENV_NBUCKETS */
 
 /*
@@ -36,7 +36,7 @@
  * reallocate those buckets.
  */
 #ifndef KN_ENV_CAPACITY
-# define KN_ENV_CAPACITY 256
+#	define KN_ENV_CAPACITY 256
 #endif /* !KN_ENV_CAPACITY */
 
 /*
