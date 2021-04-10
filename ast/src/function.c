@@ -72,7 +72,6 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 	return kn_value_new_string(string);
 }
 
-
 KN_FUNCTION_DECLARE(random, 0, 'R') {
 	(void) args;
 
@@ -140,7 +139,7 @@ KN_FUNCTION_DECLARE(system, 1, '`') {
 #ifndef KN_RECKLESS
 	// Abort if we cant close stream.
 	if (pclose(stream) == -1)
-		die("unable to close command stream.");
+		die("unable to close command stream");
 #endif /* !KN_RECKLESS */
 
 	return kn_value_new_string(kn_string_new_owned(result, length));
@@ -283,19 +282,29 @@ KN_FUNCTION_DECLARE(add, 2, '+') {
 	if (kn_value_is_string(lhs))
 		return add_string(kn_value_as_string(lhs), kn_value_to_string(args[1]));
 
-	kn_number lhs_num = kn_value_as_number(lhs);
-	kn_number rhs_num = kn_value_to_number(args[1]);
+#ifndef KN_RECKLESS
+	if (!kn_value_is_number(lhs))
+		die("can only add to strings and numbers");
+#endif /* !KN_RECKLESS */
 
-	return kn_value_new_number(lhs_num + rhs_num);
+	kn_number augend = kn_value_as_number(lhs);
+	kn_number addend = kn_value_to_number(args[1]);
+
+	return kn_value_new_number(augend + addend);
 }
 
 KN_FUNCTION_DECLARE(sub, 2, '-') {
 	kn_value lhs = kn_value_run(args[0]);
 
-	kn_number lhs_num = kn_value_as_number(lhs);
-	kn_number rhs_num = kn_value_to_number(args[1]);
+#ifndef KN_RECKLESS
+	if (!kn_value_is_number(lhs))
+		die("can only subtract from numbers");
+#endif /* !KN_RECKLESS */
 
-	return kn_value_new_number(lhs_num - rhs_num);
+	kn_number minuend = kn_value_as_number(lhs);
+	kn_number subtrahend = kn_value_to_number(args[1]);
+
+	return kn_value_new_number(minuend - subtrahend);
 }
 
 static kn_value mul_string(struct kn_string *lhs, size_t times) {
@@ -336,18 +345,34 @@ KN_FUNCTION_DECLARE(mul, 2, '*') {
 
 	// If lhs is a string, convert rhs to a number and multiply.
 	if (kn_value_is_string(lhs)) {
-		size_t amnt = (size_t) kn_value_to_number(args[1]);
+		kn_number amnt = kn_value_to_number(args[1]);
+
+#ifndef KN_RECKLESS
+		if (amnt < 0 || amnt != (kn_number) (size_t) amnt)
+			die("negative or too large an amount given");
+#endif /* !KN_RECKLESS */
+
 		return mul_string(kn_value_as_string(lhs), amnt);
 	}
 
-	kn_number lhs_num = kn_value_as_number(lhs);
-	kn_number rhs_num = kn_value_to_number(args[1]);
+#ifndef KN_RECKLESS
+	if (!kn_value_is_number(lhs))
+		die("can only multiply with numbers and strings");
+#endif /* !KN_RECKLESS */
 
-	return kn_value_new_number(lhs_num * rhs_num);
+	kn_number multiplicand = kn_value_as_number(lhs);
+	kn_number multiplier = kn_value_to_number(args[1]);
+
+	return kn_value_new_number(multiplicand * multiplier);
 }
 
 KN_FUNCTION_DECLARE(div, 2, '/') {
 	kn_value lhs = kn_value_run(args[0]);
+
+#ifndef KN_RECKLESS
+	if (!kn_value_is_number(lhs))
+		die("can only divide numbers");
+#endif /* !KN_RECKLESS */
 
 	kn_number dividend = kn_value_as_number(lhs);
 	kn_number divisor = kn_value_to_number(args[1]);
@@ -363,6 +388,11 @@ KN_FUNCTION_DECLARE(div, 2, '/') {
 KN_FUNCTION_DECLARE(mod, 2, '%') {
 	kn_value lhs = kn_value_run(args[0]);
 
+#ifndef KN_RECKLESS
+	if (!kn_value_is_number(lhs))
+		die("can only modulo numbers");
+#endif /* !KN_RECKLESS */
+
 	kn_number number = kn_value_as_number(lhs);
 	kn_number base = kn_value_to_number(args[1]);
 
@@ -375,8 +405,15 @@ KN_FUNCTION_DECLARE(mod, 2, '%') {
 }
 
 KN_FUNCTION_DECLARE(pow, 2, '^') {
+	kn_value lhs = kn_value_to_number(args[0]);
+
+#ifndef KN_RECKLESS
+	if (!kn_value_is_number(lhs))
+		die("can only exponentiate numbers");
+#endif /* !KN_RECKLESS */
+
 	kn_number result;
-	kn_number base = kn_value_to_number(args[0]);
+	kn_number base = kn_value_as_number(lhs);
 	kn_number exponent = kn_value_to_number(args[1]);
 
 	// there's no builtin way to do integer exponentiation, so we have to
@@ -410,9 +447,10 @@ KN_FUNCTION_DECLARE(eql, 2, '?') {
 
 	struct kn_string *lstr = kn_value_as_string(lhs);
 	struct kn_string *rstr = kn_value_as_string(rhs);
+	size_t llen = kn_string_length(lstr);
 
-	eql = kn_string_length(lstr) == kn_string_length(rstr) &&
-		!strcmp(kn_string_deref(lstr), kn_string_deref(rstr));
+	eql = llen == kn_string_length(rstr) &&
+		!memcmp(kn_string_deref(lstr), kn_string_deref(rstr), llen);
 
 free_and_return:
 
@@ -437,6 +475,12 @@ KN_FUNCTION_DECLARE(lth, 2, '<') {
 	} else if (kn_value_is_number(lhs)) {
 		less = kn_value_as_number(lhs) < kn_value_to_number(args[1]);
 	} else {
+#ifndef KN_RECKLESS
+		if (!kn_value_is_boolean(lhs))
+			die("can only compare to numbers, strings, and booleans");
+#endif /* KN_RECKLESS */
+
+		// note that `== KN_FALSE` needs to be after, otherwise rhs wont be run.
 		less = kn_value_to_boolean(args[1]) && lhs == KN_FALSE;
 	}
 
@@ -458,6 +502,12 @@ KN_FUNCTION_DECLARE(gth, 2, '>') {
 	} else if (kn_value_is_number(lhs)) {
 		more = kn_value_as_number(lhs) > kn_value_to_number(args[1]);
 	} else {
+#ifndef KN_RECKLESS
+		if (!kn_value_is_boolean(lhs))
+			die("can only compare to numbers, strings, and booleans");
+#endif /* KN_RECKLESS */
+
+		// note that `== KN_TRUE` needs to be after, otherwise rhs wont be run.
 		more = !kn_value_to_boolean(args[1]) && lhs == KN_TRUE;
 	}
 
@@ -533,24 +583,27 @@ KN_FUNCTION_DECLARE(if, 3, 'I') {
 
 KN_FUNCTION_DECLARE(get, 3, 'G') {
 	struct kn_string *string, *substring;
-	size_t start, length, stringlen;
+	size_t start, length, stringlength;
 
 	string = kn_value_to_string(args[0]);
 	start = (size_t) kn_value_to_number(args[1]);
 	length = (size_t) kn_value_to_number(args[2]);
 
-	stringlen = kn_string_length(string);
+	stringlength = kn_string_length(string);
 
 	// if we're getting past the end of the array, simply return the
 	// empty string.
-	if (KN_UNLIKELY(stringlen <= start)) {
+	if (KN_UNLIKELY(stringlength <= start)) {
 		substring = &kn_string_empty;
 	} else {
 		// if the total length is too much, simply wrap around to the end.
-		if (stringlen <= start + length)
-			length = stringlen - start;
+#ifndef KN_RECKLESS
+		if (stringlength < start + length)
+			die("ending position is too large!");
+#endif /* KN_RECKLESS */
 
-		substring = kn_string_new_borrowed(kn_string_deref(string) + start, length);
+		substring =
+			kn_string_new_borrowed(kn_string_deref(string) + start, length);
 	}
 
 	kn_string_free(string);
@@ -585,6 +638,7 @@ KN_FUNCTION_DECLARE(substitute, 4, 'S') {
 		kn_string_free(string);
 		return kn_value_new_string(result);
 	}
+	// TODO: you could also check for caching here first.
 	length = stringlength - amnt + substringlength;
 	result = kn_string_alloc(length);
 	char *ptr = kn_string_deref(result);
@@ -592,13 +646,14 @@ KN_FUNCTION_DECLARE(substitute, 4, 'S') {
 
 	memcpy(ptr, kn_string_deref(string), start);
 	ptr += start;
+
 	memcpy(ptr, kn_string_deref(substring), substringlength);
 	ptr += substringlength;
-	memcpy(ptr, kn_string_deref(string) + start + amnt, stringlength - amnt);
-	kn_string_cache(result);
-
-	kn_string_free(string);
 	kn_string_free(substring);
+
+	memcpy(ptr, kn_string_deref(string) + start + amnt, stringlength - amnt);
+	kn_string_free(string);
+	kn_string_cache(result);
 
 	return kn_value_new_string(result);
 }

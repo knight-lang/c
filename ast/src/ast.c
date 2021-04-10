@@ -8,6 +8,7 @@ struct kn_ast *kn_ast_alloc(unsigned argc) {
 	);
 
 	ast->refcount = 1;
+
 	return ast;
 }
 

@@ -37,7 +37,6 @@ struct kn_ast;
 struct kn_string;
 struct kn_variable;
 
-
 /*
  * The false value within Knight.
  */
@@ -127,7 +126,6 @@ bool kn_value_is_variable(kn_value value);
  * Checks to see if `value` is a `kn_ast`.
  */
 bool kn_value_is_ast(kn_value value);
-
 
 /*
  * Retrieves the `kn_number` associated with `value`.
