@@ -16,7 +16,7 @@
                          kn_value_as_number, kn_value_as_string,
                          kn_value_as_variable, kn_value_to_boolean,
                          kn_value_to_number, kn_value_to_string, kn_value_run */
-#include <string.h>   /* memcpy, strcmp, strndup, strerror */
+#include <string.h>   /* memcpy, memcmp, strndup, strerror */
 #include <assert.h>   /* assert */
 #include <stdlib.h>   /* rand, srand, free, exit, size_t, NULL */
 #include <stdbool.h>  /* bool */
