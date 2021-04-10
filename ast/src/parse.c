@@ -310,7 +310,6 @@ parse_function:
 	ast->func = function;
 	ast->refcount = 1;
 
-
 	for (size_t i = 0; i < arity; ++i) {
 		ast->args[i] = kn_parse(stream);
 

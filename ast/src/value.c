@@ -333,11 +333,11 @@ kn_value kn_value_run(kn_value value) {
 	case KN_TAG_AST:
 		return kn_ast_run(kn_value_as_ast(value));
 
-	case KN_TAG_STRING:
-		return kn_value_new_string(kn_string_clone(kn_value_as_string(value)));
-
 	case KN_TAG_VARIABLE:
 		return kn_variable_run(kn_value_as_variable(value));
+
+	case KN_TAG_STRING:
+		return kn_value_new_string(kn_string_clone(kn_value_as_string(value)));
 
 	case KN_TAG_NUMBER:
 	case KN_TAG_CONSTANT:
