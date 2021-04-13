@@ -6,6 +6,7 @@
                        kn_string_deref, kn_string_length, KN_STRING_FL_STATIC,
                        KN_STRING_NEW_EMBED */
 #include "shared.h" /* die */
+#include "custom.h" /* kn_custom_vtable, kn_custom */
 
 #include <inttypes.h> /* PRId64 */
 #include <stdlib.h>   /* free, NULL */
@@ -23,7 +24,8 @@
  * X...XX010 - variable (nonzero `X`)
  * X...XX011 - string (nonzero `X`)
  * X...XX100 - function (nonzero `X`)
- * note all pointers are 16+-bit-aligned.
+ * X...XX110 - custom (nonzero `X`) (only with `KN_CUSTOM`)
+ * note all pointers are 8+-bit-aligned.
  */
 #define KN_SHIFT 3
 #define KN_TAG_CONSTANT 0
@@ -31,6 +33,11 @@
 #define KN_TAG_VARIABLE 2
 #define KN_TAG_STRING 3
 #define KN_TAG_AST 4
+
+#ifdef KN_CUSTOM
+#	define KN_TAG_CUSTOM 6
+#endif /* KN_CUSTOM */
+
 
 #define KN_TAG_MASK ((1 << KN_SHIFT) - 1)
 #define KN_TAG(x) ((x) & KN_TAG_MASK)
@@ -73,6 +80,24 @@ kn_value kn_value_new_ast(struct kn_ast *ast) {
 	return ((uint64_t) ast) | KN_TAG_AST;
 }
 
+#ifdef KN_CUSTOM
+kn_value kn_value_new_custom(
+	void *data,
+	const struct kn_custom_vtable *vtable
+) {
+	assert(vtable != NULL);
+	struct kn_custom *custom = xmalloc(sizeof(struct kn_custom));
+
+ 	// a nonzero tag indicates a misaligned pointer
+	assert(KN_TAG((uint64_t) custom) == 0);
+
+	custom->data = data;
+	custom->vtable = vtable;
+
+	return ((uint64_t) custom) | KN_TAG_CUSTOM;
+}
+#endif /* KN_CUSTOM */
+
 bool kn_value_is_number(kn_value value) {
 	return (value & KN_TAG_NUMBER) == KN_TAG_NUMBER;
 }
@@ -92,6 +117,12 @@ bool kn_value_is_variable(kn_value value) {
 bool kn_value_is_ast(kn_value value) {
 	return (value & KN_TAG_AST) == KN_TAG_AST;
 }
+
+#ifdef KN_CUSTOM
+bool kn_value_is_custom(kn_value value) {
+	return (value & KN_TAG_CUSTOM) == KN_TAG_CUSTOM;
+}
+#endif /* KN_CUSTOM */
 
 kn_number kn_value_as_number(kn_value value) {
 	assert(kn_value_is_number(value));
@@ -122,6 +153,14 @@ struct kn_ast *kn_value_as_ast(kn_value value) {
 
 	return (struct kn_ast *) KN_UNMASK(value);
 }
+
+#ifdef KN_CUSTOM
+struct kn_custom *kn_value_as_custom(kn_value value) {
+	assert(kn_value_is_custom(value));
+
+	return (struct kn_custom *) KN_UNMASK(value);
+}
+#endif /* KN_CUSTOM */
 
 /*
  * Convert a string to a number, as per the knight specs.
@@ -168,6 +207,17 @@ kn_number kn_value_to_number(kn_value value) {
 	case KN_TAG_STRING:
 		return string_to_number(kn_value_as_string(value));
 
+#ifdef KN_CUSTOM
+	case KN_TAG_CUSTOM: {
+		struct kn_custom *custom = kn_value_as_custom(value);
+
+		if (custom->vtable->to_number != NULL)
+			return custom->vtable->to_number(custom->data);
+
+		// otherwise, fallthrough
+	}
+#endif /* KN_CUSTOM */
+
 	case KN_TAG_VARIABLE:
 	case KN_TAG_AST: {
 		// simply execute the value and call this function again.
@@ -194,6 +244,17 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 
 	case KN_TAG_STRING:
 		return kn_string_length(kn_value_as_string(value)) != 0;
+
+#ifdef KN_CUSTOM
+	case KN_TAG_CUSTOM: {
+		struct kn_custom *custom = kn_value_as_custom(value);
+
+		if (custom->vtable->to_boolean != NULL)
+			return custom->vtable->to_boolean(custom->data);
+
+		// otherwise, fallthrough
+	}
+#endif /* KN_CUSTOM */
 
 	case KN_TAG_AST:
 	case KN_TAG_VARIABLE: {
@@ -262,6 +323,17 @@ struct kn_string *kn_value_to_string(kn_value value) {
 	case KN_TAG_STRING:
 		return kn_string_clone(kn_value_as_string(value));
 
+#ifdef KN_CUSTOM
+	case KN_TAG_CUSTOM: {
+		struct kn_custom *custom = kn_value_as_custom(value);
+
+		if (custom->vtable->to_string != NULL)
+			return custom->vtable->to_string(custom->data);
+
+		// otherwise, fallthrough
+	}
+#endif /* KN_CUSTOM */
+
 	case KN_TAG_AST:
 	case KN_TAG_VARIABLE: {
 		// simply execute the value and call this function again.
@@ -279,22 +351,20 @@ struct kn_string *kn_value_to_string(kn_value value) {
 }
 
 void kn_value_dump(kn_value value) {
-	switch (value) {
-	case KN_UNDEFINED:
-		printf("<KN_UNDEFINED>"); // we actually dump undefined for debugging.
-		return;
-	case KN_TRUE:
-		printf("Boolean(true)");
-		return;
-	case KN_FALSE:
-		printf("Boolean(false)");
-		return;
-	case KN_NULL:
-		printf("Null()");
-		return;
-	}
-
 	switch (KN_TAG(value)) {
+	case KN_TAG_CONSTANT:
+		switch (value) {
+		case KN_TRUE:  printf("Boolean(true)"); return;
+		case KN_FALSE: printf("Boolean(false)"); return;
+		case KN_NULL:  printf("Null()"); return;
+#ifndef NDEBUG // we dump undefined only for debugging. 
+		case KN_UNDEFINED: printf("<KN_UNDEFINED>"); return;
+#endif /* !NDEBUG */
+
+		default:
+			KN_UNREACHABLE();
+		}
+
 	case KN_TAG_NUMBER:
 		printf("Number(%" PRId64 ")", kn_value_as_number(value));
 		return;
@@ -306,6 +376,20 @@ void kn_value_dump(kn_value value) {
 	case KN_TAG_VARIABLE:
 		printf("Identifier(%s)", kn_value_as_variable(value)->name);
 		return;
+
+#ifdef KN_CUSTOM
+	case KN_TAG_CUSTOM: {
+		struct kn_custom *custom = kn_value_as_custom(value);
+
+		if (custom->vtable->dump != NULL) {
+			custom->vtable->dump(custom->data);
+		} else {
+			printf("Custom(%p, %p)", custom->data, (void *) custom->vtable);
+		}
+
+		return;
+	}
+#endif /* KN_CUSTOM */
 
 	case KN_TAG_AST: {
 		struct kn_ast *ast = kn_value_as_ast(value);
@@ -343,6 +427,18 @@ kn_value kn_value_run(kn_value value) {
 	case KN_TAG_CONSTANT:
 		return value;
 
+#ifdef KN_CUSTOM
+	case KN_TAG_CUSTOM: {
+		struct kn_custom *custom = kn_value_as_custom(value);
+
+		if (custom->vtable->run != NULL) {
+			return kn_value_clone(value);
+		} else {
+			return custom->vtable->run(custom->data);
+		}
+	}
+#endif /* KN_CUSTOM */
+
 	default:
 		KN_UNREACHABLE();
 	}
@@ -364,6 +460,19 @@ kn_value kn_value_clone(kn_value value) {
 
 	case KN_TAG_STRING:
 		return kn_value_new_string(kn_string_clone(kn_value_as_string(value)));
+
+#ifdef KN_CUSTOM
+	case KN_TAG_CUSTOM: {
+		struct kn_custom *custom = kn_value_as_custom(value);
+
+		assert(custom->vtable->clone != NULL);
+
+		return kn_value_new_custom(
+			custom->vtable->clone(custom->data),
+			custom->vtable
+		);
+	}
+#endif /* KN_CUSTOM */
 
 	default:
 		KN_UNREACHABLE();
@@ -387,6 +496,21 @@ void kn_value_free(kn_value value) {
 	case KN_TAG_AST:
 		kn_ast_free(kn_value_as_ast(value));
 		return;
+
+#ifdef KN_CUSTOM
+	case KN_TAG_CUSTOM: {
+		struct kn_custom *custom = kn_value_as_custom(value);
+
+		if (custom->vtable->free != NULL) {
+			custom->vtable->free(custom->data);
+		} else {
+			free(custom->data);
+		}
+
+		free(custom);
+		return;
+	}
+#endif /* KN_CUSTOM */
 
 	default:
 		KN_UNREACHABLE();

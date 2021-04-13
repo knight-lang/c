@@ -141,6 +141,11 @@ kn_value kn_parse(register const char **stream) {
 
 		['W']  = &&function_while,
 		['Y']  = &&invalid,
+#	ifdef KN_CUSTOM
+		['X']  = &&function_extension,
+#	else
+		['X']  = &&invalid,
+#	endif /* KN_CUSTOM */
 		['Z']  = &&invalid,
 		['[']  = &&whitespace,
 		['\\'] = &&invalid,
@@ -322,6 +327,13 @@ parse_function:
 
 	return kn_value_new_ast(ast);
 }
+
+#ifdef KN_CUSTOM
+LABEL(extension)
+CASES1('X')
+	ADVANCE();
+	return kn_parse_extension(stream);
+#endif /* KN_CUSTOM */
 
 #if defined(KN_COMPUTED_GOTOS) || !defined(KN_RECKLESS)
 expected_token:

@@ -37,6 +37,11 @@ struct kn_ast;
 struct kn_string;
 struct kn_variable;
 
+#ifdef KN_CUSTOM
+struct kn_custom;
+struct kn_custom_vtable;
+#endif /* KN_CUSTOM */
+
 /*
  * The false value within Knight.
  */
@@ -98,6 +103,15 @@ kn_value kn_value_new_variable(struct kn_variable *variable);
  */
 kn_value kn_value_new_ast(struct kn_ast *ast);
 
+#ifdef KN_CUSTOM
+/*
+ * Creates a new custom value.
+ *
+ * Ownership of the `custom` is passed to this function.
+ */
+kn_value kn_value_new_custom(void *data, const struct kn_custom_vtable *vtable);
+#endif /* KN_CUSTOM */
+
 /*
  * Checks to see if `value` is a `kn_number`.
  */
@@ -126,6 +140,14 @@ bool kn_value_is_variable(kn_value value);
  * Checks to see if `value` is a `kn_ast`.
  */
 bool kn_value_is_ast(kn_value value);
+
+#ifdef KN_CUSTOM
+/*
+ * Checks to see if `value` is a `kn_custom`.
+ */
+bool kn_value_is_custom(kn_value value);
+#endif /* KN_CUSTOM */
+
 
 /*
  * Retrieves the `kn_number` associated with `value`.
@@ -161,6 +183,15 @@ struct kn_variable *kn_value_as_variable(kn_value value);
  * This should only be called on ast values.
  */
 struct kn_ast *kn_value_as_ast(kn_value value);
+
+#ifdef KN_CUSTOM
+/*
+ * Retrieves the `kn_custom` associated with `value`.
+ *
+ * This should only be called on custom values.
+ */
+struct kn_custom *kn_value_as_custom(kn_value value);
+#endif /* KN_CUSTOM */
 
 /*
  * Converts the `value` to a `kn_number`, coercing it if need be.

@@ -11,4 +11,15 @@
  */
 kn_value kn_parse(const char **stream);
 
+#ifdef KN_CUSTOM
+/*
+ * This function is called whenever a keyword function starting with `X` is
+ * encountered.
+ *
+ * The passed `stream` will have only the leading `X` removed, and the function
+ * should strip the and any other relevant trailing characters before returning.
+ */
+kn_value kn_parse_extension(const char **stream);
+#endif /* KN_CUSTOM */
+
 #endif /* !KN_PARSE_H */
