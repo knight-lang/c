@@ -50,7 +50,7 @@ static char *read_file(const char *filename) {
 
 	}
 
-	return xrealloc(contents, length);
+	return xrealloc(contents, length + 1);
 }
 
 static void usage(char *program) {
