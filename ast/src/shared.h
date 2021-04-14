@@ -6,21 +6,21 @@
 #include <stdio.h>  /* fprintf, stderr */
 
 #ifdef KN_USE_EXTENSIONS
-#	define KN_ATTRIBUTE(x) __attribute__(x)
-#	define KN_EXPECT(x, y) (__builtin_expect(x, y))
-#	ifdef NDEBUG
-#		define KN_UNREACHABLE() (__builtin_unreachable())
-#	else
-#		define KN_UNREACHABLE() die("bug at %s:%d", __FILE__, __LINE__)
-#	endif /* NDEBUG */
+# define KN_ATTRIBUTE(x) __attribute__(x)
+# define KN_EXPECT(x, y) (__builtin_expect(x, y))
+# ifdef NDEBUG
+#  define KN_UNREACHABLE() (__builtin_unreachable())
+# else
+#  define KN_UNREACHABLE() die("bug at %s:%d", __FILE__, __LINE__)
+# endif /* NDEBUG */
 #else
-#	define KN_EXPECT(x, y) (x)
-#	define KN_ATTRIBUTE(x)
-#	ifdef NDEBUG
-#		define KN_UNREACHABLE() (abort())
-#	else
-#		define KN_UNREACHABLE() die("bug at %s:%d", __FILE__, __LINE__)
-#	endif /* NDEBUG */
+# define KN_EXPECT(x, y) (x)
+# define KN_ATTRIBUTE(x)
+# ifdef NDEBUG
+#  define KN_UNREACHABLE() (abort())
+# else
+#  define KN_UNREACHABLE() die("bug at %s:%d", __FILE__, __LINE__)
+# endif /* NDEBUG */
 #endif /* KN_USE_EXTENSIONS */
 
 #define KN_LIKELY(x) (__builtin_expect(!!(x), 1))

@@ -41,7 +41,7 @@ enum kn_string_flags {
  * embedded, but the more memory used.
  */
 #ifndef KN_STRING_PADDING_LENGTH
-#	define KN_STRING_PADDING_LENGTH 16
+# define KN_STRING_PADDING_LENGTH 16
 #endif /* !KN_STRING_PADDING_LENGTH */
 
 /*

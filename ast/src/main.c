@@ -6,7 +6,7 @@
 #include <string.h> /* strcmp, strerror */
 
 #ifndef KN_RECKLESS
-#	include <errno.h> /* errno */
+# include <errno.h> /* errno */
 #endif /* !KN_RECKLESS */
 
 static char *read_file(const char *filename) {
