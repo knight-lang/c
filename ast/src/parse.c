@@ -12,6 +12,8 @@
 #include "shared.h"   /* die, KN_UNREACHABLE */
 #include "env.h"      /* kn_variable, kn_env_fetch */
 
+const char *kn_parse_stream;
+
 // Check to see if the character is considered whitespace to Knight.
 static int iswhitespace(char c) {
 	return isspace(c) || c == ':'
@@ -25,46 +27,40 @@ static int iswordfunc(char c) {
 	return isupper(c) || c == '_';
 }
 
-// Macros for advancing or looking at the stream.
-#define ADVANCE() do { ++*stream; } while(0)
-#define PEEK() (**stream)
-#define ADVANCE_PEEK() (*++*stream)
-#define PEEK_ADVANCE() (*(*stream)++)
-
-void kn_parse_strip(const char **stream) {
-	assert(iswhitespace(PEEK()) || PEEK() == '#');
+void kn_parse_strip() {
+	assert(iswhitespace(kn_parse_peek()) || kn_parse_peek() == '#');
 
 	char c;
 
 	do {
-		c = ADVANCE_PEEK();
+		c = kn_parse_advance_peek();
 
-		if (KN_UNLIKELY(PEEK() == '#')) {
-			while (KN_LIKELY(c = ADVANCE_PEEK()) != '\n');
+		if (KN_UNLIKELY(kn_parse_peek() == '#')) {
+			while (KN_LIKELY(c = kn_parse_advance_peek()) != '\n');
 		}
 	} while (iswhitespace(c));
 }
 
-kn_number kn_parse_number(const char **stream) {
-	char c = PEEK();
+kn_number kn_parse_number() {
+	char c = kn_parse_peek();
 	assert(isdigit(c));
 
 	kn_number number = (c - '0');
 
-	while (isdigit(c = ADVANCE_PEEK()))
+	while (isdigit(c = kn_parse_advance_peek()))
 		number = number * 10 + (c - '0');
 
 	return number;
 }
 
-struct kn_string *kn_parse_string(const char **stream) {
-	char quote = PEEK_ADVANCE();
+struct kn_string *kn_parse_string() {
+	char quote = kn_parse_peek_advance();
 	char c;
 	assert(quote == '\'' || quote == '\"');
 
-	const char *start = *stream;
+	const char *start = kn_parse_stream;
 
-	while (quote != (c = PEEK_ADVANCE())) {
+	while (quote != (c = kn_parse_peek_advance())) {
 
 #ifndef KN_RECKLESS
 		if (c == '\0')
@@ -73,28 +69,28 @@ struct kn_string *kn_parse_string(const char **stream) {
 
 	}
 
-	return kn_string_new_borrowed(start, *stream - start - 1);
+	return kn_string_new_borrowed(start, kn_parse_stream - start - 1);
 }
 
-struct kn_variable *kn_parse_variable(const char **stream) {
-	const char *start = *stream;
-	assert(islower(PEEK()) || PEEK() == '_');
+struct kn_variable *kn_parse_variable() {
+	const char *start = kn_parse_stream;
+	assert(islower(kn_parse_peek()) || kn_parse_peek() == '_');
 
 	char c;
 
 	do {
-		c = ADVANCE_PEEK();
+		c = kn_parse_advance_peek();
 	} while (islower(c) || isdigit(c) || c == '_');
 
-	return kn_env_fetch(start, *stream - start);
+	return kn_env_fetch(start, kn_parse_stream - start);
 }
 
-struct kn_ast *kn_parse_ast(const struct kn_function *fn, const char **stream) {
+struct kn_ast *kn_parse_ast(const struct kn_function *fn) {
 	struct kn_ast *ast = kn_ast_alloc(fn->arity);
 	ast->func = fn;
 
 	for (size_t i = 0; i < fn->arity; ++i) {
-		ast->args[i] = kn_parse(stream);
+		ast->args[i] = kn_parse_value();
 
 #ifndef KN_RECKLESS
 		if (ast->args[i] == KN_UNDEFINED)
@@ -138,7 +134,7 @@ struct kn_ast *kn_parse_ast(const struct kn_function *fn, const char **stream) {
 #define SYMBOL_FUNC(name, sym) \
 	LABEL(function_##name) CASES1(sym) \
 	function = &kn_fn_##name; \
-	ADVANCE(); \
+	kn_parse_advance(); \
 	goto parse_function
 
 // Used for functions which are word functions (and can be multiple characters).
@@ -147,7 +143,7 @@ struct kn_ast *kn_parse_ast(const struct kn_function *fn, const char **stream) {
 	function = &kn_fn_##name; \
 	goto parse_kw_function
 
-kn_value kn_parse(const char **stream) {
+kn_value kn_parse_value() {
 // the global lookup table, which is used for the slightly-more-efficient, but
 // non-standard computed gotos version of the parser.
 #ifdef KN_COMPUTED_GOTOS
@@ -210,11 +206,11 @@ kn_value kn_parse(const char **stream) {
 
 		['W']  = &&function_while,
 		['Y']  = &&invalid,
-#	ifdef KN_CUSTOM
+# ifdef KN_CUSTOM
 		['X']  = &&function_extension,
-#	else
+# else
 		['X']  = &&invalid,
-#	endif /* KN_CUSTOM */
+# endif /* KN_CUSTOM */
 		['Z']  = &&invalid,
 		['[']  = &&strip,
 		['\\'] = &&invalid,
@@ -240,11 +236,10 @@ kn_value kn_parse(const char **stream) {
 	char c;
 	const struct kn_function *function;
 
-	assert(stream != NULL);
-	assert(*stream != NULL);
+	assert(kn_parse_stream != NULL);
 
 start:
-	c = PEEK();
+	c = kn_parse_peek();
 
 #ifdef KN_COMPUTED_GOTOS
        goto *labels[(size_t) c];
@@ -255,36 +250,36 @@ start:
 LABEL(strip)
 CASES6('\t', '\n', '\v', '\f', '\r', ' ')
 CASES8('(', ')', '[', ']', '{', '}', ':', '#')
-	kn_parse_strip(stream);
+	kn_parse_strip();
 	goto start; // go find the next token to return.
 
 LABEL(number)
 CASES10('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
-	return kn_value_new_number(kn_parse_number(stream));
+	return kn_value_new_number(kn_parse_number());
 
 LABEL(identifier)
 CASES10('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j')
 CASES10('k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't')
 CASES7('u', 'v', 'w', 'x', 'y', 'z', '_')
-	return kn_value_new_variable(kn_parse_variable(stream));
+	return kn_value_new_variable(kn_parse_variable());
 
 LABEL(string)
 CASES2('\'', '\"')
-	return kn_value_new_string(kn_parse_string(stream));
+	return kn_value_new_string(kn_parse_string());
 
 LABEL(literal_true)
 CASES1('T')
-	while(iswordfunc(ADVANCE_PEEK()));
+	while(iswordfunc(kn_parse_advance_peek()));
 	return KN_TRUE;
 
 LABEL(literal_false)
 CASES1('F')
-	while(iswordfunc(ADVANCE_PEEK()));
+	while(iswordfunc(kn_parse_advance_peek()));
 	return KN_FALSE;
 
 LABEL(literal_null)
 CASES1('N')
-	while(iswordfunc(ADVANCE_PEEK()));
+	while(iswordfunc(kn_parse_advance_peek()));
 	return KN_NULL;
 
 SYMBOL_FUNC(not, '!');
@@ -326,32 +321,37 @@ WORD_FUNC(value, 'V');
 #endif /* KN_EXT_VALUE */
 
 parse_kw_function:
-	while (iswordfunc(ADVANCE_PEEK()));
+	while (iswordfunc(kn_parse_advance_peek()));
 parse_function:
-	return kn_value_new_ast(kn_parse_ast(function, stream));
+	return kn_value_new_ast(kn_parse_ast(function));
 
 #ifdef KN_CUSTOM
 LABEL(extension)
 CASES1('X')
-	ADVANCE();
-	return kn_parse_extension(stream);
+	kn_parse_advance();
+	return kn_parse_extension();
 #endif /* KN_CUSTOM */
 
-#ifndef KN_RECKLESS
 LABEL(expected_token)
 CASES1('\0')
 	return KN_UNDEFINED;
 
 LABEL(invalid)
-#	ifndef KN_COMPUTED_GOTOS
+#ifndef KN_COMPUTED_GOTOS
 default:
-#	endif /* !KN_COMPUTED_GOTOS */
+#endif /* !KN_COMPUTED_GOTOS */
+#ifndef KN_RECKLESS
 	die("unknown token start '%c'", c);
-#endif /* !KN_RECKLESS */
+#endif /* KN_RECKLESS */
 
 #ifndef KN_COMPUTED_GOTOS
 	}
 #endif /* !KN_COMPUTED_GOTOS */
 
 	KN_UNREACHABLE();
+}
+
+kn_value kn_parse(const char *stream) {
+	kn_parse_stream = stream;
+	return kn_parse_value();
 }

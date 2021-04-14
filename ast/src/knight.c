@@ -18,7 +18,7 @@ void kn_shutdown() {
 }
 
 kn_value kn_run(const char *stream) {
-	kn_value parsed = kn_parse(&stream);
+	kn_value parsed = kn_parse(stream);
 
 #ifndef KN_RECKLESS
 	if (parsed == KN_UNDEFINED)

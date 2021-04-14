@@ -148,7 +148,6 @@ bool kn_value_is_ast(kn_value value);
 bool kn_value_is_custom(kn_value value);
 #endif /* KN_CUSTOM */
 
-
 /*
  * Retrieves the `kn_number` associated with `value`.
  *

@@ -11,7 +11,7 @@
 #include "../src/parse.h"
 #include "../src/ast.h"
 
-struct kn_list kn_list_empty = { .length = 0 };
+struct kn_list kn_list_empty = { .length = 0, .idempotent = true };
 
 #define KNLISTLEN(length) (sizeof(struct kn_list) + sizeof(kn_value [length]))
 struct kn_list *kn_list_alloc(size_t capacity) {
@@ -38,24 +38,39 @@ void kn_list_dump(const struct kn_list *list) {
 	printf(")");
 }
 
-static kn_number list_custom_to_number(void *data) {
-	return (kn_number) ((struct kn_list *) data)->length;
+// just run through the list and evaluate each argument.
+static void run_list(struct kn_list *list) {	
+	if (list->idempotent)
+		return;
+
+	for (size_t i = 0; i < list->length; ++i)
+		kn_value_free(kn_value_run(list->elements[i]));
 }
 
+static kn_number list_custom_to_number(void *data) {
+	struct kn_list *list = (struct kn_list *) data;
+
+	run_list(list);
+
+	return (kn_number) list->length;
+}
 
 static kn_boolean list_custom_to_boolean(void *data) {
+	run_list(data);
+
 	return data != &kn_list_empty;
 }
 
 static struct kn_string *list_custom_to_string(void *data) {
-	printf("dumped!\n");
+	// todo: list to string
+	(void *) data;
 	return kn_string_new_owned(strdup("todo1"), 5);
 }
 
 const struct kn_custom_vtable kn_list_vtable = {
 	.free = (void (*) (void *)) kn_list_free,
 	.dump = (void (*) (void *)) kn_list_dump,
-	.run = NULL,
+	.run = kn_list_run,
 	.to_number = list_custom_to_number,
 	.to_boolean = list_custom_to_boolean,
 	.to_string = list_custom_to_string
@@ -97,16 +112,23 @@ KN_FUNCTION_DECLARE(xget, 2, "X_GET") {
 
 static unsigned depth;
 
-struct kn_list *parse_list(const char **stream) {
+struct kn_list *parse_list() {
 	unsigned current_depth = depth++;
 	size_t capacity = 16; // unlikely to have more than 16 in a literal.
 
 	struct kn_list *list = kn_list_alloc(capacity);
 	list->length = 0;
+	list->idempotent = true;
 	kn_value parsed;
 
-	while ((parsed = kn_parse(stream)) != KN_UNDEFINED) {
-		list->elements[list->length++] = parsed;
+	while ((parsed = kn_parse_value()) != KN_UNDEFINED) {
+		list->elements[list->lengthe++] = parsed;
+
+		if (parsed != KN_TRUE && parsed != KN_FALSE && parsed != KN_NULL
+			&& !kn_value_is_number(parsed) && !kn_value_is_string(number)
+		) {
+			list->idempotent = false;
+		}
 
 		if (list->length == capacity) {
 			capacity *= 2;
@@ -125,46 +147,32 @@ struct kn_list *parse_list(const char **stream) {
 	}
 }
 
-kn_value kn_parse_extension(const char **stream) {
+kn_value kn_parse_extension() {
 	const struct kn_function *function;
 
-	while (**stream == '_') ++*stream; // ignore leading `_`s.
+	char fn_chr, c;
 
-	switch (*(*stream)++) {
+	while ((fn_chr = kn_parse_peek_advance()) == '_') {
+		/* do nothing, strip leading `_`s. */
+	}
+
+	while (('A' <= (c = kn_parse_peek()) && c <= 'Z') || c == '_')
+		kn_parse_advance();
+
+	switch (fn_chr) {
 	case '[':
-		return kn_value_new_custom(parse_list(stream), &kn_list_vtable);
+		return kn_value_new_custom(parse_list(), &kn_list_vtable);
 
 	case ']':
 		if (!depth--)
 			die("unexpected `X]`");
 		return KN_UNDEFINED;
+
 	case 'G': 
-		function = &kn_fn_xget;
-		goto parse_function;
-	// case 'D':
-	// 	function = &kn_fn_cdr;
-	// 	goto parse_function;
-	// case 'C':
-	// 	function = &kn_fn_cons;
-
-	parse_function: {
-		struct kn_ast *ast = kn_ast_alloc(function->arity);
-
-		ast->func = function;
-		ast->refcount = 1;
-
-		for (size_t i = 0; i < function->arity; ++i) {
-			if ((ast->args[i] = kn_parse(stream)) == KN_UNDEFINED) {
-				die("unable to parse argument %zu for function '%s'",
-					i, function->name);
-			}
-		}
-
-		return kn_value_new_ast(ast);
-	}
+		return kn_value_new_ast(kn_parse_ast(&kn_fn_xget));
 
 	default:
-		die("unknown extension character '%c'", (*stream)[-1]);
+		die("unknown extension character '%c'", kn_parse_stream[-1]);
 	}
 }
 

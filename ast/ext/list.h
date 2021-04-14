@@ -11,6 +11,7 @@ extern struct kn_list kn_list_empty;
 
 struct kn_list {
 	size_t length;
+	bool idempotent;
 	kn_value elements[];
 };
 
