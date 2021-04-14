@@ -16,14 +16,6 @@
  */
 struct kn_custom_vtable {
 	/*
-	 * Duplicates `data`, returning a new instance of it.
-	 *
-	 * The return will be passed to `free` in addition to `data`. This function
-	 * is required and does not have a default value.
-	 */
-	void *(*clone)(void *data);
-
-	/*
 	 * Releases the resources associated with `data`.
 	 *
 	 * The default implementation simply calls the stdlib's `free`.
@@ -41,7 +33,7 @@ struct kn_custom_vtable {
 	/*
 	 * Executes the given `data`, returning the value associated with it.
 	 *
-	 * The default implementation simply calls `clone` and duplicates it.
+	 * The default implementation simply returns the custom itself.
 	 */
 	kn_value (*run)(void *data);
 
@@ -73,6 +65,7 @@ struct kn_custom_vtable {
 struct kn_custom {
 	void *data;
 	const struct kn_custom_vtable *vtable;
+	unsigned refcount;
 };
 
 #endif /* KN_CUSTOM && !KN_CUSTOM_H */

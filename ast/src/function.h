@@ -20,7 +20,7 @@ struct kn_function {
 	/*
 	 * The name of the function; used when debugging.
 	 */
-	char name;
+	const char *name;
 };
 
 /*

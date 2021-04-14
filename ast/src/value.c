@@ -35,7 +35,7 @@
 #define KN_TAG_AST 4
 
 #ifdef KN_CUSTOM
-#	define KN_TAG_CUSTOM 6
+#	define KN_TAG_CUSTOM 5
 #endif /* KN_CUSTOM */
 
 
@@ -394,7 +394,7 @@ void kn_value_dump(kn_value value) {
 	case KN_TAG_AST: {
 		struct kn_ast *ast = kn_value_as_ast(value);
 
-		printf("Function(%c", ast->func->name);
+		printf("Function(%s", ast->func->name);
 
 		for (size_t i = 0; i < ast->func->arity; ++i) {
 			printf(", ");
@@ -432,9 +432,9 @@ kn_value kn_value_run(kn_value value) {
 		struct kn_custom *custom = kn_value_as_custom(value);
 
 		if (custom->vtable->run != NULL) {
-			return kn_value_clone(value);
-		} else {
 			return custom->vtable->run(custom->data);
+		} else {
+			return kn_value_clone(value);
 		}
 	}
 #endif /* KN_CUSTOM */
@@ -462,16 +462,9 @@ kn_value kn_value_clone(kn_value value) {
 		return kn_value_new_string(kn_string_clone(kn_value_as_string(value)));
 
 #ifdef KN_CUSTOM
-	case KN_TAG_CUSTOM: {
-		struct kn_custom *custom = kn_value_as_custom(value);
-
-		assert(custom->vtable->clone != NULL);
-
-		return kn_value_new_custom(
-			custom->vtable->clone(custom->data),
-			custom->vtable
-		);
-	}
+	case KN_TAG_CUSTOM:
+		++kn_value_as_custom(value)->refcount;
+		return value;
 #endif /* KN_CUSTOM */
 
 	default:
@@ -500,6 +493,10 @@ void kn_value_free(kn_value value) {
 #ifdef KN_CUSTOM
 	case KN_TAG_CUSTOM: {
 		struct kn_custom *custom = kn_value_as_custom(value);
+
+		// dont free customs with 0 refcount, as they are static.
+		if (custom->refcount == 0 || --custom->refcount != 0)
+			return;
 
 		if (custom->vtable->free != NULL) {
 			custom->vtable->free(custom->data);

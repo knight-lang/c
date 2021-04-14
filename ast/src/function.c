@@ -29,7 +29,7 @@ void kn_function_startup(void) {
 	srand(time(NULL));
 }
 
-KN_FUNCTION_DECLARE(prompt, 0, 'P') {
+KN_FUNCTION_DECLARE(prompt, 0, "PROMPT") {
 	(void) args;
 
 	size_t capacity = 0;
@@ -72,13 +72,13 @@ KN_FUNCTION_DECLARE(prompt, 0, 'P') {
 	return kn_value_new_string(string);
 }
 
-KN_FUNCTION_DECLARE(random, 0, 'R') {
+KN_FUNCTION_DECLARE(random, 0, "RANDOM") {
 	(void) args;
 
 	return kn_value_new_number((kn_number) rand());
 }
 
-KN_FUNCTION_DECLARE(eval, 1, 'E') {
+KN_FUNCTION_DECLARE(eval, 1, "EVAL") {
 	struct kn_string *string = kn_value_to_string(args[0]);
 	kn_value ret = kn_run(kn_string_deref(string));
 
@@ -87,11 +87,11 @@ KN_FUNCTION_DECLARE(eval, 1, 'E') {
 	return ret;
 }
 
-KN_FUNCTION_DECLARE(block, 1, 'B') {
+KN_FUNCTION_DECLARE(block, 1, "BLOCK") {
 	return kn_value_clone(args[0]);
 }
 
-KN_FUNCTION_DECLARE(call, 1, 'C') {
+KN_FUNCTION_DECLARE(call, 1, "CALL") {
 	kn_value ran = kn_value_run(args[0]);
 	kn_value result = kn_value_run(ran);
 
@@ -100,7 +100,7 @@ KN_FUNCTION_DECLARE(call, 1, 'C') {
 	return result;
 }
 
-KN_FUNCTION_DECLARE(system, 1, '`') {
+KN_FUNCTION_DECLARE(system, 1, "`") {
 	struct kn_string *command = kn_value_to_string(args[0]);
 	const char *str = kn_string_deref(command);
 	FILE *stream = popen(str, "r");
@@ -145,15 +145,15 @@ KN_FUNCTION_DECLARE(system, 1, '`') {
 	return kn_value_new_string(kn_string_new_owned(result, length));
 }
 
-KN_FUNCTION_DECLARE(quit, 1, 'Q') {
+KN_FUNCTION_DECLARE(quit, 1, "QUIT") {
 	exit((int) kn_value_to_number(args[0]));
 }
 
-KN_FUNCTION_DECLARE(not, 1, '!') {
+KN_FUNCTION_DECLARE(not, 1, "!") {
 	return kn_value_new_boolean(!kn_value_to_boolean(args[0]));
 }
 
-KN_FUNCTION_DECLARE(length, 1, 'L') {
+KN_FUNCTION_DECLARE(length, 1, "LENGTH") {
 	struct kn_string *string = kn_value_to_string(args[0]);
 	size_t length = kn_string_length(string);
 
@@ -162,7 +162,7 @@ KN_FUNCTION_DECLARE(length, 1, 'L') {
 	return kn_value_new_number((kn_number) length);
 }
 
-KN_FUNCTION_DECLARE(dump, 1, 'D') {
+KN_FUNCTION_DECLARE(dump, 1, "DUMP") {
 	kn_value ret = kn_value_run(args[0]);
 
 	kn_value_dump(ret);
@@ -172,7 +172,7 @@ KN_FUNCTION_DECLARE(dump, 1, 'D') {
 	return ret;
 }
 
-KN_FUNCTION_DECLARE(output, 1, 'O') {
+KN_FUNCTION_DECLARE(output, 1, "OUTPUT") {
 	struct kn_string *string = kn_value_to_string(args[0]);
 	size_t length = kn_string_length(string);
 	char *str = kn_string_deref(string);
@@ -204,7 +204,7 @@ KN_FUNCTION_DECLARE(output, 1, 'O') {
 }
 
 #ifdef KN_EXT_VALUE
-KN_FUNCTION_DECLARE(value, 1, 'V') {
+KN_FUNCTION_DECLARE(value, 1, "VALUE") {
 	struct kn_string *string = kn_value_to_string(args[0]);
 	struct kn_variable *variable = kn_env_fetch(kn_string_deref(string));
 
@@ -214,7 +214,7 @@ KN_FUNCTION_DECLARE(value, 1, 'V') {
 #endif /* KN_EXT_VALUE */
 
 #ifdef KN_EXT_NEGATE
-KN_FUNCTION_DECLARE(negate, 1, '~') {
+KN_FUNCTION_DECLARE(negate, 1, "~") {
 	return kn_value_new_number(-kn_value_to_number(args[0]));
 }
 #endif /* KN_EXT_NEGATE */
@@ -275,7 +275,7 @@ free_and_return:
 	return kn_value_new_string(string);
 }
 
-KN_FUNCTION_DECLARE(add, 2, '+') {
+KN_FUNCTION_DECLARE(add, 2, "+") {
 	kn_value lhs = kn_value_run(args[0]);
 
 	// If lhs is a string, convert both to a string and concatenate.
@@ -293,7 +293,7 @@ KN_FUNCTION_DECLARE(add, 2, '+') {
 	return kn_value_new_number(augend + addend);
 }
 
-KN_FUNCTION_DECLARE(sub, 2, '-') {
+KN_FUNCTION_DECLARE(sub, 2, "-") {
 	kn_value lhs = kn_value_run(args[0]);
 
 #ifndef KN_RECKLESS
@@ -340,7 +340,7 @@ static kn_value mul_string(struct kn_string *lhs, size_t times) {
 	return kn_value_new_string(string);
 }
 
-KN_FUNCTION_DECLARE(mul, 2, '*') {
+KN_FUNCTION_DECLARE(mul, 2, "*") {
 	kn_value lhs = kn_value_run(args[0]);
 
 	// If lhs is a string, convert rhs to a number and multiply.
@@ -366,7 +366,7 @@ KN_FUNCTION_DECLARE(mul, 2, '*') {
 	return kn_value_new_number(multiplicand * multiplier);
 }
 
-KN_FUNCTION_DECLARE(div, 2, '/') {
+KN_FUNCTION_DECLARE(div, 2, "/") {
 	kn_value lhs = kn_value_run(args[0]);
 
 #ifndef KN_RECKLESS
@@ -385,7 +385,7 @@ KN_FUNCTION_DECLARE(div, 2, '/') {
 	return kn_value_new_number(dividend / divisor);
 }
 
-KN_FUNCTION_DECLARE(mod, 2, '%') {
+KN_FUNCTION_DECLARE(mod, 2, "%") {
 	kn_value lhs = kn_value_run(args[0]);
 
 #ifndef KN_RECKLESS
@@ -404,7 +404,7 @@ KN_FUNCTION_DECLARE(mod, 2, '%') {
 	return kn_value_new_number(number % base);
 }
 
-KN_FUNCTION_DECLARE(pow, 2, '^') {
+KN_FUNCTION_DECLARE(pow, 2, "^") {
 	kn_value lhs = kn_value_to_number(args[0]);
 
 #ifndef KN_RECKLESS
@@ -431,7 +431,7 @@ KN_FUNCTION_DECLARE(pow, 2, '^') {
 	return kn_value_new_number(result);
 }
 
-KN_FUNCTION_DECLARE(eql, 2, '?') {
+KN_FUNCTION_DECLARE(eql, 2, "?") {
 	kn_value lhs = kn_value_run(args[0]);
 	kn_value rhs = kn_value_run(args[1]);
 	bool eql;
@@ -460,7 +460,7 @@ free_and_return:
 	return kn_value_new_boolean(eql);
 }
 
-KN_FUNCTION_DECLARE(lth, 2, '<') {
+KN_FUNCTION_DECLARE(lth, 2, "<") {
 	kn_value lhs = kn_value_run(args[0]);
 	bool less;
 
@@ -487,7 +487,7 @@ KN_FUNCTION_DECLARE(lth, 2, '<') {
 	return kn_value_new_boolean(less);
 }
 
-KN_FUNCTION_DECLARE(gth, 2, '>') {
+KN_FUNCTION_DECLARE(gth, 2, ">") {
 	kn_value lhs = kn_value_run(args[0]);
 	bool more;
 
@@ -514,7 +514,7 @@ KN_FUNCTION_DECLARE(gth, 2, '>') {
 	return kn_value_new_boolean(more);
 }
 
-KN_FUNCTION_DECLARE(and, 2, '&') {
+KN_FUNCTION_DECLARE(and, 2, "&") {
 	kn_value lhs = kn_value_run(args[0]);
 
 	// return the lhs if its falsey.
@@ -525,7 +525,7 @@ KN_FUNCTION_DECLARE(and, 2, '&') {
 	return kn_value_run(args[1]);
 }
 
-KN_FUNCTION_DECLARE(or, 2, '|') {
+KN_FUNCTION_DECLARE(or, 2, "|") {
 	kn_value lhs = kn_value_run(args[0]);
 
 	// return the lhs if its truthy.
@@ -536,13 +536,13 @@ KN_FUNCTION_DECLARE(or, 2, '|') {
 	return kn_value_run(args[1]);
 }
 
-KN_FUNCTION_DECLARE(then, 2, ';') {
+KN_FUNCTION_DECLARE(then, 2, ";") {
 	kn_value_free(kn_value_run(args[0]));
 
 	return kn_value_run(args[1]);
 }
 
-KN_FUNCTION_DECLARE(assign, 2, '=') {
+KN_FUNCTION_DECLARE(assign, 2, "=") {
 	struct kn_variable *variable;
 	kn_value ret;
 
@@ -568,20 +568,20 @@ KN_FUNCTION_DECLARE(assign, 2, '=') {
 	return ret;
 }
 
-KN_FUNCTION_DECLARE(while, 2, 'W') {
+KN_FUNCTION_DECLARE(while, 2, "WHILE") {
 	while (kn_value_to_boolean(args[0]))
 		kn_value_free(kn_value_run(args[1]));
 
 	return KN_NULL;
 }
 
-KN_FUNCTION_DECLARE(if, 3, 'I') {
+KN_FUNCTION_DECLARE(if, 3, "IF") {
 	bool idx = kn_value_to_boolean(args[0]);
 
 	return kn_value_run(args[1 + !idx]);
 }
 
-KN_FUNCTION_DECLARE(get, 3, 'G') {
+KN_FUNCTION_DECLARE(get, 3, "GET") {
 	struct kn_string *string, *substring;
 	size_t start, length, stringlength;
 
@@ -611,7 +611,7 @@ KN_FUNCTION_DECLARE(get, 3, 'G') {
 	return kn_value_new_string(substring);
 }
 
-KN_FUNCTION_DECLARE(substitute, 4, 'S') {
+KN_FUNCTION_DECLARE(substitute, 4, "SUBSTITUTE") {
 	struct kn_string *string, *substring, *result;
 	size_t start, amnt, length, stringlength, substringlength;
 
