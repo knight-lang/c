@@ -50,7 +50,9 @@ static char *read_file(const char *filename) {
 
 	}
 
-	return xrealloc(contents, length + 1);
+	contents = xrealloc(contents, length + 1);
+	contents[length] = '\0';
+	return contents;
 }
 
 static void usage(char *program) {
