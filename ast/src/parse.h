@@ -96,7 +96,7 @@ static inline char kn_parse_peek_advance() {
  * The passed `stream` will have only the leading `X` removed, and the function
  * should strip the and any other relevant trailing characters before returning.
  */
-kn_value kn_parse_extension(void);
+extern kn_value kn_parse_extension(void);
 #endif /* KN_CUSTOM */
 
 #endif /* !KN_PARSE_H */
