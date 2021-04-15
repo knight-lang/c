@@ -1,88 +1,124 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-#include <ctype.h>
-
 #include "list.h"
 #include "ext.h"
-#include "../src/custom.h"
 #include "../src/shared.h"
-#include "../src/function.h"
 #include "../src/string.h"
+#include "../src/function.h"
 #include "../src/parse.h"
-#include "../src/ast.h"
+#include <string.h>
+#include <assert.h>
 
-#define container_of(ptr, type, member) ({                     \
-        const typeof( ((type *)0)->member ) *_mptr = (ptr);    \
-        (type *)( (char *)_mptr - offsetof(type,member) );})
+#define LIST(data) ((struct list *) data)
+#define ALLOC_CUSTOM_LIST() \
+	(kn_custom_alloc(sizeof(struct list), &list_vtable))
 
-#define ALLOC_CUSTOM_LIST(length) (kn_custom_alloc( \
-		sizeof(struct kn_list) + sizeof(kn_value [length]), \
-		&kn_list_vtable))
-
-#define LIST(data) ((struct kn_list *) (data))
-
-static bool is_idempotent(kn_value value) {
-	return value == KN_NULL
-		|| kn_value_is_boolean(value)
-		|| kn_value_is_number(value)
-		|| kn_value_is_string(value);
+static void list_realloc(struct list *list, size_t newlength) {
+	list->elements = xrealloc(list->elements, sizeof(kn_value [newlength]));
 }
 
-static void dump_list(void *data) {
-	printf("List(");
-	
-	for (size_t i = 0; i < LIST(data)->length; ++i) {
-		if (i != 0)
-			printf(", ");
+kn_value list_pop(struct list *list) {
+	return list_is_empty(list) ? KN_UNDEFINED : list->elements[--list->length];
+}
 
-		kn_value_dump(LIST(data)->elements[i]);
+void list_push(struct list *list, kn_value value) {
+	if (list->length == list->capacity)
+		list_realloc(list, list->capacity *= 2);
+
+	list->elements[list->length++] = value;
+}
+
+kn_value list_get(const struct list *list, size_t index) {
+	return (list->length <= index) ? KN_UNDEFINED : list->elements[index];
+}
+
+void list_resize(struct list *list, size_t index) {
+	if (list->capacity <= index) {
+		list_realloc(list, list->capacity = index + 1);
+		assert(list->length <= index);
 	}
 
-	printf(")");
+	if (list->length <= index)
+		for (size_t i = list->length; i <= index; ++i)
+			list->elements[i] = KN_NULL;
+
+	list->length = index + 1;
 }
 
-static void free_list(void *data) {
-	for (size_t i = 0; i < LIST(data)->length; ++i) 
-		kn_value_free(LIST(data)->elements[i]);
-}
-
-// just run through the LIST and evaluate each argument.
-static void run_list(struct kn_list *list) {	
-	if (list->idempotent)
+void list_set(struct list *list, size_t index, kn_value value) {
+	if (index == list->length) {
+		list_push(list, value);
 		return;
+	}
 
+	if (list->length <= index) {
+		list_realloc(list, list->capacity = index + 1);
+
+		for (size_t i = list->length; i <= index; ++i)
+			list->elements[i] = KN_NULL;
+	}
+
+	kn_value_free(list->elements[index]);
+	list->elements[index] = value;
+
+}
+
+void list_insert(struct list *list, size_t index, kn_value value) {
+	(void ) list;
+	(void ) index;
+	(void ) value;
+	die("todo: insert");
+}
+
+kn_value list_delete(struct list *list, size_t index) {
+	if (list->length <= index) return KN_UNDEFINED;
+	if (index == list->length - 1) return list_pop(list);
+
+	kn_value element = list->elements[index];
+
+	memmove(list->elements + (index - 1),
+		list->elements + index, list->length - index);
+
+	return element;
+}
+
+void list_free(struct list *list) {
 	for (size_t i = 0; i < list->length; ++i)
-		kn_value_free(kn_value_run(list->elements[i]));
+		kn_value_free(list->elements[i]);
 }
 
-static kn_number list_custom_to_number(void *data) {
-	run_list(LIST(data));
+void list_dump(const struct list *list) {
+	printf("List(");
+	
+	for (size_t i = 0; i < list->length; ++i) {
+		if (i != 0) {
+			putchar(',');
+			putchar(' ');
+		}
 
-	return (kn_number) LIST(data)->length;
+		kn_value_dump(list->elements[i]);
+	}
+
+	putchar(')');
 }
 
-static kn_boolean list_custom_to_boolean(void *data) {
-	run_list(LIST(data));
-
-	return LIST(data)->length != 0;
+bool list_is_empty(const struct list *list) {
+	// todo: empty list.
+	return list->length == 0;
 }
 
-static struct kn_string *list_custom_to_string(void *data) {
+struct kn_string *list_to_string(struct list *list) {
 	size_t capacity = 1024;
 	char *str = xmalloc(capacity);
 	size_t length = 0;
 
 	str[length++] = '[';
 
-	for (size_t i = 0; i < LIST(data)->length; ++i) {
+	for (size_t i = 0; i < list->length; ++i) {
 		if (i != 0) {
 			memcpy(str + length, ", ", 2);
 			length += 2;
 		}
 
-		struct kn_string *string = kn_value_to_string(LIST(data)->elements[i]);
+		struct kn_string *string = kn_value_to_string(list->elements[i]);
 
 		if (capacity <= length + kn_string_length(string) + 2)
 			str = xrealloc(str, capacity *= 2);
@@ -97,246 +133,211 @@ static struct kn_string *list_custom_to_string(void *data) {
 	return kn_string_new_owned(str, length);
 }
 
-static kn_value kn_list_run(void *data) {
-	struct kn_list *list = (struct kn_list *) data;
+#define DEFAULT_CAPACITY 16
+
+kn_value list_run(struct list *list) {
+
+#define container_of(ptr, type, member) \
+		(type *)( (char *)(ptr) - offsetof(type,member) )
 
 	if (list->idempotent) {
-		struct kn_custom *custom = container_of(data, struct kn_custom, data);
+		struct kn_custom *custom
+			= container_of((void *) list, struct kn_custom, data);
 
 		return kn_value_new_custom(kn_custom_clone(custom));
 	}
 
-	struct kn_custom *custom = ALLOC_CUSTOM_LIST(list->length);
+	struct kn_custom *custom = ALLOC_CUSTOM_LIST();
 
-	LIST(custom->data)->length = list->length;
-	LIST(custom->data)->idempotent = true; // if it wasn't, we'd returned.
+	struct list *ran = LIST(custom->data);
+
+	ran->elements = xmalloc(sizeof(kn_value [DEFAULT_CAPACITY]));
+	ran->length = list->length;
+	ran->capacity = list->capacity;
+	ran->idempotent = list->idempotent;
 
 	for (size_t i = 0; i < list->length; ++i)
-		LIST(custom->data)->elements[i] = kn_value_run(list->elements[i]);
+		ran->elements[i] = kn_value_run(list->elements[i]);
 
 	return kn_value_new_custom(custom);
 }
 
-const struct kn_custom_vtable kn_list_vtable = {
-	.free = free_list,
-	.dump = dump_list,
-	.run = kn_list_run,
-	.to_number = list_custom_to_number,
-	.to_boolean = list_custom_to_boolean,
-	.to_string = list_custom_to_string
-};
+struct kn_custom *list_concat(struct list *lhs, struct list *rhs) {
+	size_t length = lhs->length + rhs->length;
 
+	struct kn_custom *custom = ALLOC_CUSTOM_LIST();
+	struct list *list = LIST(custom->data);
 
-KN_FUNCTION_DECLARE(xadd, 2, "X+") {
-	kn_value lhs = kn_value_run(args[0]);
-	kn_value rhs = kn_value_run(args[1]);
-
-	struct kn_list *llist = LIST(kn_value_as_custom(lhs)->data);
-	struct kn_list *rlist = LIST(kn_value_as_custom(rhs)->data);
-
-	size_t length = llist->length + rlist->length;
-
-	struct kn_custom *custom = ALLOC_CUSTOM_LIST(length);
-
-	LIST(custom->data)->length = length;
-	LIST(custom->data)->idempotent = llist->idempotent || rlist->idempotent;
+	list->length = length;
+	list->elements = xmalloc(sizeof(kn_value [length]));
+	list->idempotent = lhs->idempotent && rhs->idempotent;
 
 	size_t i;
 
-	for (i = 0; i < llist->length; ++i)
-		LIST(custom->data)->elements[i] = kn_value_run(llist->elements[i]);
+	for (i = 0; i < lhs->length; ++i)
+		list->elements[i] = kn_value_run(lhs->elements[i]);
 
-	for (size_t j = 0; j < rlist->length; ++j, ++i)
-		LIST(custom->data)->elements[i] = kn_value_run(rlist->elements[j]);
+	for (size_t j = 0; j < rhs->length; ++j, ++i)
+		list->elements[i] = kn_value_run(rhs->elements[j]);
 
-	return kn_value_new_custom(custom);
+	return custom;
+
 }
 
-KN_FUNCTION_DECLARE(xlast, 1, "X_LAST") {
-	kn_value ran = kn_value_run(args[0]);
-
-	struct kn_list *list = LIST(kn_value_as_custom(ran)->data);
-
-	if (list->length == 0) die("cannot get last of empty list");
-
-	return kn_value_run(list->elements[list->length - 1]);
+static bool is_idempotent(kn_value value) {
+	return value == KN_NULL
+		|| kn_value_is_boolean(value)
+		|| kn_value_is_number(value)
+		|| kn_value_is_string(value);
 }
-
-KN_FUNCTION_DECLARE(xpush, 2, "X_PUSH") {
-	kn_value ran = kn_value_run(args[0]);
-	kn_value element = kn_value_run(args[1]);
-
-	struct kn_list *list = LIST(kn_value_as_custom(ran)->data);
-	struct kn_custom *custom = ALLOC_CUSTOM_LIST(list->length + 1);
-
-	LIST(custom->data)->length = list->length + 1;
-	LIST(custom->data)->idempotent = list->idempotent && is_idempotent(element);
-
-	for (size_t i = 0; i < list->length; ++i)
-		LIST(custom->data)->elements[i] = kn_value_run(list->elements[i]);
-
-	LIST(custom->data)->elements[list->length] = element;
-
-	return kn_value_new_custom(custom);
-}
-
-KN_FUNCTION_DECLARE(xpop, 1, "X_POP") {
-	kn_value ran = kn_value_run(args[0]);
-
-	struct kn_list *list = LIST(kn_value_as_custom(ran)->data);
-	if (list->length == 0) die("cannot pop from empty list");
-
-	size_t length = list->length - 1;
-	struct kn_custom *custom = ALLOC_CUSTOM_LIST(length);
-	LIST(custom->data)->length = length;
-
-	if (list->idempotent) {
-		LIST(custom->data)->idempotent = true;
-	} else if (is_idempotent(list->elements[length])) {
-		// pop an idempotent on, we still got a nonidempotent somewhere
-		LIST(custom->data)->idempotent = false;
-	} else {
-		for (size_t i = 0; i < list->length; ++i) {
-			if (!is_idempotent(list->elements[i])) {
-				LIST(custom->data)->idempotent = false;
-				goto done;
-			}
-		}
-
-		LIST(custom->data)->idempotent = true;
-	done:
-		;
-	}
-
-	for (size_t i = 0; i < length; ++i)
-		LIST(custom->data)->elements[i] = kn_value_run(list->elements[i]);
-
-	return kn_value_new_custom(custom);
-
-	// LIST(custom->data)->length = list->length + 1;
-	// LIST(custom->data)->idempotent = list->idempotent && is_idempotent(element);
-
-	// for (size_t i = 0; i < list->length; ++i)
-	// 	LIST(custom->data)->elements[i] = kn_value_run(list->elements[i]);
-
-	// LIST(custom->data)->elements[list->length] = element;
-
-	return kn_value_new_custom(custom);
-}
-
-KN_FUNCTION_DECLARE(xget, 2, "X_GET") {
-	kn_value ran = kn_value_run(args[0]);
-	size_t index = (size_t) kn_value_to_number(args[1]);
-
-	struct kn_list *list = LIST(kn_value_as_custom(ran)->data);
-
-	if (list->length <= index)
-		die("index %zu is too large (length %zu)", index, list->length);
-
-	kn_value ret = kn_value_clone(list->elements[index]);
-	kn_value_free(ran);
-	return ret;
-}
-
-KN_FUNCTION_DECLARE(xget, 2, "X_SET") {
-	kn_value ran = kn_value_run(args[0]);
-	size_t index = (size_t) kn_value_to_number(args[1]);
-
-	struct kn_list *list = LIST(kn_value_as_custom(ran)->data);
-
-	if (list->length <= index)
-		die("index %zu is too large (length %zu)", index, list->length);
-
-	kn_value ret = kn_value_clone(list->elements[index]);
-	kn_value_free(ran);
-	return ret;
-}
-
 
 static unsigned depth;
 
-struct kn_custom *parse_list() {
+static kn_value parse_list() {
 	unsigned current_depth = depth++;
-	size_t capacity = 16; // unlikely to have more than 16 in a literal.
 
-	struct kn_custom *custom = ALLOC_CUSTOM_LIST(capacity);
+	struct kn_custom *custom
+		= kn_custom_alloc(sizeof(struct list), &list_vtable);
 
-	LIST(custom->data)->length = 0;
-	LIST(custom->data)->idempotent = true;
-	LIST(custom->data)->elements
-	kn_value parsed;
+	struct list *list = LIST(custom->data);
 
-	while (depth != current_depth) {
-		parsed = kn_parse_value();
-		LIST(custom->data)->elements[LIST(custom->data)->length++] = parsed;
+	list->elements = xmalloc(sizeof(kn_value [DEFAULT_CAPACITY]));
+	list->length = 0;
+	list->capacity = DEFAULT_CAPACITY;
+	list->idempotent = true;
 
-		if (parsed == KN_UNDEFINED) die("missing closing 'X]'");
+	while (1) {
+		kn_value parsed = kn_parse_value();
+
+		if (depth == current_depth) {
+			assert(parsed == KN_NULL);
+			break;
+		}
+
+		if (parsed == KN_UNDEFINED)
+			die("missing closing 'X]'");
+
+		list->elements[list->length++] = parsed;
 
 		if (!is_idempotent(parsed))
-			LIST(custom->data)->idempotent = false;
+			list->idempotent = false;
 
-		if (LIST(custom->data)->length == capacity) {
-			capacity *= 2;
-			custom = xrealloc(
-				custom,
-				sizeof(struct kn_custom)
-					+ sizeof(struct kn_list)
-					+ sizeof(kn_value [capacity])
-			);
+		if (list->length == list->capacity) {
+			list->capacity *= 2;
+			list->elements =
+				xrealloc(list->elements, sizeof(kn_value [list->capacity]));
 		}
 	}
 
 	if (current_depth != depth) 
 		die("missing closing 'X]'");
 
-	return xrealloc(
-		custom,
-		sizeof(struct kn_custom)
-			+ sizeof(struct kn_list)
-			+ sizeof(kn_value [capacity])
-	);
+	list->elements =
+		xrealloc(list->elements, sizeof(kn_value [list->capacity]));
+
+	return kn_value_new_custom(custom);
 }
 
-kn_value kn_parse_extension_list() {
-	switch (kn_parse_peek()) {
-	case '[':
-		return kn_value_new_custom(parse_list());
+#define VALUE2LIST(value) LIST(kn_value_as_custom(value)->data)
+#define CORRECT_INDEX(index) (index < 0 ? (VALUE2LIST(ran)->length + index) : index)
 
-	case ']':
+KN_FUNCTION_DECLARE(xlpop, 1, "X_LPOP") {
+	kn_value ran = kn_value_run(args[0]);
+	kn_value popped = list_pop(VALUE2LIST(ran));
+	kn_value_free(ran);
+
+	// pop from an empty list yields null
+	return popped == KN_UNDEFINED ? KN_NULL : popped;
+}
+
+KN_FUNCTION_DECLARE(xlpush, 2, "X_LPUSH") {
+	kn_value ran = kn_value_run(args[0]);
+	list_push(VALUE2LIST(ran), kn_value_run(args[1]));
+	return ran;
+}
+
+KN_FUNCTION_DECLARE(xlget, 2, "X_LGET") {
+	kn_value ran = kn_value_run(args[0]);
+	kn_number index = kn_value_to_number(args[1]);
+	kn_value retrieved = list_get(VALUE2LIST(ran), CORRECT_INDEX(index));
+	kn_value_free(ran);
+
+	return retrieved == KN_UNDEFINED ? KN_NULL : kn_value_clone(retrieved);
+}
+
+KN_FUNCTION_DECLARE(xlset, 3, "X_LSET") {
+	kn_value ran = kn_value_run(args[0]);
+	kn_value value = kn_value_run(args[1]);
+	kn_number index = kn_value_to_number(args[2]);
+	list_set(VALUE2LIST(ran), CORRECT_INDEX(index), value);
+
+	return ran;
+}
+
+KN_FUNCTION_DECLARE(xlinsert, 3, "X_LINSERT") {
+	kn_value ran = kn_value_run(args[0]);
+	kn_value value = kn_value_run(args[1]);
+	kn_number index = kn_value_to_number(args[2]);
+	list_insert(VALUE2LIST(ran), CORRECT_INDEX(index), value);
+
+	return ran;
+}
+
+KN_FUNCTION_DECLARE(xlconcat, 2, "X+") {
+	kn_value lhs = kn_value_run(args[0]);
+	kn_value rhs = kn_value_run(args[1]);
+	kn_value ret = kn_value_new_custom(list_concat(VALUE2LIST(lhs), VALUE2LIST(rhs)));
+
+	kn_value_free(lhs);
+	kn_value_free(rhs);
+
+	return ret;
+}
+
+
+KN_FUNCTION_DECLARE(xldelete, 2, "X_LDELETE") {
+	kn_value ran = kn_value_run(args[0]);
+	kn_number index = kn_value_to_number(args[1]);
+	kn_value deleted = list_delete(VALUE2LIST(ran), CORRECT_INDEX(index));
+
+	kn_value_free(ran);
+
+	return deleted;
+}
+#undef VALUE2LIST
+#undef CORRECT_INDEX
+
+kn_number _list_length(struct list *list) {
+	return list->length;
+}
+
+const struct kn_custom_vtable list_vtable = {
+	.free = (void (*)(void *)) list_free,
+	.dump = (void (*)(void *)) list_dump,
+	.run = (kn_value (*)(void *)) list_run,
+	.to_number = (kn_number (*)(void *)) _list_length,
+	.to_boolean = (kn_boolean (*) (void *)) list_is_empty,
+	.to_string = (struct kn_string *(*)(void *)) list_to_string
+};
+
+
+kn_value kn_parse_extension_list() {
+	TRY_PARSE_FUNCTION("LPOP", xlpop);
+	TRY_PARSE_FUNCTION("LPOP", xlpop);
+	TRY_PARSE_FUNCTION("LPUSH", xlpush);
+	TRY_PARSE_FUNCTION("LGET", xlget);
+	TRY_PARSE_FUNCTION("LSET", xlset);
+	TRY_PARSE_FUNCTION("LINSERT", xlinsert);
+	TRY_PARSE_FUNCTION("LDELETE", xldelete);
+	TRY_PARSE_FUNCTION("+", xlconcat);
+
+	if (stream_starts_with_strip("["))
+		return parse_list();
+	if (stream_starts_with_strip("]")) {
 		if (!depth--)
 			die("unexpected `X]`");
 		return KN_NULL;
-
-	case 'G':
-		if (!stream_starts_with_strip("GET"))
-			return KN_UNDEFINED;
-
-		return kn_value_new_ast(kn_parse_ast(&kn_fn_xget));
-
-	case 'L':
-		if (!stream_starts_with_strip("LAST"))
-			return KN_UNDEFINED;
-
-		return kn_value_new_ast(kn_parse_ast(&kn_fn_xlast));
-
-	case 'P': {
-		if (!stream_starts_with("POP") && !stream_starts_with("PUSH"))
-			return KN_UNDEFINED;
-		char c = kn_parse_peek_advance();
-		strip_keyword();
-
-		return kn_value_new_ast(
-			kn_parse_ast(c == 'U' ? &kn_fn_xpush : &kn_fn_xpop)
-		);
 	}
 
-	case '+': 
-		return kn_value_new_ast(kn_parse_ast(&kn_fn_xadd));
-
-	default:
-		return KN_UNDEFINED;
-	}
+	return KN_UNDEFINED;
 }
-
-
-

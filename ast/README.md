@@ -21,5 +21,5 @@ todo: make the old `assert_reckless`s into actual errors
 - `KN_EXT_VALUE`: Enables the use of the `VALUE` function, which looks up a variable indirectly based on its argument.
 - `KN_EXT_NEGATE`: Enables the use of the `~` function, which simply converts its argument to a number and negates it.
 - `KN_EXT_EQL_INTERPOLATE`: Allows the use of non-identifiers on the LHS of `=`, which will be coerced to an identifier.
-- `KN_EXT_CUSTOM_TYPES`
-- `KN_EXT_FUNCTION`
+- `KN_EXT_IGNORE_COMMA`: Simply adds `,` to the list of whitespace
+- `KN_CUSTOM`: Enables the use of custom types.

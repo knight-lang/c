@@ -2,6 +2,7 @@
 #include "../src/shared.h"
 #include "file.h"
 #include "list.h"
+#include "ext.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -44,6 +45,9 @@ kn_value kn_parse_extension() {
 
 	while (kn_parse_peek() == '_')
 		kn_parse_advance();
+
+	// helper for `IF`to make it look nicer
+	if (stream_starts_with_strip("ELSE")) return kn_parse_value();
 
 	if ((value = kn_parse_extension_greeter()) != KN_UNDEFINED) return value;
 	if ((value = kn_parse_extension_list()) != KN_UNDEFINED) return value;

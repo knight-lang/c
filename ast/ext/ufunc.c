@@ -68,22 +68,28 @@ static void free_ufunc_call(void *data) {
 }
 
 static kn_value run_ufunc_call(void *data) {
-	kn_value ran = kn_value_run(UFUNC_CALL(data)->func);
-	struct kn_ufunc *func = UFUNC(kn_value_as_custom(ran)->data);
+	struct kn_ufunc_call *ufunc_call = UFUNC_CALL(data);
+	kn_value ran = kn_value_run(ufunc_call->func);
+	struct kn_ufunc *ufunc = UFUNC(kn_value_as_custom(ran)->data);
 
-	kn_value prev_vals[func->paramc];
-	kn_value curr_vals[func->paramc];
+	kn_value prev_vals[ufunc->paramc];
+	kn_value curr_vals[ufunc->paramc];
 
-	for (unsigned char i = 0; i < func->paramc; ++i) {
-		prev_vals[i] = func->params[i]->value;
-		func->params[i]->value =
-			curr_vals[i] = kn_value_run(UFUNC_CALL(data)->args[i]);
+	if (ufunc->paramc != ufunc_call->argc) {
+		die("param mismatch (given %d, expected %d)",
+			ufunc_call->argc, ufunc->paramc);
 	}
 
-	kn_value result = kn_value_run(func->body);
+	for (unsigned char i = 0; i < ufunc->paramc; ++i) {
+		prev_vals[i] = ufunc->params[i]->value;
+		ufunc->params[i]->value =
+			curr_vals[i] = kn_value_run(ufunc_call->args[i]);
+	}
 
-	for (unsigned char i = 0; i < func->paramc; ++i) {
-		func->params[i]->value = prev_vals[i];
+	kn_value result = kn_value_run(ufunc->body);
+
+	for (unsigned char i = 0; i < ufunc->paramc; ++i) {
+		ufunc->params[i]->value = prev_vals[i];
 		kn_value_free(curr_vals[i]);
 	}
 
@@ -169,8 +175,6 @@ static kn_value parse_ufunc_call() {
 }
 
 kn_value kn_parse_extension_ufunc() {
-	static struct kn_variable *args[MAXARGC];
-
 	if (stream_starts_with_strip("FUNC")) return parse_ufunc_declaration();
 	if (stream_starts_with_strip("(")) return parse_ufunc_call();
 	if (stream_starts_with_strip(")")/* || kn_parse_stream[-2] == ')'*/) {

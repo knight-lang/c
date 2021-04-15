@@ -19,4 +19,3 @@ struct kn_ufunc {
 kn_value kn_parse_extension_ufunc(void);
 
 #endif /* !KN_EXT_UFUNC_H */
-

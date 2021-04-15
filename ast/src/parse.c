@@ -20,7 +20,11 @@ static int iswhitespace(char c) {
 	return isspace(c) || c == ':'
 		|| c == '(' || c == ')'
 		|| c == '[' || c == ']'
-		|| c == '{' || c == '}';
+		|| c == '{' || c == '}'
+# ifdef KN_EXT_IGNORE_COMMA
+		|| c == ','
+# endif /* KN_EXT_IGNORE_COMMA */
+	;
 }
 
 // Checks to see if the character is part of a word function body.
@@ -29,9 +33,9 @@ static int iswordfunc(char c) {
 }
 
 void kn_parse_strip() {
-	assert(iswhitespace(kn_parse_peek()) || kn_parse_peek() == '#');
-
 	char c;
+
+	assert(iswhitespace(c = kn_parse_peek()) || c == '#');
 
 	while (1) {
 		c = kn_parse_peek();
@@ -175,7 +179,11 @@ kn_value kn_parse_value() {
 		[')']  = &&strip,
 		['*']  = &&function_mul,
 		['+']  = &&function_add,
+# ifdef KN_EXT_IGNORE_COMMA
+		[',']  = &&strip,
+# else
 		[',']  = &&invalid,
+# endif /* KN_EXT_IGNORE_COMMA */
 		['-']  = &&function_sub,
 		['.']  = &&invalid,
 		['/']  = &&function_div,
