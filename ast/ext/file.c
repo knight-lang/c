@@ -63,7 +63,7 @@ KN_FUNCTION_DECLARE(xappend, 2, "X_APPEND") {
 	die("todo");
 }
 
-kn_value kn_parse_extension_file(void) {
+kn_value parse_extension_file(void) {
 	if (stream_starts_with_strip("READ"))
 		return kn_value_new_ast(kn_parse_ast(&kn_fn_xread));
 

@@ -321,7 +321,7 @@ const struct kn_custom_vtable list_vtable = {
 };
 
 
-kn_value kn_parse_extension_list() {
+kn_value parse_extension_list() {
 	TRY_PARSE_FUNCTION("LPOP", xlpop);
 	TRY_PARSE_FUNCTION("LPOP", xlpop);
 	TRY_PARSE_FUNCTION("LPUSH", xlpush);

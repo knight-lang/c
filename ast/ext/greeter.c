@@ -48,7 +48,7 @@ static struct kn_custom_vtable greeter_vtable = {
 };
 
 
-kn_value kn_parse_extension_greeter() {
+kn_value parse_extension_greeter() {
 	if (!stream_starts_with_strip("GREET")) return KN_UNDEFINED;
 
 	kn_value next;

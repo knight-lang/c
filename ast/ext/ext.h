@@ -1,5 +1,5 @@
-#ifndef KN_EXT_H
-#define KN_EXT_H
+#ifndef EXT_H
+#define EXT_H
 
 #include "../src/value.h"
 #include "../src/parse.h"
@@ -15,4 +15,4 @@ bool stream_starts_with_strip(const char *str);
 	if (stream_starts_with_strip(string)) \
 		return kn_value_new_ast(kn_parse_ast(&kn_fn_##function));
 
-#endif /* KN_EXT_H */
+#endif /* EXT_H */

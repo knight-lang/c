@@ -1,44 +1,13 @@
 #include "../src/parse.h"
 #include "../src/shared.h"
-#include "file.h"
-#include "list.h"
 #include "ext.h"
-
 #include <ctype.h>
 #include <string.h>
 
-/*
-unsigned ext_depth;
-
-kn_value parse_value(char skip) {
-	char c;
-
-top:
-	// ie everything but `skip`.
-	while (
-		(c == '(' || c == ')'
-			|| c == '{' || c == '}'
-			|| c == '[' || c == ']'
-			|| c == ':' || isspace(c = kn_parse_peek()))
-		&& c != skip
-	) kn_parse_advance();
-
-	if (kn_parse_peek() == '#') {
-		while (kn_parse_advance_peek() != '\n');
-		goto top;
-	}
-
-	if (c == skip) {
-		--ext_depth;
-		kn_parse_advance();
-		return KN_UNDEFINED;
-	}
-
-	return kn_parse_value();
-}*/
-
-kn_value kn_parse_extension_greeter(void);
-kn_value kn_parse_extension_ufunc(void);
+kn_value parse_extension_greeter(void);
+kn_value parse_extension_list(void);
+kn_value parse_extension_file(void);
+kn_value parse_extension_ufunc(void);
 
 kn_value kn_parse_extension() {
 	kn_value value;
@@ -49,10 +18,10 @@ kn_value kn_parse_extension() {
 	// helper for `IF`to make it look nicer
 	if (stream_starts_with_strip("ELSE")) return kn_parse_value();
 
-	if ((value = kn_parse_extension_greeter()) != KN_UNDEFINED) return value;
-	if ((value = kn_parse_extension_list()) != KN_UNDEFINED) return value;
-	if ((value = kn_parse_extension_file()) != KN_UNDEFINED) return value;
-	if ((value = kn_parse_extension_ufunc()) != KN_UNDEFINED) return value;
+	if ((value = parse_extension_greeter()) != KN_UNDEFINED) return value;
+	if ((value = parse_extension_list()) != KN_UNDEFINED) return value;
+	if ((value = parse_extension_file()) != KN_UNDEFINED) return value;
+	if ((value = parse_extension_ufunc()) != KN_UNDEFINED) return value;
 
 	die("unknown extension character '%c'", *kn_parse_stream);
 }

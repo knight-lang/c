@@ -24,10 +24,10 @@
 #include "ext.h"
 #include <string.h>
 
-#define UFUNC(data) ((struct kn_ufunc *) (data))
-#define UFUNC_CALL(data) ((struct kn_ufunc_call *) (data))
+#define UFUNC(data) ((struct ufunc *) (data))
+#define UFUNC_CALL(data) ((struct ufunc_call *) (data))
 
-struct kn_ufunc_call {
+struct ufunc_call {
 	_Alignas(16) unsigned char argc;
 	_Alignas(16) kn_value func;
 	kn_value args[];
@@ -68,9 +68,9 @@ static void free_ufunc_call(void *data) {
 }
 
 static kn_value run_ufunc_call(void *data) {
-	struct kn_ufunc_call *ufunc_call = UFUNC_CALL(data);
+	struct ufunc_call *ufunc_call = UFUNC_CALL(data);
 	kn_value ran = kn_value_run(ufunc_call->func);
-	struct kn_ufunc *ufunc = UFUNC(kn_value_as_custom(ran)->data);
+	struct ufunc *ufunc = UFUNC(kn_value_as_custom(ran)->data);
 
 	kn_value prev_vals[ufunc->paramc];
 	kn_value curr_vals[ufunc->paramc];
@@ -103,7 +103,7 @@ static struct kn_custom_vtable ufunc_call_vtable = {
 	.run = (kn_value (*)(void *)) run_ufunc_call,
 };
 
-static struct kn_custom_vtable ufunc_vtable = {
+const struct kn_custom_vtable ufunc_vtable = {
 	.free = (void (*)(void *)) free_ufunc,
 	.dump = (void (*)(void *)) dump_ufunc,
 	.to_number = (kn_number (*)(void *)) unsupported_function,
@@ -126,7 +126,7 @@ static kn_value parse_ufunc_declaration() {
 	} while (paramc < MAXARGC);
 
 	struct kn_custom *custom = kn_custom_alloc(
-		sizeof(struct kn_ufunc) + sizeof(struct kn_variable *[paramc]),
+		sizeof(struct ufunc) + sizeof(struct kn_variable *[paramc]),
 		&ufunc_vtable
 	);
 
@@ -163,7 +163,7 @@ static kn_value parse_ufunc_call() {
 	} while (argc < MAXARGC);
 
 	struct kn_custom *custom = kn_custom_alloc(
-		sizeof(struct kn_ufunc_call) + sizeof(kn_value[argc]),
+		sizeof(struct ufunc_call) + sizeof(kn_value[argc]),
 		&ufunc_call_vtable
 	);
 
@@ -174,9 +174,13 @@ static kn_value parse_ufunc_call() {
 	return kn_value_new_custom(custom);
 }
 
-kn_value kn_parse_extension_ufunc() {
-	if (stream_starts_with_strip("FUNC")) return parse_ufunc_declaration();
-	if (stream_starts_with_strip("(")) return parse_ufunc_call();
+kn_value parse_extension_ufunc() {
+	if (stream_starts_with_strip("FUNC"))
+		return parse_ufunc_declaration();
+
+	if (stream_starts_with_strip("(") || stream_starts_with_strip("CALL"))
+		return parse_ufunc_call();
+
 	if (stream_starts_with_strip(")")/* || kn_parse_stream[-2] == ')'*/) {
 		if (!depth--) die("stray 'X)' encountered");
 		return KN_NULL; // doesn't matter what we return, as we check depth.
