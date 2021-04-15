@@ -5,6 +5,7 @@
 #include "../src/parse.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "ext.h"
 #include <string.h>
 
 struct greeter {
@@ -14,7 +15,6 @@ struct greeter {
 void free_greeter(struct greeter *greeter) {
 	free(greeter->name);
 	free(greeter->greeting);
-	free(greeter);
 }
 
 void dump_greeter(struct greeter *greeter) {
@@ -47,27 +47,29 @@ static struct kn_custom_vtable greeter_vtable = {
 	.to_string = (struct kn_string *(*) (void *)) greet_string
 };
 
-kn_value kn_parse_extension(const char **stream) {
+
+kn_value kn_parse_extension_greeter() {
+	if (!stream_starts_with_strip("GREET")) return KN_UNDEFINED;
+
 	kn_value next;
 	struct kn_string *string;
+	struct kn_custom *custom =
+		kn_custom_alloc(sizeof(struct greeter), &greeter_vtable);
+	struct greeter *greeter = (struct greeter *) custom->data;
 
-	if (**stream != 'G') die("unknown start '%c'", (*stream)[0]);
-	do ++*stream; while(('A' <= **stream && **stream <= 'Z') || **stream == '_');
-	struct greeter *greeter = xmalloc(sizeof(struct greeter));
-
-	next = kn_parse(stream);
+	next = kn_parse_value();
 	if (next == KN_UNDEFINED) die("missing greeting for 'XGET'");
 	string = kn_value_to_string(next);
 	greeter->greeting = strdup(kn_string_deref(string));
 	kn_string_free(string);
 	kn_value_free(next);
 
-	next = kn_parse(stream);
+	next = kn_parse_value();
 	if (next == KN_UNDEFINED) die("missing name for 'XGET'");
 	string = kn_value_to_string(next);
 	greeter->name = strdup(kn_string_deref(string));
 	kn_string_free(string);
 	kn_value_free(next);
 	
-	return kn_value_new_custom(greeter, &greeter_vtable);
+	return kn_value_new_custom(custom);
 }

@@ -7,19 +7,14 @@
 #include <stdint.h>
 
 extern const struct kn_custom_vtable kn_list_vtable;
-extern struct kn_list kn_list_empty;
 
 struct kn_list {
 	size_t length;
 	bool idempotent;
-	kn_value elements[];
+	kn_value *elements;
 };
 
-struct kn_list *kn_list_alloc(size_t length);
-void kn_list_free(struct kn_list *list);
-void kn_list_dump(const struct kn_list *list);
-
-kn_value kn_fn_extension_parse(const char **stream);
+kn_value kn_parse_extension_list(void);
 
 #endif /* !KN_EXT_LIST_H */
 
