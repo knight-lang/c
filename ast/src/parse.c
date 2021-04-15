@@ -218,7 +218,7 @@ kn_value kn_parse_value() {
 		['W']  = &&function_while,
 		['Y']  = &&invalid,
 # ifdef KN_CUSTOM
-		['X']  = &&function_extension,
+		['X']  = &&extension,
 # else
 		['X']  = &&invalid,
 # endif /* KN_CUSTOM */
