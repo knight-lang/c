@@ -87,7 +87,6 @@ static inline char kn_parse_peek_advance() {
 	return *kn_parse_stream++;
 }
 
-
 #ifdef KN_CUSTOM
 /*
  * This function is called whenever a keyword function starting with `X` is
