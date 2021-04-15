@@ -45,7 +45,7 @@ void kn_parse_strip() {
 		if (!iswhitespace(c))
 			break;
 
-		while (iswhitespace(kn_parse_peek_advance())) {
+		while (iswhitespace(kn_parse_advance_peek())) {
 			/* do nothing */
 		}
 	}
