@@ -65,9 +65,9 @@ kn_number kn_parse_number() {
 }
 
 struct kn_string *kn_parse_string() {
-	const char *start = kn_parse_stream;
 	char quote = kn_parse_peek_advance();
 	char c;
+	const char *start = kn_parse_stream;
 
 	assert(quote == '\'' || quote == '\"');
 
