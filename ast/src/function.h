@@ -33,15 +33,14 @@ void kn_function_startup(void);
 /*
  * Declares a function with the given function name, arity, and char name.
  */
-#define KN_FUNCTION_DECLARE(func_, arity_, name_) \
-	static kn_value kn_fn_##func_##_function(const kn_value *); \
-	const struct kn_function kn_fn_##func_ = { \
-		.func = kn_fn_##func_##_function, \
-		.arity = arity_, \
-		.name = name_ \
-	}; \
-	static kn_value kn_fn_##func_##_function(const kn_value *args)
-
+#define KN_DECLARE_FUNCTION(func_, arity_, name_)   \
+	kn_value func_##_function(const kn_value *);    \
+	const struct kn_function func_ = {              \
+		.func = func_##_function,                   \
+		.arity = arity_,                            \
+		.name = name_                               \
+	};                                              \
+	kn_value func_##_function(const kn_value *args)
 
 /******************************************************************************
  * The following are all of the different types of functions within Knight.   *
