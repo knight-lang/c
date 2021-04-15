@@ -200,7 +200,7 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 		if (KN_LIKELY(strncmp(kn_string_deref(string), str, length) == 0))
 			return kn_string_clone(string);
 
- 		evict_string(string);
+		evict_string(string);
 	};
 
 	// it may be embeddable, so don't just call `allocate_heap_string`.

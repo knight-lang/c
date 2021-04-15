@@ -5,8 +5,8 @@
 #include "string.h" /* kn_string, kn_string_clone, kn_string_free,
                        kn_string_deref, kn_string_length, KN_STRING_FL_STATIC,
                        KN_STRING_NEW_EMBED */
+#include "custom.h" /* kn_custom, kn_custom_free, kn_custom_clone */
 #include "shared.h" /* die */
-#include "custom.h" /* kn_custom_vtable, kn_custom */
 
 #include <inttypes.h> /* PRId64 */
 #include <stdlib.h>   /* free, NULL */
@@ -25,7 +25,7 @@
  * X...XX011 - string (nonzero `X`)
  * X...XX100 - function (nonzero `X`)
  * X...XX110 - custom (nonzero `X`) (only with `KN_CUSTOM`)
- * note all pointers are 8+-bit-aligned.
+ * note all pointers are 8-bit-aligned.
  */
 #define KN_SHIFT 3
 #define KN_TAG_CONSTANT 0
@@ -35,7 +35,7 @@
 #define KN_TAG_AST 4
 
 #ifdef KN_CUSTOM
-#	define KN_TAG_CUSTOM 5
+# define KN_TAG_CUSTOM 5
 #endif /* KN_CUSTOM */
 
 
@@ -56,7 +56,7 @@ kn_value kn_value_new_boolean(kn_boolean boolean) {
 kn_value kn_value_new_string(struct kn_string *string) {
 	assert(string != NULL);
 
- 	// a nonzero tag indicates a misaligned pointer
+	// a nonzero tag indicates a misaligned pointer
 	assert(KN_TAG((uint64_t) string) == 0);
 
 	return ((uint64_t) string) | KN_TAG_STRING;
@@ -65,7 +65,7 @@ kn_value kn_value_new_string(struct kn_string *string) {
 kn_value kn_value_new_variable(struct kn_variable *value) {
 	assert(value != NULL);
 
- 	// a nonzero tag indicates a misaligned pointer
+	// a nonzero tag indicates a misaligned pointer
 	assert(KN_TAG((uint64_t) value) == 0);
 
 	return ((uint64_t) value) | KN_TAG_VARIABLE;
@@ -74,25 +74,19 @@ kn_value kn_value_new_variable(struct kn_variable *value) {
 kn_value kn_value_new_ast(struct kn_ast *ast) {
 	assert(ast != NULL);
 
- 	// a nonzero tag indicates a misaligned pointer
+	// a nonzero tag indicates a misaligned pointer
 	assert(KN_TAG((uint64_t) ast) == 0);
 
 	return ((uint64_t) ast) | KN_TAG_AST;
 }
 
 #ifdef KN_CUSTOM
-kn_value kn_value_new_custom(
-	void *data,
-	const struct kn_custom_vtable *vtable
-) {
-	assert(vtable != NULL);
-	struct kn_custom *custom = xmalloc(sizeof(struct kn_custom));
+kn_value kn_value_new_custom(struct kn_custom *custom) {
+	assert(custom != NULL);
+	assert(custom->vtable != NULL);
 
- 	// a nonzero tag indicates a misaligned pointer
+	// a nonzero tag indicates a misaligned pointer
 	assert(KN_TAG((uint64_t) custom) == 0);
-
-	custom->data = data;
-	custom->vtable = vtable;
 
 	return ((uint64_t) custom) | KN_TAG_CUSTOM;
 }
@@ -213,7 +207,6 @@ kn_number kn_value_to_number(kn_value value) {
 
 		if (custom->vtable->to_number != NULL)
 			return custom->vtable->to_number(custom->data);
-
 		// otherwise, fallthrough
 	}
 #endif /* KN_CUSTOM */
@@ -251,7 +244,6 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 
 		if (custom->vtable->to_boolean != NULL)
 			return custom->vtable->to_boolean(custom->data);
-
 		// otherwise, fallthrough
 	}
 #endif /* KN_CUSTOM */
@@ -329,7 +321,6 @@ struct kn_string *kn_value_to_string(kn_value value) {
 
 		if (custom->vtable->to_string != NULL)
 			return custom->vtable->to_string(custom->data);
-
 		// otherwise, fallthrough
 	}
 #endif /* KN_CUSTOM */
@@ -384,7 +375,9 @@ void kn_value_dump(kn_value value) {
 		if (custom->vtable->dump != NULL) {
 			custom->vtable->dump(custom->data);
 		} else {
-			printf("Custom(%p, %p)", custom->data, (void *) custom->vtable);
+			printf(
+				"Custom(%p, %p)", (void *) custom->data, (void *) custom->vtable
+			);
 		}
 
 		return;
@@ -463,8 +456,7 @@ kn_value kn_value_clone(kn_value value) {
 
 #ifdef KN_CUSTOM
 	case KN_TAG_CUSTOM:
-		++kn_value_as_custom(value)->refcount;
-		return value;
+		return kn_value_new_custom(kn_custom_clone(kn_value_as_custom(value)));
 #endif /* KN_CUSTOM */
 
 	default:
@@ -491,22 +483,9 @@ void kn_value_free(kn_value value) {
 		return;
 
 #ifdef KN_CUSTOM
-	case KN_TAG_CUSTOM: {
-		struct kn_custom *custom = kn_value_as_custom(value);
-
-		// dont free customs with 0 refcount, as they are static.
-		if (custom->refcount == 0 || --custom->refcount != 0)
-			return;
-
-		if (custom->vtable->free != NULL) {
-			custom->vtable->free(custom->data);
-		} else {
-			free(custom->data);
-		}
-
-		free(custom);
+	case KN_TAG_CUSTOM:
+		kn_custom_free(kn_value_as_custom(value));
 		return;
-	}
 #endif /* KN_CUSTOM */
 
 	default:

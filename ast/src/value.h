@@ -39,7 +39,6 @@ struct kn_variable;
 
 #ifdef KN_CUSTOM
 struct kn_custom;
-struct kn_custom_vtable;
 #endif /* KN_CUSTOM */
 
 /*
@@ -109,7 +108,7 @@ kn_value kn_value_new_ast(struct kn_ast *ast);
  *
  * Ownership of the `custom` is passed to this function.
  */
-kn_value kn_value_new_custom(void *data, const struct kn_custom_vtable *vtable);
+kn_value kn_value_new_custom(struct kn_custom *custom);
 #endif /* KN_CUSTOM */
 
 /*

@@ -12,6 +12,7 @@
 #include "shared.h"   /* die, KN_UNREACHABLE */
 #include "env.h"      /* kn_variable, kn_env_fetch */
 
+// the stream used by all the parsing functions.
 const char *kn_parse_stream;
 
 // Check to see if the character is considered whitespace to Knight.
@@ -32,17 +33,27 @@ void kn_parse_strip() {
 
 	char c;
 
-	do {
-		c = kn_parse_advance_peek();
+	while (1) {
+		c = kn_parse_peek();
 
-		if (KN_UNLIKELY(kn_parse_peek() == '#')) {
-			while (KN_LIKELY(c = kn_parse_advance_peek()) != '\n');
+		if (KN_UNLIKELY(c == '#')) {
+			while ((c = kn_parse_advance_peek()) != '\n' && c != '\0') {
+				/* do nothing */
+			}
 		}
-	} while (iswhitespace(c));
+
+		if (!iswhitespace(c))
+			break;
+
+		while (iswhitespace(kn_parse_peek_advance())) {
+			/* do nothing */
+		}
+	}
 }
 
 kn_number kn_parse_number() {
 	char c = kn_parse_peek();
+
 	assert(isdigit(c));
 
 	kn_number number = (c - '0');
@@ -54,11 +65,11 @@ kn_number kn_parse_number() {
 }
 
 struct kn_string *kn_parse_string() {
+	const char *start = kn_parse_stream;
 	char quote = kn_parse_peek_advance();
 	char c;
-	assert(quote == '\'' || quote == '\"');
 
-	const char *start = kn_parse_stream;
+	assert(quote == '\'' || quote == '\"');
 
 	while (quote != (c = kn_parse_peek_advance())) {
 
@@ -242,9 +253,9 @@ start:
 	c = kn_parse_peek();
 
 #ifdef KN_COMPUTED_GOTOS
-       goto *labels[(size_t) c];
+	goto *labels[(size_t) c];
 #else
-       switch (c) {
+	switch (c) {
 #endif /* KN_COMPUTED_GOTOS */
 
 LABEL(strip)
@@ -321,20 +332,23 @@ WORD_FUNC(value, 'V');
 #endif /* KN_EXT_VALUE */
 
 parse_kw_function:
-	while (iswordfunc(kn_parse_advance_peek()));
+	while (iswordfunc(kn_parse_advance_peek())) {
+		/* do nothing */
+	}
+	// fallthrough
 parse_function:
 	return kn_value_new_ast(kn_parse_ast(function));
-
-#ifdef KN_CUSTOM
-LABEL(extension)
-CASES1('X')
-	kn_parse_advance();
-	return kn_parse_extension();
-#endif /* KN_CUSTOM */
 
 LABEL(expected_token)
 CASES1('\0')
 	return KN_UNDEFINED;
+
+#ifdef KN_CUSTOM
+LABEL(extension)
+CASES1('X')
+	kn_parse_advance(); // delete the `X`
+	return kn_parse_extension();
+#endif /* KN_CUSTOM */
 
 LABEL(invalid)
 #ifndef KN_COMPUTED_GOTOS
@@ -351,6 +365,7 @@ default:
 	KN_UNREACHABLE();
 }
 
+// Actually parses the stream
 kn_value kn_parse(const char *stream) {
 	kn_parse_stream = stream;
 	return kn_parse_value();
