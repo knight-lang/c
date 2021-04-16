@@ -1,5 +1,5 @@
-#ifndef KN_EXT_UFUNC_H
-#define KN_EXT_UFUNC_H
+#ifndef UFUNC_H
+#define UFUNC_H
 
 #include "../src/value.h"
 #include "../src/custom.h"
@@ -21,4 +21,4 @@ void free_ufunc(struct ufunc *);
 
 kn_value parse_extension_ufunc(void);
 
-#endif /* !KN_EXT_UFUNC_H */
+#endif /* !UFUNC_H */
