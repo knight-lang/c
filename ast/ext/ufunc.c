@@ -28,8 +28,8 @@
 #define UFUNC_CALL(data) ((struct ufunc_call *) (data))
 
 struct ufunc_call {
-	_Alignas(16) unsigned char argc;
-	_Alignas(16) kn_value func;
+	unsigned char argc;
+	kn_value func;
 	kn_value args[];
 };
 
