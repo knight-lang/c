@@ -586,22 +586,22 @@ DECLARE_FUNCTION(if, 3, "IF") {
 
 DECLARE_FUNCTION(get, 3, "GET") {
 	struct kn_string *string, *substring;
-	size_t start, length, stringlength;
+	size_t start, length, string_length;
 
 	string = kn_value_to_string(args[0]);
 	start = (size_t) kn_value_to_number(args[1]);
 	length = (size_t) kn_value_to_number(args[2]);
 
-	stringlength = kn_string_length(string);
+	string_length = kn_string_length(string);
 
 	// if we're getting past the end of the array, simply return the
 	// empty string.
-	if (KN_UNLIKELY(stringlength <= start)) {
+	if (KN_UNLIKELY(string_length <= start)) {
 		substring = &kn_string_empty;
 	} else {
 		// if the total length is too much, simply wrap around to the end.
 #ifndef KN_RECKLESS
-		if (stringlength < start + length)
+		if (string_length < start + length)
 			die("ending position is too large!");
 #endif /* KN_RECKLESS */
 
@@ -615,46 +615,50 @@ DECLARE_FUNCTION(get, 3, "GET") {
 }
 
 DECLARE_FUNCTION(substitute, 4, "SUBSTITUTE") {
-	struct kn_string *string, *substring, *result;
-	size_t start, amnt, length, stringlength, substringlength;
+	struct kn_string *string, *replacement, *result;
+	size_t start, amnt, string_length, replacement_length;
 
 	string = kn_value_to_string(args[0]);
 	start = (size_t) kn_value_to_number(args[1]);
 	amnt = (size_t) kn_value_to_number(args[2]);
-	substring = kn_value_to_string(args[3]);
+	replacement = kn_value_to_string(args[3]);
 
-	stringlength = kn_string_length(string);
+	string_length = kn_string_length(string);
+	replacement_length = kn_string_length(replacement);
 
 #ifndef KN_RECKLESS
 	// if it's out of bounds, die.
-	if (stringlength < start)
-		die("index '%zu' out of bounds (length=%zu)", start, stringlength);
+	if (string_length < start)
+		die("index '%zu' out of bounds (length=%zu)", start, string_length);
 #endif /* !KN_RECKLESS */
 
-	if (stringlength <= start + amnt)
-		amnt = stringlength - start;
+	if (string_length <= start + amnt) {
+		amnt = string_length - start;
+	}
 
-	substringlength = kn_string_length(substring);
-
-	if (start == 0 && substringlength == 0) {
-		result = kn_string_new_borrowed(kn_string_deref(string) + amnt, stringlength - amnt);
+	if (start == 0 && replacement_length == 0) {
+		result = kn_string_new_borrowed(kn_string_deref(string) + amnt, string_length - amnt);
 		kn_string_free(string);
 		return kn_value_new_string(result);
 	}
+
 	// TODO: you could also check for caching here first.
-	length = stringlength - amnt + substringlength;
-	result = kn_string_alloc(length);
+	result = kn_string_alloc(string_length - amnt + replacement_length);
 	char *ptr = kn_string_deref(result);
-	ptr[length] = '\0';
 
 	memcpy(ptr, kn_string_deref(string), start);
 	ptr += start;
 
-	memcpy(ptr, kn_string_deref(substring), substringlength);
-	ptr += substringlength;
-	kn_string_free(substring);
+	memcpy(ptr, kn_string_deref(replacement), replacement_length);
+	ptr += replacement_length;
+	kn_string_free(replacement);
 
-	memcpy(ptr, kn_string_deref(string) + start + amnt, stringlength - amnt);
+	memcpy(
+		ptr,
+		kn_string_deref(string) + start + amnt,
+		string_length - amnt - start + 1 // `+1` so we copy the `\0` too.
+	);
+
 	kn_string_free(string);
 	kn_string_cache(result);
 
