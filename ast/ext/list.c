@@ -136,10 +136,6 @@ struct kn_string *list_to_string(struct list *list) {
 #define DEFAULT_CAPACITY 16
 
 kn_value list_run(struct list *list) {
-
-#define container_of(ptr, type, member) \
-		(type *)( (char *)(ptr) - offsetof(type,member) )
-
 	if (list->idempotent) {
 		struct kn_custom *custom
 			= container_of((void *) list, struct kn_custom, data);

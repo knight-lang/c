@@ -1,0 +1,19 @@
+; XCLASS fraction {
+	FIELD numer
+	FIELD denom
+
+	METHOD constructor (numer, denom) {
+		; X.= this numer numer
+		; & (? denom 0)
+			; OUTPUT "zero denominator!"
+			: QUIT 1
+		: X.= this denom denom
+	}
+
+	METHOD to_string () {
+		++ (X. this numer) "/" (X. this denom)
+	}
+X}
+
+; = frac XNEW fraction (5, 2 X)
+: OUTPUT frac # => 5/2

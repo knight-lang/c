@@ -11,8 +11,13 @@ void strip_keyword(void);
 bool stream_starts_with(const char *str);
 bool stream_starts_with_strip(const char *str);
 
+#define container_of(ptr, type, member) \
+	((type *)((char *)(ptr) - offsetof(type,member)))
+
 #define TRY_PARSE_FUNCTION(string, function) \
 	if (stream_starts_with_strip(string)) \
 		return kn_value_new_ast(kn_parse_ast(&function));
+
+#define KN_CUSTOM_UNDEFINED(val) (((kn_value) (val)) << 5)
 
 #endif /* EXT_H */

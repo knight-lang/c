@@ -7,7 +7,7 @@
 kn_value parse_extension_greeter(void);
 kn_value parse_extension_list(void);
 kn_value parse_extension_file(void);
-kn_value parse_extension_ufunc(void);
+kn_value parse_extension_function(void);
 
 kn_value kn_parse_extension() {
 	kn_value value;
@@ -21,7 +21,7 @@ kn_value kn_parse_extension() {
 	if ((value = parse_extension_greeter()) != KN_UNDEFINED) return value;
 	if ((value = parse_extension_list()) != KN_UNDEFINED) return value;
 	if ((value = parse_extension_file()) != KN_UNDEFINED) return value;
-	if ((value = parse_extension_ufunc()) != KN_UNDEFINED) return value;
+	if ((value = parse_extension_function()) != KN_UNDEFINED) return value;
 
 	die("unknown extension character '%c'", *kn_parse_stream);
 }
