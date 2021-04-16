@@ -30,7 +30,7 @@ void list_dump(const struct list *);
 
 struct kn_string *list_to_string(struct list *);
 
-kn_value kn_parse_extension_list(void);
+kn_value parse_extension_list(void);
 
 #endif /* !LIST_H */
 
