@@ -241,7 +241,7 @@ static kn_value parse_list() {
 #define VALUE2LIST(value) LIST(kn_value_as_custom(value)->data)
 #define CORRECT_INDEX(index) (index < 0 ? (VALUE2LIST(ran)->length + index) : index)
 
-KN_FUNCTION_DECLARE(xlpop, 1, "X_LPOP") {
+KN_DECLARE_FUNCTION(list_pop_fn, 1, "X_LPOP") {
 	kn_value ran = kn_value_run(args[0]);
 	kn_value popped = list_pop(VALUE2LIST(ran));
 	kn_value_free(ran);
@@ -250,13 +250,13 @@ KN_FUNCTION_DECLARE(xlpop, 1, "X_LPOP") {
 	return popped == KN_UNDEFINED ? KN_NULL : popped;
 }
 
-KN_FUNCTION_DECLARE(xlpush, 2, "X_LPUSH") {
+KN_DECLARE_FUNCTION(list_push_fn, 2, "X_LPUSH") {
 	kn_value ran = kn_value_run(args[0]);
 	list_push(VALUE2LIST(ran), kn_value_run(args[1]));
 	return ran;
 }
 
-KN_FUNCTION_DECLARE(xlget, 2, "X_LGET") {
+KN_DECLARE_FUNCTION(list_get_fn, 2, "X_LGET") {
 	kn_value ran = kn_value_run(args[0]);
 	kn_number index = kn_value_to_number(args[1]);
 	kn_value retrieved = list_get(VALUE2LIST(ran), CORRECT_INDEX(index));
@@ -265,7 +265,7 @@ KN_FUNCTION_DECLARE(xlget, 2, "X_LGET") {
 	return retrieved == KN_UNDEFINED ? KN_NULL : kn_value_clone(retrieved);
 }
 
-KN_FUNCTION_DECLARE(xlset, 3, "X_LSET") {
+KN_DECLARE_FUNCTION(list_set_fn, 3, "X_LSET") {
 	kn_value ran = kn_value_run(args[0]);
 	kn_value value = kn_value_run(args[1]);
 	kn_number index = kn_value_to_number(args[2]);
@@ -274,7 +274,7 @@ KN_FUNCTION_DECLARE(xlset, 3, "X_LSET") {
 	return ran;
 }
 
-KN_FUNCTION_DECLARE(xlinsert, 3, "X_LINSERT") {
+KN_DECLARE_FUNCTION(list_insert_fn, 3, "X_LINSERT") {
 	kn_value ran = kn_value_run(args[0]);
 	kn_value value = kn_value_run(args[1]);
 	kn_number index = kn_value_to_number(args[2]);
@@ -283,7 +283,7 @@ KN_FUNCTION_DECLARE(xlinsert, 3, "X_LINSERT") {
 	return ran;
 }
 
-KN_FUNCTION_DECLARE(xlconcat, 2, "X+") {
+KN_DECLARE_FUNCTION(list_concat_fn, 2, "X+") {
 	kn_value lhs = kn_value_run(args[0]);
 	kn_value rhs = kn_value_run(args[1]);
 	kn_value ret = kn_value_new_custom(list_concat(VALUE2LIST(lhs), VALUE2LIST(rhs)));
@@ -295,7 +295,7 @@ KN_FUNCTION_DECLARE(xlconcat, 2, "X+") {
 }
 
 
-KN_FUNCTION_DECLARE(xldelete, 2, "X_LDELETE") {
+KN_DECLARE_FUNCTION(list_delete_fn, 2, "X_LDELETE") {
 	kn_value ran = kn_value_run(args[0]);
 	kn_number index = kn_value_to_number(args[1]);
 	kn_value deleted = list_delete(VALUE2LIST(ran), CORRECT_INDEX(index));
@@ -322,14 +322,13 @@ const struct kn_custom_vtable list_vtable = {
 
 
 kn_value parse_extension_list() {
-	TRY_PARSE_FUNCTION("LPOP", xlpop);
-	TRY_PARSE_FUNCTION("LPOP", xlpop);
-	TRY_PARSE_FUNCTION("LPUSH", xlpush);
-	TRY_PARSE_FUNCTION("LGET", xlget);
-	TRY_PARSE_FUNCTION("LSET", xlset);
-	TRY_PARSE_FUNCTION("LINSERT", xlinsert);
-	TRY_PARSE_FUNCTION("LDELETE", xldelete);
-	TRY_PARSE_FUNCTION("+", xlconcat);
+	TRY_PARSE_FUNCTION("LPOP", list_pop_fn);
+	TRY_PARSE_FUNCTION("LPUSH", list_push_fn);
+	TRY_PARSE_FUNCTION("LGET", list_get_fn);
+	TRY_PARSE_FUNCTION("LSET", list_set_fn);
+	TRY_PARSE_FUNCTION("LINSERT", list_insert_fn);
+	TRY_PARSE_FUNCTION("LDELETE", list_delete_fn);
+	TRY_PARSE_FUNCTION("+", list_concat_fn);
 
 	if (stream_starts_with_strip("["))
 		return parse_list();

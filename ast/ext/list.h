@@ -1,5 +1,5 @@
-#ifndef KN_EXT_LIST_H
-#define KN_EXT_LIST_H
+#ifndef LIST_H
+#define LIST_H
 
 #include "../src/value.h"
 #include "../src/custom.h"
@@ -30,7 +30,7 @@ void list_dump(const struct list *);
 
 struct kn_string *list_to_string(struct list *);
 
-kn_value kn_parse_extension_list(void);
+kn_value parse_extension_list(void);
 
-#endif /* !KN_EXT_LIST_H */
+#endif /* !LIST_H */
 

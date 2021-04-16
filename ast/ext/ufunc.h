@@ -17,6 +17,8 @@ struct ufunc {
 	struct kn_variable *params[];
 };
 
+void free_ufunc(struct ufunc *);
+
 kn_value parse_extension_ufunc(void);
 
 #endif /* !KN_EXT_UFUNC_H */

@@ -45,7 +45,7 @@ static char *read_file(const char *filename, size_t *length) {
 }
 
 
-KN_FUNCTION_DECLARE(xread, 1, "X_READ") {
+KN_DECLARE_FUNCTION(file_read_kn, 1, "X_READ") {
 	struct kn_string *string = kn_value_to_string(args[0]);
 	size_t length;
 
@@ -58,17 +58,20 @@ KN_FUNCTION_DECLARE(xread, 1, "X_READ") {
 	return kn_value_new_string(result);
 }
 
-KN_FUNCTION_DECLARE(xappend, 2, "X_APPEND") {
+KN_DECLARE_FUNCTION(file_append_kn, 2, "X_APPEND") {
 	(void) args;
-	die("todo");
+	die("todo: X_APPEND");
+}
+
+KN_DECLARE_FUNCTION(file_write_kn, 2, "X_WRITE") {
+	(void) args;
+	die("todo: X_WRITE");
 }
 
 kn_value parse_extension_file(void) {
-	if (stream_starts_with_strip("READ"))
-		return kn_value_new_ast(kn_parse_ast(&kn_fn_xread));
-
-	if (stream_starts_with_strip("APPEND"))
-		return kn_value_new_ast(kn_parse_ast(&kn_fn_xappend));
+	TRY_PARSE_FUNCTION("FREAD", file_read_kn);
+	TRY_PARSE_FUNCTION("FAPPEND", file_append_kn);
+	TRY_PARSE_FUNCTION("FWRITE", file_write_kn);
 		
 	return KN_UNDEFINED;
 }

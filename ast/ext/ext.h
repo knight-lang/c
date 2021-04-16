@@ -13,6 +13,6 @@ bool stream_starts_with_strip(const char *str);
 
 #define TRY_PARSE_FUNCTION(string, function) \
 	if (stream_starts_with_strip(string)) \
-		return kn_value_new_ast(kn_parse_ast(&kn_fn_##function));
+		return kn_value_new_ast(kn_parse_ast(&function));
 
 #endif /* EXT_H */

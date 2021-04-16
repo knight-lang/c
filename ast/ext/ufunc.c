@@ -33,9 +33,12 @@ struct ufunc_call {
 	kn_value args[];
 };
 
-static void free_ufunc(void *data) {
-	kn_value_free(UFUNC(data)->body);
+void free_ufunc(struct ufunc *ufunc) {
+	kn_value_free(ufunc->body);
 	// no need to free the variables
+}
+static void free_ufunc_(void *data) {
+	free_ufunc(UFUNC(data));
 }
 
 static void dump_ufunc(void *data) {
