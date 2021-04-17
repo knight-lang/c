@@ -18,8 +18,7 @@ struct class {
 	struct kn_variable **fields;
 
 	struct function *constructor, *to_number, *to_boolean, *to_string;
-	struct function **statics;
-	struct function **methods;
+	struct function **statics, **methods;
 };
 
 struct instance {

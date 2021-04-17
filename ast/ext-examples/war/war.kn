@@ -1,6 +1,8 @@
 ; EVAL ` "cat card.kn"
 ; EVAL ` "cat pile.kn"
+
 ; XFUNC deal (deck, handsize) {
+	#; XLOCAL player1
 	; X_CALLM deck shuffle X[ X]
 	; = player1 X[X]
 	; = player2 X[X]

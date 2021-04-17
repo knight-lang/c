@@ -7,20 +7,23 @@
 extern const struct kn_custom_vtable function_vtable;
 extern const struct kn_custom_vtable function_call_vtable;
 
-#ifndef MAX_ARGC
-# define MAX_ARGC 255
+#ifndef MAX_PARAMS
+# define MAX_PARAMS 255
+#endif
+#ifndef MAX_LOCALS
+# define MAX_LOCALS 4095
 #endif
 
 // user function.
 struct function {
-	size_t paramc;
+	unsigned short nparams, nlocals;
 	const char *name;
 	kn_value body;
-	struct kn_variable *params[];
+	struct kn_variable **locals, **params;
 };
 
 struct function_call {
-	size_t argc;
+	unsigned short nargs;
 	kn_value func;
 	kn_value args[];
 };

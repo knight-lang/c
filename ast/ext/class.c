@@ -94,7 +94,7 @@ static struct kn_string *instance_to_string(struct instance *instance) {
 	if (!function)
 		die("cannot call 'to_string' on an '%s'", instance->class->name);
 
-	assert(function->paramc == 0);
+	assert(function->nparams == 0);
 
 	return kn_value_as_string(run_method(instance, function, &NOARGS));
 }
@@ -104,7 +104,7 @@ static kn_number instance_to_number(struct instance *instance) {
 	if (!function)
 		die("cannot call 'to_number' on an '%s'", instance->class->name);
 
-	assert(function->paramc == 0);
+	assert(function->nparams == 0);
 
 	return kn_value_as_number(run_method(instance, function, &NOARGS));
 }
@@ -114,7 +114,7 @@ static kn_boolean instance_to_boolean(struct instance *instance) {
 	if (!function)
 		die("cannot call 'to_boolean' on an '%s'", instance->class->name);
 
-	assert(function->paramc == 0);
+	assert(function->nparams == 0);
 
 	return kn_value_as_boolean(run_method(instance, function, &NOARGS));
 }
@@ -217,7 +217,7 @@ KN_DECLARE_FUNCTION(instance_new_fn, 2, "X_NEW") {
 	struct class *class = VALUE2DATA(kn_value_run(args[0]));
 	struct list *params = VALUE2DATA(kn_value_run(args[1]));
 
-	size_t expected_argc = class->constructor ? class->constructor->paramc : 0;
+	size_t expected_argc = class->constructor ? class->constructor->nparams : 0;
 	if (params->length != expected_argc)
 		die("constructor arg mismatch (expected %zu, got %zu)", expected_argc, params->length);
 
