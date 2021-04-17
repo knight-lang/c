@@ -10,10 +10,14 @@
 		: X.= this denom denom
 	}
 
+	METHOD is_less_than (x) {
+		
+	}
+
 	METHOD to_string () {
 		++ (X. this numer) "/" (X. this denom)
 	}
-X}
+}
 
 ; = frac XNEW fraction (5, 2 X)
 : OUTPUT frac # => 5/2

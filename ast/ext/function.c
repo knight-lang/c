@@ -7,6 +7,7 @@
 #include <assert.h>
 
 void free_function(struct function *function) {
+	// dont free name, as it came from a variable.
 	kn_value_free(function->body);
 }
 
@@ -17,39 +18,37 @@ void free_function_call(struct function_call *fn_call) {
 		kn_value_free(fn_call->args[i]);
 }
 
-static void unsupported_function(void *arg) {
-	(void) arg;
-
-	die("unsupported operation on function");
-}
-
-kn_value run_function_call(struct function_call *func_call) {
-	size_t argc = func_call->argc;
-
-	struct function *func = (struct function *)
-		kn_value_as_custom(kn_value_run(func_call->func))->data;
-
-	if (argc != func->paramc) {
-		die("param mismatch (given %zu, expected %zu)",
-			func_call->argc, func->paramc);
-	}
+kn_value run_function(struct function *function, kn_value *args) {
+	size_t argc = function->paramc;
 
 	kn_value saved[argc];
-	kn_value current[argc]; // so we can free it when done
+	kn_value current[argc];
 
 	for (size_t i = 0; i < argc; ++i) {
-		saved[i] = func->params[i]->value;
-		current[i] = func->params[i]->value = kn_value_run(func_call->args[i]);
+		saved[i] = function->params[i]->value;
+		current[i] = function->params[i]->value = kn_value_run(args[i]);
 	}
 
-	kn_value result = kn_value_run(func->body);
+	kn_value result = kn_value_run(function->body);
 
 	for (size_t i = 0; i < argc; ++i) {
-		func->params[i]->value = saved[i]; // restore old value when returning
+		function->params[i]->value = saved[i]; // restore old value when returning
 		kn_value_free(current[i]); // free the value, as we ran it earlier.
 	}
 
-	kn_custom_free(container_of(func, struct kn_custom, data));
+	return result;
+
+}
+
+kn_value run_function_call(struct function_call *func_call) {
+	struct function *function = VALUE2DATA(kn_value_run(func_call->func));
+
+	if (func_call->argc != function->paramc)
+		die("param mismatch (given %zu, expected %zu)", func_call->argc, function->paramc);
+
+	kn_value result = run_function(function, func_call->args);
+
+	kn_value_free(DATA2VALUE(function));
 
 	return result;
 }
@@ -94,17 +93,17 @@ kn_value parse_function_declaration(void) {
 		params[paramc++] = kn_value_as_variable(body);
 	} while (paramc < MAX_ARGC);
 
-	struct kn_custom *custom = kn_custom_alloc(
+	struct function *function = ALLOC_DATA(
 		sizeof(struct function) + sizeof(struct kn_variable *[paramc]),
 		&function_vtable
 	);
 
-	struct function *function = (struct function *) custom->data;
+	function->name = name->name;
 	function->body = body;
 	function->paramc = paramc;
 	memcpy(function->params, params, sizeof(struct kn_variable *[paramc]));
 
-	kn_value result = kn_value_new_custom(custom);
+	kn_value result = DATA2VALUE(function);
 	kn_variable_assign(name, result);
 
 	return kn_value_clone(result);
@@ -114,7 +113,7 @@ static unsigned function_call_depth;
 
 #define END_FUNCTION_CALL KN_CUSTOM_UNDEFINED(1)
 
-static kn_value parse_function_call() {
+kn_value parse_function_call() {
 	kn_value args[MAX_ARGC];
 	size_t argc = 0;
 	unsigned start_depth = function_call_depth++;
@@ -140,18 +139,16 @@ static kn_value parse_function_call() {
 
 done:
 	;
-	struct kn_custom *custom = kn_custom_alloc(
+	struct function_call *function_call = ALLOC_DATA(
 		sizeof(struct function_call) + sizeof(kn_value [argc]),
 		&function_call_vtable
 	);
-
-	struct function_call *function_call = (struct function_call *) custom->data;
 
 	function_call->func = func;
 	function_call->argc = argc;
 	memcpy(function_call->args, args, sizeof(kn_value [argc]));
 
-	return kn_value_new_custom(custom);
+	return DATA2VALUE(function_call);
 }
 
 kn_value parse_extension_function() {

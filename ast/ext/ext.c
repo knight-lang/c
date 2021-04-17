@@ -4,6 +4,14 @@
 #include <ctype.h>
 #include <string.h>
 
+void unsupported_function(void *arg) {
+	(void) arg;
+
+	die("unsupported operation");
+}
+
+
+kn_value parse_extension_class(void);
 kn_value parse_extension_greeter(void);
 kn_value parse_extension_list(void);
 kn_value parse_extension_file(void);
@@ -18,6 +26,7 @@ kn_value kn_parse_extension() {
 	// helper for `IF`to make it look nicer
 	if (stream_starts_with_strip("ELSE")) return kn_parse_value();
 
+	if ((value = parse_extension_class()) != KN_UNDEFINED) return value;
 	if ((value = parse_extension_greeter()) != KN_UNDEFINED) return value;
 	if ((value = parse_extension_list()) != KN_UNDEFINED) return value;
 	if ((value = parse_extension_file()) != KN_UNDEFINED) return value;

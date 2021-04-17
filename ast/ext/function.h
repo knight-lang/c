@@ -7,11 +7,9 @@
 extern const struct kn_custom_vtable function_vtable;
 extern const struct kn_custom_vtable function_call_vtable;
 
-
 #ifndef MAX_ARGC
 # define MAX_ARGC 255
 #endif
-
 
 // user function.
 struct function {
@@ -30,7 +28,10 @@ struct function_call {
 void free_function(struct function *);
 void free_function_call(struct function_call *);
 kn_value run_function_call(struct function_call *);
+kn_value run_function(struct function *, kn_value *);
 
+kn_value parse_function_declaration(void);
+kn_value parse_function_call(void);
 kn_value parse_extension_function(void);
 
 #endif /* !FUNCTION_H */
