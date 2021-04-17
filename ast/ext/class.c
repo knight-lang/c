@@ -104,7 +104,7 @@ static kn_value NOARGS;
 
 static struct kn_string *instance_to_string(struct instance *instance) {
 	struct function *function = instance->class->to_string;
-	if (function == NULL)
+	if (!function)
 		die("cannot call 'to_string' on an '%s'", instance->class->name);
 
 	assert(function->paramc == 0);
@@ -114,7 +114,7 @@ static struct kn_string *instance_to_string(struct instance *instance) {
 
 static kn_number instance_to_number(struct instance *instance) {
 	struct function *function = instance->class->to_number;
-	if (function == NULL)
+	if (!function)
 		die("cannot call 'to_number' on an '%s'", instance->class->name);
 
 	assert(function->paramc == 0);
@@ -124,7 +124,7 @@ static kn_number instance_to_number(struct instance *instance) {
 
 static kn_boolean instance_to_boolean(struct instance *instance) {
 	struct function *function = instance->class->to_boolean;
-	if (function == NULL)
+	if (!function)
 		die("cannot call 'to_boolean' on an '%s'", instance->class->name);
 
 	assert(function->paramc == 0);
@@ -142,6 +142,19 @@ static kn_value *find_field(struct instance *instance, const char *field) {
 
 kn_value fetch_instance_field(const struct instance *instance, const char *field) {
 	return kn_value_clone(*find_field((struct instance *) instance, field));
+}
+
+struct function *fetch_method(const struct instance *instance, const char *name) {
+	struct function *method;
+	for (unsigned short i = 0; i < instance->class->methodc; ++i)
+		if (!strcmp((method = instance->class->methods[i])->name, name))
+			return method;
+
+	if (!strcmp(name, "to_string") && (method = instance->class->to_string)) return method;
+	if (!strcmp(name, "to_number") && (method = instance->class->to_number)) return method;
+	if (!strcmp(name, "to_boolean") && (method = instance->class->to_boolean)) return method;
+	if (!strcmp(name, "constructor") && (method = instance->class->constructor)) return method;
+	die("unknown method '%s' for instance of '%s'", name, instance->class->name);
 }
 
 void assign_instance_field(struct instance *instance, const char *field, kn_value value) {
@@ -189,6 +202,21 @@ KN_DECLARE_FUNCTION(instance_field_fetch_fn, 2, "X.") {
 	return kn_value_clone(value);
 }
 
+
+KN_DECLARE_FUNCTION(instance_call_method_fn, 3, "X_CALL_METHOD") {
+	struct instance *instance = VALUE2DATA(kn_value_run(args[0]));
+	struct kn_variable *method_name = kn_value_as_variable(args[1]);
+	struct list *params = VALUE2DATA(kn_value_run(args[2]));
+
+	struct function *method = fetch_method(instance, method_name->name);
+	kn_value value = run_method(instance, method, params->elements);
+
+	kn_value_free(DATA2VALUE(instance));
+	list_free(params);
+
+	return value;
+}
+
 KN_DECLARE_FUNCTION(instance_new_fn, 2, "X_NEW") {
 	struct class *class = VALUE2DATA(kn_value_run(args[0]));
 	struct list *params = VALUE2DATA(kn_value_run(args[1]));
@@ -211,6 +239,7 @@ KN_DECLARE_FUNCTION(instance_new_fn, 2, "X_NEW") {
 
 	if (instance->class->constructor)
 		run_method(instance, instance->class->constructor, params->elements);
+	list_free(params);
 
 	return DATA2VALUE(instance);
 }
@@ -305,6 +334,7 @@ kn_value parse_extension_class() {
 	TRY_PARSE_FUNCTION(".=", instance_field_assign_fn);
 	TRY_PARSE_FUNCTION(".", instance_field_fetch_fn);
 	TRY_PARSE_FUNCTION("NEW", instance_new_fn);
+	TRY_PARSE_FUNCTION("CALL_METHOD", instance_call_method_fn);
 	TRY_PARSE_FUNCTION("IS_INSTANCE", instance_is_instance_fn);
 	return KN_UNDEFINED;
 }

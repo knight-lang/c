@@ -2,7 +2,7 @@
 	FIELD numer
 	FIELD denom
 
-	METHOD constructor (numer, denom) {
+	METHOD constructor (numer denom) {
 		; X.= this numer numer
 		; & (? denom 0)
 			; OUTPUT "zero denominator!"
@@ -10,14 +10,12 @@
 		: X.= this denom denom
 	}
 
-	METHOD is_less_than (x) {
-		
-	}
-
 	METHOD to_string () {
-		++ (X. this numer) "/" (X. this denom)
+		+++ "" (X. this numer) "/" (X. this denom)
 	}
 }
 
-; = frac XNEW fraction (5, 2 X)
-: OUTPUT frac # => 5/2
+; = frac XNEW fraction X[ 5 2 X]
+; OUTPUT X_CALL_METHOD frac to_string X[ X]
+N
+#: OUTPUT frac # => 5/2

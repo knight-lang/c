@@ -34,6 +34,7 @@ void free_instance(struct instance *);
 void dump_instance(const struct instance *);
 
 kn_value fetch_instance_field(const struct instance *, const char *);
+struct function *fetch_method(const struct instance *, const char *);
 void assign_instance_field(struct instance *, const char *, kn_value);
 kn_value call_class_method(struct instance *, struct function_call *);
 
