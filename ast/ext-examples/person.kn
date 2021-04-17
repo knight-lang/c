@@ -10,7 +10,7 @@
 	}
 
 	METHOD to_string () {
-		++ "A " (IF (X. this happy) "happy" "unhappy")
+		++ "A" (IF (X. this happy) " happy" "n unhappy")
 		++ " " (X. this age)
 		 + " year old named " (X. this name)
 	}
@@ -23,6 +23,6 @@
 ; OUTPUT samp
 ; OUTPUT + "they are " (IF samp "happy" "not happy")
 : OUTPUT ++"In one year, samp will be " (+ 1 samp)" years old"
-# => A 23 year old happy named samp
-# => they are happy
-# => In one year, samp will be 24 years old
+A happy 23 year old named samp
+they are happy
+In one year, samp will be 24 years old
