@@ -23,6 +23,6 @@
 ; OUTPUT samp
 ; OUTPUT + "they are " (IF samp "happy" "not happy")
 : OUTPUT ++"In one year, samp will be " (+ 1 samp)" years old"
-A happy 23 year old named samp
-they are happy
-In one year, samp will be 24 years old
+#=> A happy 23 year old named samp
+#=> they are happy
+#=> In one year, samp will be 24 years old
