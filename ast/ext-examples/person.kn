@@ -1,28 +1,28 @@
 ; XCLASS person {
 	FIELD name
 	FIELD age
-	FIELD male
+	FIELD happy
 
-	METHOD constructor (name_ age_ male_) {
+	METHOD constructor (name_ age_ happy_) {
 		; X.= this name name_
 		; X.= this age age_
-		: X.= this male male_
+		: X.= this happy happy_
 	}
 
 	METHOD to_string () {
-		++ "A " (X. this age)
-		++ " year old " (IF (X. this male) "male" "female")
-		 + " named " (X. this name)
+		++ "A " (IF (X. this happy) "happy" "unhappy")
+		++ " " (X. this age)
+		 + " year old named " (X. this name)
 	}
 
 	METHOD to_number () { X. this age }
-	METHOD to_boolean () { X. this male }
+	METHOD to_boolean () { X. this happy }
 }
 
 ; = samp XNEW person X[ "samp" 23 TRUE X]
 ; OUTPUT samp
-; OUTPUT IF (samp) "he is male" "they are not male"
+; OUTPUT IF (samp) "he is happy" "they are not happy"
 : OUTPUT ++"In one year, samp will be " (+ 1 samp)" years old"
-# => A 23 year old male named samp
-# => he is male
+# => A 23 year old happy named samp
+# => he is happy
 # => In one year, samp will be 24 years old
