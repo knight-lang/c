@@ -1,0 +1,32 @@
+XCLASS card {
+	FIELD number
+
+	# Creates a new card with the given rank and suit
+	METHOD constructor (number) {
+		: X.= this number number
+	}
+
+	METHOD rank () {
+		; = _tmp % (X. this number) 13
+		: IF (? _tmp 8) '10' : GET '23456789-JQKA' _tmp 1
+	}
+
+	METHOD suit () {
+		: GET 'DCHS' (/ X. this number 13) 1
+	}
+
+	# Converts the card to a string representation
+	METHOD to_string () {
+		+ (XCALLM this rank X[ X]) (XCALLM this suit X[ X])
+	}
+
+	# Gets the unique number for this card
+	METHOD to_number() {
+		X. this number
+	}
+
+	# We lose if our rank is smaller, or its equal and our suit is worse
+	METHOD loses_to (other) {
+		< (+ 0 this) (+ 0 other)
+	}
+}

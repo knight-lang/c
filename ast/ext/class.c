@@ -14,17 +14,20 @@
 
 void free_class(struct class *class) {
 	// we don't own the name
-	dump_class(class);
-	printf("\n");
+
+	if (class->constructor) free_function(class->constructor);
 	if (class->to_string) free_function(class->to_string);
 	if (class->to_boolean) free_function(class->to_boolean);
 	if (class->to_number) free_function(class->to_number);
 
-	for (unsigned short i = 0; i <class->fieldc; ++i)
+	for (unsigned short i = 0; i <class->nfields; ++i)
 		free(class->fields[i]);
 
-	for (unsigned short i = 0; i < class->methodc; ++i)
+	for (unsigned short i = 0; i < class->nmethods; ++i)
 		free_function(class->methods[i]);
+
+	for (unsigned short i = 0; i < class->nstatics; ++i)
+		free_function(class->statics[i]);
 }
 
 void dump_class(const struct class *class) {
@@ -48,24 +51,8 @@ struct kn_string *class_to_string(struct class *class) {
 	return string;
 }
 
-// struct instance *new_instance(struct class *class) {
-// 	struct instance *instance = xmalloc(
-// 		sizeof(struct instance) + sizeof(kn_value [class->fieldc])
-// 	);
-
-// 	// we need to clone it, as we have a reference to it.
-// 	kn_value_clone(DATA2VALUE(class));
-
-// 	instance->class = class;
-
-// 	for (unsigned short i = 0; i < class->fieldc; ++i)
-// 		instance->fields[i] = KN_NULL;
-
-// 	return instance;
-// }
-
 void free_instance(struct instance *instance) {
-	for (unsigned short i = 0; i < instance->class->fieldc; ++i)
+	for (unsigned short i = 0; i < instance->class->nfields; ++i)
 		kn_value_free(instance->fields[i]);
 
 	// release our reference to the class
@@ -76,7 +63,7 @@ void dump_instance(const struct instance *instance) {
 	printf("Instance(");
 	dump_class(instance->class);
 
-	for (unsigned short i = 0; i < instance->class->fieldc; ++i) {
+	for (unsigned short i = 0; i < instance->class->nfields; ++i) {
 		printf(", %s=", instance->class->fields[i]->name);
 		kn_value_dump(instance->fields[i]);
 	}
@@ -133,7 +120,7 @@ static kn_boolean instance_to_boolean(struct instance *instance) {
 }
 
 static kn_value *find_field(struct instance *instance, const char *field) {
-	for (unsigned short i = 0; i < instance->class->fieldc; ++i)
+	for (unsigned short i = 0; i < instance->class->nfields; ++i)
 		if (!strcmp(instance->class->fields[i]->name, field))
 			return &instance->fields[i];
 
@@ -146,7 +133,7 @@ kn_value fetch_instance_field(const struct instance *instance, const char *field
 
 struct function *fetch_method(const struct instance *instance, const char *name) {
 	struct function *method;
-	for (unsigned short i = 0; i < instance->class->methodc; ++i)
+	for (unsigned short i = 0; i < instance->class->nmethods; ++i)
 		if (!strcmp((method = instance->class->methods[i])->name, name))
 			return method;
 
@@ -157,26 +144,21 @@ struct function *fetch_method(const struct instance *instance, const char *name)
 	die("unknown method '%s' for instance of '%s'", name, instance->class->name);
 }
 
+struct function *fetch_static(const struct class *class, const char *name) {
+	struct function *static_fn;
+	for (unsigned short i = 0; i < class->nstatics; ++i)
+		if (!strcmp((static_fn = class->statics[i])->name, name))
+			return static_fn;
+
+	die("unknown static_fn '%s' for instance of '%s'", name, class->name);
+}
+
 void assign_instance_field(struct instance *instance, const char *field, kn_value value) {
 	kn_value *field_value = find_field(instance, field);
 
 	kn_value_free(*field_value);
 
 	*field_value = value;
-}
-
-kn_value call_class_method(struct instance *instance, struct function_call *call) {
-	static struct kn_variable *this;
-	if (!this) this = kn_env_fetch("this", 4);
-
-	kn_value old_this = this->value;
-	this->value = DATA2VALUE(instance);
-
-	kn_value ret = run_function_call(call);
-
-	this->value = old_this;
-
-	return ret;
 }
 
 KN_DECLARE_FUNCTION(instance_field_assign_fn, 3, "X.=") {
@@ -203,7 +185,7 @@ KN_DECLARE_FUNCTION(instance_field_fetch_fn, 2, "X.") {
 }
 
 
-KN_DECLARE_FUNCTION(instance_call_method_fn, 3, "X_CALL_METHOD") {
+KN_DECLARE_FUNCTION(instance_call_method_fn, 3, "X_CALLM") {
 	struct instance *instance = VALUE2DATA(kn_value_run(args[0]));
 	struct kn_variable *method_name = kn_value_as_variable(args[1]);
 	struct list *params = VALUE2DATA(kn_value_run(args[2]));
@@ -212,6 +194,20 @@ KN_DECLARE_FUNCTION(instance_call_method_fn, 3, "X_CALL_METHOD") {
 	kn_value value = run_method(instance, method, params->elements);
 
 	kn_value_free(DATA2VALUE(instance));
+	list_free(params);
+
+	return value;
+}
+
+KN_DECLARE_FUNCTION(instance_call_static_fn, 3, "X_CALLS") {
+	struct class *class = VALUE2DATA(kn_value_run(args[0]));
+	struct kn_variable *static_name = kn_value_as_variable(args[1]);
+	struct list *params = VALUE2DATA(kn_value_run(args[2]));
+
+	struct function *static_fn = fetch_static(class, static_name->name);
+	kn_value value = run_function(static_fn, params->elements);
+
+	kn_value_free(DATA2VALUE(class));
 	list_free(params);
 
 	return value;
@@ -226,7 +222,7 @@ KN_DECLARE_FUNCTION(instance_new_fn, 2, "X_NEW") {
 		die("constructor arg mismatch (expected %zu, got %zu)", expected_argc, params->length);
 
 	struct instance *instance = ALLOC_DATA(
-		sizeof(struct instance) + sizeof(kn_value[class->fieldc]),
+		sizeof(struct instance) + sizeof(kn_value[class->nfields]),
 		&instance_vtable
 	);
 
@@ -234,7 +230,7 @@ KN_DECLARE_FUNCTION(instance_new_fn, 2, "X_NEW") {
 	(void) kn_value_clone(DATA2VALUE(class));
 	instance->class = class;
 
-	for (unsigned short i = 0; i < class->fieldc; ++i)
+	for (unsigned short i = 0; i < class->nfields; ++i)
 		instance->fields[i] = KN_NULL;
 
 	if (instance->class->constructor)
@@ -273,8 +269,9 @@ const struct kn_custom_vtable instance_vtable = {
 };
 
 static kn_value parse_class() {
-	static struct kn_variable *fields[MAX_FIELDC];
-	static struct function *methods[MAX_METHODC];
+	static struct kn_variable *fields[MAX_NFIELDS];
+	static struct function *methods[MAX_NMETHODS];
+	static struct function *statics[MAX_NSTATICS];
 
 	kn_parse_strip();
 	struct kn_variable *classname = kn_parse_variable();
@@ -282,8 +279,9 @@ static kn_value parse_class() {
 	struct class *class = ALLOC_DATA(sizeof(struct class), &class_vtable);
 
 	class->name = classname->name;
-	class->fieldc = 0;
-	class->methodc = 0;
+	class->nfields = 0;
+	class->nmethods = 0;
+	class->nstatics = 0;
 	class->constructor = NULL;
 	class->to_string = NULL;
 	class->to_number = NULL;
@@ -292,10 +290,12 @@ static kn_value parse_class() {
 	while (1) {
 		kn_parse_strip();
 
-		if (class->fieldc != MAX_FIELDC && stream_starts_with_strip("FIELD")) {
+		if (class->nfields != MAX_NFIELDS && stream_starts_with_strip("FIELD")) {
 			kn_parse_strip();
-			fields[class->fieldc++] = kn_parse_variable();
-		} else if (class->methodc != MAX_METHODC && stream_starts_with_strip("METHOD")) {
+			fields[class->nfields++] = kn_parse_variable();
+		} else if (class->nfields != MAX_NSTATICS && stream_starts_with_strip("STATIC METHOD")) {
+			statics[class->nstatics++] = VALUE2DATA(parse_function_declaration());
+		} else if (class->nmethods != MAX_NMETHODS && stream_starts_with_strip("METHOD")) {
 			struct function *function = VALUE2DATA(parse_function_declaration());
 			struct function **dst;
 
@@ -309,8 +309,8 @@ static kn_value parse_class() {
 			else if (!strcmp(function->name, "to_number"))
 				dst = &class->to_number;
 			else {
-				methods[class->methodc] = NULL;
-				dst = &methods[class->methodc++];
+				methods[class->nmethods] = NULL;
+				dst = &methods[class->nmethods++];
 			}
 
 			if (*dst != NULL) free_function(*dst);
@@ -320,8 +320,9 @@ static kn_value parse_class() {
 		}
 	}
 
-	class->fields = memdup(fields, sizeof(struct kn_variable *[class->fieldc]));
-	class->methods = memdup(methods, sizeof(struct function *[class->methodc]));
+	class->fields = memdup(fields, sizeof(struct kn_variable *[class->nfields]));
+	class->methods = memdup(methods, sizeof(struct function *[class->nmethods]));
+	class->statics = memdup(statics, sizeof(struct function *[class->nstatics]));
 
 	kn_variable_assign(classname, kn_value_clone(DATA2VALUE(class)));
 
@@ -334,7 +335,8 @@ kn_value parse_extension_class() {
 	TRY_PARSE_FUNCTION(".=", instance_field_assign_fn);
 	TRY_PARSE_FUNCTION(".", instance_field_fetch_fn);
 	TRY_PARSE_FUNCTION("NEW", instance_new_fn);
-	TRY_PARSE_FUNCTION("CALL_METHOD", instance_call_method_fn);
+	TRY_PARSE_FUNCTION("CALLM", instance_call_method_fn);
+	TRY_PARSE_FUNCTION("CALLS", instance_call_static_fn);
 	TRY_PARSE_FUNCTION("IS_INSTANCE", instance_is_instance_fn);
 	return KN_UNDEFINED;
 }

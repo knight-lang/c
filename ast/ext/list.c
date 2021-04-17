@@ -74,8 +74,16 @@ kn_value list_delete(struct list *list, size_t index) {
 
 	kn_value element = list->elements[index];
 
-	memmove(list->elements + (index - 1),
-		list->elements + index, list->length - index);
+	for (size_t i = index; i < list->length - 1; ++i) 
+		list->elements[i] = list->elements[i + 1];
+	// memmove(
+	// 	list->elements + index,
+	// 	list->elements + index,
+	// 	2
+	// 	// list->length - index
+	// );
+
+	--list->length;
 
 	return element;
 }
@@ -103,6 +111,11 @@ void list_dump(const struct list *list) {
 bool list_is_empty(const struct list *list) {
 	// todo: empty list.
 	return list->length == 0;
+}
+
+
+bool list_is_nonempty(const struct list *list) {
+	return !list_is_empty(list);
 }
 
 struct kn_string *list_to_string(struct list *list) {
@@ -237,7 +250,7 @@ static kn_value parse_list() {
 #define VALUE2LIST(value) LIST(kn_value_as_custom(value)->data)
 #define CORRECT_INDEX(index) (index < 0 ? (VALUE2LIST(ran)->length + index) : index)
 
-KN_DECLARE_FUNCTION(list_pop_fn, 1, "X_LPOP") {
+KN_DECLARE_FUNCTION(list_pop_fn, 1, "X_POP") {
 	kn_value ran = kn_value_run(args[0]);
 	kn_value popped = list_pop(VALUE2LIST(ran));
 	kn_value_free(ran);
@@ -246,13 +259,13 @@ KN_DECLARE_FUNCTION(list_pop_fn, 1, "X_LPOP") {
 	return popped == KN_UNDEFINED ? KN_NULL : popped;
 }
 
-KN_DECLARE_FUNCTION(list_push_fn, 2, "X_LPUSH") {
+KN_DECLARE_FUNCTION(list_push_fn, 2, "X_PUSH") {
 	kn_value ran = kn_value_run(args[0]);
 	list_push(VALUE2LIST(ran), kn_value_run(args[1]));
 	return ran;
 }
 
-KN_DECLARE_FUNCTION(list_get_fn, 2, "X_LGET") {
+KN_DECLARE_FUNCTION(list_get_fn, 2, "X_GET") {
 	kn_value ran = kn_value_run(args[0]);
 	kn_number index = kn_value_to_number(args[1]);
 	kn_value retrieved = list_get(VALUE2LIST(ran), CORRECT_INDEX(index));
@@ -261,19 +274,19 @@ KN_DECLARE_FUNCTION(list_get_fn, 2, "X_LGET") {
 	return retrieved == KN_UNDEFINED ? KN_NULL : kn_value_clone(retrieved);
 }
 
-KN_DECLARE_FUNCTION(list_set_fn, 3, "X_LSET") {
+KN_DECLARE_FUNCTION(list_set_fn, 3, "X_SET") {
 	kn_value ran = kn_value_run(args[0]);
-	kn_value value = kn_value_run(args[1]);
-	kn_number index = kn_value_to_number(args[2]);
+	kn_number index = kn_value_to_number(args[1]);
+	kn_value value = kn_value_run(args[2]);
 	list_set(VALUE2LIST(ran), CORRECT_INDEX(index), value);
 
 	return ran;
 }
 
-KN_DECLARE_FUNCTION(list_insert_fn, 3, "X_LINSERT") {
+KN_DECLARE_FUNCTION(list_insert_fn, 3, "X_INSERT") {
 	kn_value ran = kn_value_run(args[0]);
-	kn_value value = kn_value_run(args[1]);
-	kn_number index = kn_value_to_number(args[2]);
+	kn_number index = kn_value_to_number(args[1]);
+	kn_value value = kn_value_run(args[2]);
 	list_insert(VALUE2LIST(ran), CORRECT_INDEX(index), value);
 
 	return ran;
@@ -291,7 +304,7 @@ KN_DECLARE_FUNCTION(list_concat_fn, 2, "X+") {
 }
 
 
-KN_DECLARE_FUNCTION(list_delete_fn, 2, "X_LDELETE") {
+KN_DECLARE_FUNCTION(list_delete_fn, 2, "X_DELETE") {
 	kn_value ran = kn_value_run(args[0]);
 	kn_number index = kn_value_to_number(args[1]);
 	kn_value deleted = list_delete(VALUE2LIST(ran), CORRECT_INDEX(index));
@@ -312,18 +325,18 @@ const struct kn_custom_vtable list_vtable = {
 	.dump = (void (*)(void *)) list_dump,
 	.run = (kn_value (*)(void *)) list_run,
 	.to_number = (kn_number (*)(void *)) _list_length,
-	.to_boolean = (kn_boolean (*) (void *)) list_is_empty,
+	.to_boolean = (kn_boolean (*) (void *)) list_is_nonempty,
 	.to_string = (struct kn_string *(*)(void *)) list_to_string
 };
 
 
 kn_value parse_extension_list() {
-	TRY_PARSE_FUNCTION("LPOP", list_pop_fn);
-	TRY_PARSE_FUNCTION("LPUSH", list_push_fn);
-	TRY_PARSE_FUNCTION("LGET", list_get_fn);
-	TRY_PARSE_FUNCTION("LSET", list_set_fn);
-	TRY_PARSE_FUNCTION("LINSERT", list_insert_fn);
-	TRY_PARSE_FUNCTION("LDELETE", list_delete_fn);
+	TRY_PARSE_FUNCTION("POP", list_pop_fn);
+	TRY_PARSE_FUNCTION("PUSH", list_push_fn);
+	TRY_PARSE_FUNCTION("GET", list_get_fn);
+	TRY_PARSE_FUNCTION("SET", list_set_fn);
+	TRY_PARSE_FUNCTION("INSERT", list_insert_fn);
+	TRY_PARSE_FUNCTION("DELETE", list_delete_fn);
 	TRY_PARSE_FUNCTION("+", list_concat_fn);
 
 	if (stream_starts_with_strip("["))

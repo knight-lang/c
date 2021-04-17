@@ -7,17 +7,18 @@
 
 extern const struct kn_custom_vtable class_vtable, instance_vtable;
 
-#define MAX_FIELDC 65535
-#define MAX_METHODC 65535
+#define MAX_NFIELDS 65535
+#define MAX_NMETHODS 65535
+#define MAX_NSTATICS 65535
 
 struct class {
 	const char *name;
 
-	unsigned short fieldc, methodc;
+	unsigned short nfields, nmethods, nstatics;
 	struct kn_variable **fields;
 
-	struct function *constructor;
-	struct function *to_number, *to_boolean, *to_string;
+	struct function *constructor, *to_number, *to_boolean, *to_string;
+	struct function **statics;
 	struct function **methods;
 };
 
@@ -36,7 +37,6 @@ void dump_instance(const struct instance *);
 kn_value fetch_instance_field(const struct instance *, const char *);
 struct function *fetch_method(const struct instance *, const char *);
 void assign_instance_field(struct instance *, const char *, kn_value);
-kn_value call_class_method(struct instance *, struct function_call *);
 
 kn_value parse_extension_class(void);
 

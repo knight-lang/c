@@ -1,0 +1,42 @@
+XCLASS pile {
+	FIELD cards
+
+	STATIC METHOD new_deck () {
+		; = _cards X[ X]
+		; = i 0
+		; WHILE < i 52
+			; X_PUSH _cards (XNEW card X[ i X])
+			: = i + i 1
+		: XNEW pile X[ _cards X]
+	}
+
+	# Creates a new card with the given rank and suit
+	METHOD constructor (cards) {
+		: X.= this cards cards
+	}
+
+	METHOD to_string () {
+		; = _str ""
+		; = _list (X. this cards)
+		; = i 0
+		; WHILE < i _list
+			; = _str ++ _str " " (X_GET _list i)
+			: = i + i 1
+		: _str
+	}
+
+	METHOD to_number () { + 0 (X. this cards) }
+	METHOD to_boolean () { !! (X. this cards) }
+
+	METHOD shuffle () {
+		; = _list (X. this cards)
+		; = i 0
+		; WHILE < i _list
+			; = _idx (% RANDOM _list)
+			; = _tmp X_GET _list _idx
+			; X_SET _list _idx (X_GET _list i)
+			; X_SET _list i _tmp
+			: = i + i 1
+		: this
+	}
+}

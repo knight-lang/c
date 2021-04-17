@@ -269,6 +269,9 @@ start:
 LABEL(strip)
 CASES6('\t', '\n', '\v', '\f', '\r', ' ')
 CASES8('(', ')', '[', ']', '{', '}', ':', '#')
+#ifdef KN_EXT_IGNORE_COMMA
+CASES1(',')
+#endif /* KN_EXT_IGNORE_COMMA */
 	kn_parse_strip();
 	goto start; // go find the next token to return.
 
