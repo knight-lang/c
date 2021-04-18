@@ -2,12 +2,13 @@ XCLASS pile {
 	FIELD cards
 
 	STATIC METHOD new_deck () {
-		; = _cards X[ X]
+		LOCAL cards i
+		; = cards X[ X]
 		; = i 0
 		; WHILE < i 52
-			; X_PUSH _cards (XNEW card X[ i X])
+			; X_PUSH cards (XNEW card X[ i X])
 			: = i + i 1
-		: XNEW pile X[ _cards X]
+		: XNEW pile X[ cards X]
 	}
 
 	# Creates a new card with the given rank and suit
@@ -16,27 +17,43 @@ XCLASS pile {
 	}
 
 	METHOD to_string () {
-		; = _str ""
-		; = _list (X. this cards)
+		LOCAL str list i
+		; = str ""
+		; = list (X. this cards)
 		; = i 0
-		; WHILE < i _list
-			; = _str ++ _str " " (X_GET _list i)
+		; WHILE < i list
+			; = str ++ str " " (X_GET list i)
 			: = i + i 1
-		: _str
+		: str
 	}
 
 	METHOD to_number () { + 0 (X. this cards) }
 	METHOD to_boolean () { !! (X. this cards) }
 
 	METHOD shuffle () {
-		; = _list (X. this cards)
+		LOCAL list i idx tmp
+		; = list (X. this cards)
 		; = i 0
-		; WHILE < i _list
-			; = _idx (% RANDOM _list)
-			; = _tmp X_GET _list _idx
-			; X_SET _list _idx (X_GET _list i)
-			; X_SET _list i _tmp
+		; WHILE < i list
+			; = idx (% RANDOM list)
+			; = tmp X_GET list idx
+			; X_SET list idx (X_GET list i)
+			; X_SET list i tmp
 			: = i + i 1
 		: this
 	}
+
+	METHOD draw_card () {
+		X_POP (X. this cards)
+	}
+
+	METHOD deal_pile (size) {
+		LOCAL hand
+		; = hand X[ X]
+		; WHILE size
+			; X_PUSH hand (X_CALLM this draw_card X[X])
+			: = size - size 1
+		: XNEW pile X[ hand X]
+	}
+
 }

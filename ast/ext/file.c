@@ -68,10 +68,24 @@ KN_DECLARE_FUNCTION(file_write_kn, 2, "X_WRITE") {
 	die("todo: X_WRITE");
 }
 
+KN_DECLARE_FUNCTION(file_import_kn, 1, "X_IMPORT") {
+	struct kn_string *filename = kn_value_to_string(args[0]);
+
+	size_t length; // we dont care about the length
+	char *contents = read_file(kn_string_deref(filename), &length);
+	kn_string_free(filename);
+
+	kn_value result = kn_parse(contents);
+	free(contents);
+
+	return result;
+}
+
 kn_value parse_extension_file(void) {
 	TRY_PARSE_FUNCTION("FREAD", file_read_kn);
 	TRY_PARSE_FUNCTION("FAPPEND", file_append_kn);
 	TRY_PARSE_FUNCTION("FWRITE", file_write_kn);
+	TRY_PARSE_FUNCTION("IMPORT", file_import_kn);
 		
 	return KN_UNDEFINED;
 }

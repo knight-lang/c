@@ -1,22 +1,10 @@
-; EVAL ` "cat card.kn"
-; EVAL ` "cat pile.kn"
-
-; XFUNC deal (deck, handsize) {
-	#; XLOCAL player1
-	; X_CALLM deck shuffle X[ X]
-	; = player1 X[X]
-	; = player2 X[X]
-	; = _cards (X. deck cards)
-	; = i 0
-	; WHILE < i handsize
-		; X_PUSH player1 X_POP _cards
-		; X_PUSH player2 X_POP _cards
-		: = i + i 1
-	: NULL
-}
+; XIMPORT "card.kn"
+; XIMPORT "pile.kn"
 
 ; = deck X_CALLS pile new_deck X[X]
-; X_CALL deal ( deck, 26 X)
+; X_CALLM deck shuffle X[X]
+; = player1 X_CALLM deck deal_pile X[ 26 X]
+; = player2 X_CALLM deck deal_pile X[ 26 X]
 ; = rounds 0
 ; WHILE (& player1 player2) {
 	; = rounds + rounds 1
@@ -29,14 +17,14 @@
 		: NULL
 	#; O player1
 	; IF X_CALLM card1 loses_to X[ card2 X] {
-		; X_PUSH player2 card1
-		; X_PUSH player2 card2
+		; = pile player2
 		: OUTPUT ++++ "Player2: " card1 " < " card2 "\"
 	} XELSE {
-		; OUTPUT ++++ "Player1: " card1 " > " card2 "\"
-		; X_PUSH player1 card1
-		: X_PUSH player1 card2		
+		; = pile player1
+		: OUTPUT ++++ "Player1: " card1 " > " card2 "\"
 	}
+	; X_PUSH pile card1
+	; X_PUSH pile card2
  	: OUTPUT ++++ " (" (+0 player1) "-" (+0 player2) ")"
 }
 ; OUTPUT ++++ "Player " IF player1 1 2 " wins! (it took " rounds " rounds)"

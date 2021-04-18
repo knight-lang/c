@@ -76,6 +76,8 @@ kn_value list_delete(struct list *list, size_t index) {
 
 	for (size_t i = index; i < list->length - 1; ++i) 
 		list->elements[i] = list->elements[i + 1];
+
+	// if ()
 	// memmove(
 	// 	list->elements + index,
 	// 	list->elements + index,
@@ -149,26 +151,17 @@ struct kn_string *list_to_string(struct list *list) {
 #define DEFAULT_CAPACITY 16
 
 kn_value list_run(struct list *list) {
-	if (list->idempotent) {
-		struct kn_custom *custom
-			= container_of((void *) list, struct kn_custom, data);
+	struct list *result = ALLOC_DATA(sizeof(struct list), &list_vtable);
 
-		return kn_value_new_custom(kn_custom_clone(custom));
-	}
-
-	struct kn_custom *custom = ALLOC_CUSTOM_LIST();
-
-	struct list *ran = LIST(custom->data);
-
-	ran->elements = xmalloc(sizeof(kn_value [DEFAULT_CAPACITY]));
-	ran->length = list->length;
-	ran->capacity = list->capacity;
-	ran->idempotent = list->idempotent;
+	result->elements = xmalloc(sizeof(kn_value [list->capacity]));
+	result->length = list->length;
+	result->capacity = list->capacity;
+	result->idempotent = list->idempotent;
 
 	for (size_t i = 0; i < list->length; ++i)
-		ran->elements[i] = kn_value_run(list->elements[i]);
+		result->elements[i] = kn_value_run(list->elements[i]);
 
-	return kn_value_new_custom(custom);
+	return DATA2VALUE(result);
 }
 
 struct kn_custom *list_concat(struct list *lhs, struct list *rhs) {

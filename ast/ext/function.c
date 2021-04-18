@@ -42,11 +42,12 @@ kn_value run_function(struct function *function, kn_value *args) {
 
 	for (size_t i = 0; i < nparams; ++i) {
 		function->params[i]->value = saved_params[i]; // restore old value when returning
-		kn_value_free(current_params[i]); // free the value, as we ran it earlier.
+		if (current_params[i] != KN_UNDEFINED)
+			kn_value_free(current_params[i]);  // free the value, as we ran it earlier.
 	}
 
 	for (unsigned short i = 0; i < nlocals; ++i) {
-		kn_value_free(saved_locals[i]);
+		if (saved_locals[i] != KN_UNDEFINED) kn_value_free(saved_locals[i]);
 		function->locals[i]->value = saved_locals[i];
 	}
 
