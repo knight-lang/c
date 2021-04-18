@@ -1,8 +1,8 @@
 ; = XFUNC find_odds (curr, max) {
-	: IF (> curr max) { X[ X] }
+	: IF (> curr max) { [ X] }
 	: XELSE {
 		; = rest XCALL(find_odds, + curr 1, max X)
-		: IF (% curr 2) { X+ X[ curr X] rest }
+		: IF (% curr 2) { X+ [ curr X] rest }
 		: XELSE { rest }
 	}
 }

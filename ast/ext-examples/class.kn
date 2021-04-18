@@ -3,19 +3,17 @@
 	FIELD denom
 
 	METHOD constructor (numer denom) {
-		; X.= this numer numer
+		; .= this numer numer
 		; & (? denom 0)
 			; OUTPUT "zero denominator!"
 			: QUIT 1
-		: X.= this denom denom
+		: .= this denom denom
 	}
 
 	METHOD to_string () {
-		+++ "" (X. this numer) "/" (X. this denom)
+		+++ "" (. this numer) "/" (. this denom)
 	}
 }
 
 ; = frac XNEW fraction X[ 5 2 X]
-; OUTPUT X_CALLM frac to_string X[ X]
-N
-#: OUTPUT frac # => 5/2
+: OUTPUT frac # => 5/2

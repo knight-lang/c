@@ -19,7 +19,7 @@ const char *kn_parse_stream;
 static int iswhitespace(char c) {
 	return isspace(c) || c == ':'
 		|| c == '(' || c == ')'
-		|| c == '[' || c == ']'
+		//|| c == '[' || c == ']'
 		|| c == '{' || c == '}'
 # ifdef KN_EXT_IGNORE_COMMA
 		|| c == ','
@@ -117,6 +117,62 @@ struct kn_ast *kn_parse_ast(const struct kn_function *fn) {
 }
 
 
+static kn_value _strip() { kn_parse_strip(); return kn_parse_value(); }
+static kn_value _expected_token() { return KN_UNDEFINED; }
+#ifdef KN_CUSTOM
+static kn_value _invalid() { return kn_parse_extension(); }
+#else
+static kn_value _invalid() { die("unknown token start '%c'", kn_parse_peek()); }
+#endif
+static kn_value _number() { return kn_value_new_number(kn_parse_number()); }
+static kn_value _string() { return kn_value_new_string(kn_parse_string()); }
+static kn_value _identifier() { return kn_value_new_variable(kn_parse_variable()); }
+static kn_value _literal_true() { while(iswordfunc(kn_parse_advance_peek())); return KN_TRUE; }
+static kn_value _literal_false() { while(iswordfunc(kn_parse_advance_peek())); return KN_FALSE; }
+static kn_value _literal_null() { while(iswordfunc(kn_parse_advance_peek())); return KN_NULL; }
+#ifdef KN_CUSTOM
+static kn_value _function_extension() { kn_parse_advance(); return kn_parse_extension(); }
+#endif
+
+// Used for functions which are only a single character, eg `+`.
+#define SYMBOL_FUNC1(name) \
+	static kn_value _function_##name() { kn_parse_advance(); return kn_value_new_ast(kn_parse_ast(&kn_fn_##name)); }
+
+// Used for functions which are word functions (and can be multiple characters).
+#define WORD_FUNC1(name) \
+	static kn_value _function_##name() {	while (iswordfunc(kn_parse_advance_peek())); return kn_value_new_ast(kn_parse_ast(&kn_fn_##name)); }
+
+
+SYMBOL_FUNC1(not)
+SYMBOL_FUNC1(add)
+SYMBOL_FUNC1(sub)
+SYMBOL_FUNC1(mul)
+SYMBOL_FUNC1(div)
+SYMBOL_FUNC1(mod)
+SYMBOL_FUNC1(pow)
+SYMBOL_FUNC1(eql)
+SYMBOL_FUNC1(lth)
+SYMBOL_FUNC1(gth)
+SYMBOL_FUNC1(and)
+SYMBOL_FUNC1(or)
+SYMBOL_FUNC1(then)
+SYMBOL_FUNC1(assign)
+SYMBOL_FUNC1(system)
+
+WORD_FUNC1(block)
+WORD_FUNC1(call)
+WORD_FUNC1(dump)
+WORD_FUNC1(eval)
+WORD_FUNC1(get)
+WORD_FUNC1(if)
+WORD_FUNC1(length)
+WORD_FUNC1(output)
+WORD_FUNC1(prompt)
+WORD_FUNC1(quit)
+WORD_FUNC1(random)
+WORD_FUNC1(substitute)
+WORD_FUNC1(while)
+
 // Macros used either for computed gotos or switch statements (the switch
 // statement is only used when `KN_COMPUTED_GOTOS` is not defined.)
 #ifdef KN_COMPUTED_GOTOS
@@ -158,7 +214,86 @@ struct kn_ast *kn_parse_ast(const struct kn_function *fn) {
 	function = &kn_fn_##name; \
 	goto parse_kw_function
 
+typedef kn_value (*parsefn)(void);
+
+const parsefn functions[256] = {
+	['\0'] = _expected_token,
+	[0x01 ... 0x08] = _invalid,
+	['\t' ... '\r'] = _strip,
+	[0x0e ... 0x1f] = _invalid,
+	[' ']  = _strip,
+	['!']  = _function_not,
+	['"']  = _string,
+	['#']  = _strip,
+	['$']  = _invalid,
+	['%']  = _function_mod,
+	['&']  = _function_and,
+	['\''] = _string,
+	['(']  = _strip,
+	[')']  = _strip,
+	['*']  = _function_mul,
+	['+']  = _function_add,
+	[',']  = _strip,
+	['-']  = _function_sub,
+	['.']  = _invalid,
+	['/']  = _function_div,
+	['0' ... '9']  = _number,
+	[':']  = _strip,
+	[';']  = _function_then,
+	['<']  = _function_lth,
+	['=']  = _function_assign,
+	['>']  = _function_gth,
+	['?']  = _function_eql,
+	['@']  = _invalid,
+	['A']  = _invalid,
+	['B']  = _function_block,
+	['C']  = _function_call,
+	['D']  = _function_dump,
+	['E']  = _function_eval,
+	['F']  = _literal_false,
+	['G']  = _function_get,
+	['H']  = _invalid,
+	['I']  = _function_if,
+	['J']  = _invalid,
+	['K']  = _invalid,
+	['L']  = _function_length,
+	['M']  = _invalid,
+	['N']  = _literal_null,
+	['O']  = _function_output,
+	['P']  = _function_prompt,
+	['Q']  = _function_quit,
+	['R']  = _function_random,
+	['S']  = _function_substitute,
+	['T']  = _literal_true,
+	['U']  = _invalid,
+	['V']  = _invalid,
+	['W']  = _function_while,
+	['Y']  = _invalid,
+# ifdef KN_CUSTOM
+	['X']  = _function_extension,
+# else
+	['X']  = _invalid,
+# endif /* KN_CUSTOM */
+	['Z']  = _invalid,
+	['[']  = _invalid,
+	['\\'] = _invalid,
+	[']']  = _invalid,
+	['^']  = _function_pow,
+	['_']  = _identifier,
+	['`']  = _function_system,
+	['a' ... 'z'] = _identifier,
+	['{']  = _strip,
+	['|']  = _function_or,
+	['}']  = _strip,
+	['~']  = _invalid,
+	[0x7f ... 0xff] = _invalid
+};
+
 kn_value kn_parse_value() {
+	return functions[kn_parse_peek()]();
+}
+
+kn_value kn_parse_value1() {
 // the global lookup table, which is used for the slightly-more-efficient, but
 // non-standard computed gotos version of the parser.
 #ifdef KN_COMPUTED_GOTOS

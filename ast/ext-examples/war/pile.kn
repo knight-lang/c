@@ -55,5 +55,4 @@ XCLASS pile {
 			: = size - size 1
 		: XNEW pile X[ hand X]
 	}
-
 }
