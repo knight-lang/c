@@ -19,7 +19,8 @@ unsigned long kn_hash_acc(const char *str, size_t length, unsigned long hash) {
 }
 
 unsigned long kn_hash(const char *str, size_t length) {
-	return kn_hash_acc(str, length, 525201411107845655l);
+	// start a `kn_hash_acc` with the default starting value
+	return kn_hash_acc(str, length, 525201411107845655L);
 }
 
 void *xmalloc(size_t size) {
@@ -40,7 +41,7 @@ void *xrealloc(void *ptr, size_t size) {
 
 #ifndef KN_RECKLESS
 	if (KN_UNLIKELY(ptr == NULL)) {
-		die("realloc failure for size %zd", size);
+		fprintf(stderr, "realloc failure for size %zd", size);
 		abort();
 	}
 #endif /* !KN_RECKLESS */
