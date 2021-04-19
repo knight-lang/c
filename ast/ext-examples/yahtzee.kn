@@ -1,0 +1,100 @@
+; = endl "
+"
+; XCLASS yahtzee {
+	FIELD uppers lowers round dice hold
+
+	METHOD constructor () {
+		; X.= this uppers X[ 0 0 0 0 0 0 X]
+		; X.= this lowers  X[ 0 0 0 0 0 0 0 X]
+		; X.= this round 0
+		; X.= this dice X[ 0 0 0 0 0 X]
+		: NULL
+	}
+
+	METHOD ones () { XGET X. this uppers 0 }
+	METHOD twos () { XGET X. this uppers 1 }
+	METHOD threes () { XGET X. this uppers 2 }
+	METHOD fours () { XGET X. this uppers 3 }
+	METHOD fives () { XGET X. this uppers 4 }
+	METHOD sixes () { XGET X. this uppers 5 }
+
+	METHOD uppers () {
+		LOCAL up
+		; = up
+			+ (XCALLM this ones X[X])
+			+ (XCALLM this twos X[X])
+			+ (XCALLM this threes X[X])
+			+ (XCALLM this fours X[X])
+			+ (XCALLM this fives X[X])
+			  (XCALLM this sixes X[X])
+		: + up (IF (< 62 up) 35 0)
+	}
+
+	METHOD kind3 () { XGET X. this lowers 0 }
+	METHOD kind4 () { XGET X. this lowers 1 }
+	METHOD full_house () { XGET X. this lowers 2 }
+	METHOD sm_straight () { XGET X. this lowers 3 }
+	METHOD lg_straight () { XGET X. this lowers 4 }
+	METHOD yahtzees () { XGET X. this lowers 5 }
+	METHOD chance () { XGET X. this lowers 6 }
+
+	METHOD lowers () {
+		+ (XCALLM this kind3 X[X])
+		+ (XCALLM this kind4 X[X])
+		+ (XCALLM this full_house X[X])
+		+ (XCALLM this sm_straight X[X])
+		+ (XCALLM this lg_straight X[X])
+		+ (XCALLM this yahtzees X[X])
+		  (XCALLM this chance X[X])
+	}
+
+	METHOD total () {
+		+ (XCALLM this uppers X[X]) (XCALLM this lowers X[X])
+	}
+
+	METHOD score_board () {
+		+++ "1s:           " (XCALLM this ones X[X])   "	|	" +++ "3 of a kind:  " (XCALLM this kind3 X[X]) endl
+		+++ "2s:           " (XCALLM this twos X[X])   "	|	" +++ "4 of a kind:  " (XCALLM this kind4 X[X]) endl
+		+++ "3s:           " (XCALLM this threes X[X]) "	|	" +++ "Full House:   " (XCALLM this full_house X[X]) endl
+		+++ "4s:           " (XCALLM this fours X[X])  "	|	" +++ "Sm. Straight: " (XCALLM this sm_straight X[X]) endl
+		+++ "5s:           " (XCALLM this fives X[X])  "	|	" +++ "Lg. Straight: " (XCALLM this lg_straight X[X]) endl
+		+++ "6s:           " (XCALLM this sixes X[X])  "	|	" +++ "YAHTZEE:      " (XCALLM this yahtzees X[X]) endl
+		 ++ "               "                          "	|	" +++ "Chance:       " (XCALLM this chance X[X]) endl
+		+++ "---------------"                          "---|--"   + "---------------" endl
+		+++ "Uppers:       " (XCALLM this uppers X[X]) "	|	" +++ "Lowers:       " (XCALLM this lowers X[X]) endl
+		  + "Grand Total:  " (XCALLM this total X[X])
+	}
+
+	METHOD dice () {
+		+ "" X. this dice 
+	}
+
+	METHOD to_string () {
+		++ (XCALLM this score_board X[X]) + endl endl (XCALLM this dice X[X])
+	}
+
+	METHOD roll() {
+		LOCAL i _dice
+		; = i - 0 1
+		; = _dice (X. this dice)
+		; X.= this round  
+		; WHILE < (= i + i 1) 5
+			| (XGET _dice i)
+				XSET _dice i (+ 1 % RANDOM 6)
+		: NULL
+	}
+
+#		; = str + "upper: " (X.this uppers) 
+#		; = str + "
+#"
+#"upper: 
+#       "
+#		; = str + str (X. this uppers)
+#		: str
+	}
+}
+
+; = game XNEW yahtzee X[ X]
+; XCALLM game roll X[X]
+; OUTPUT game
+N

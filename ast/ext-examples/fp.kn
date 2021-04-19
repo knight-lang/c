@@ -1,0 +1,36 @@
+; XFUNC map (list, func) {
+	LOCAL i acc
+	; = i ~1
+	; = acc X[X]
+	; WHILE < (= i + i 1) list
+		: XPUSH acc XCALL func (XGET list i X)
+	: acc
+}
+
+; XFUNC double (arg) XCALL map (arg, XFUNC _(n) ^ n 2 X)
+
+; = list X[ ~1 0 1 2 3 4 5 X]
+; OUTPUT XCALL double( list X)
+
+; XFUNC select (list, func) {
+	LOCAL i acc val
+	; = i ~1
+	; = acc X[X]
+	; WHILE < (= i + i 1) list
+		& XCALL func (= val XGET list i X)
+		  XPUSH acc val
+	: acc
+}
+
+
+; XFUNC double (arg) XCALL map (arg, XFUNC _(n) ^ n 2 X)
+
+; = list X[ ~1 0 1 2 3 4 5 X]
+; OUTPUT XCALL double( list X)
+; OUTPUT XCALL select ( list XFUNC _(n) % n 2 X)
+NULL
+
+
+; XFUNC reduce (list, func) {
+	LOCAL i acc val
+}

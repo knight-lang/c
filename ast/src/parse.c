@@ -35,8 +35,6 @@ static int iswordfunc(char c) {
 void kn_parse_strip() {
 	char c;
 
-	assert(iswhitespace(c = kn_parse_peek()) || c == '#');
-
 	while (1) {
 		c = kn_parse_peek();
 
@@ -158,6 +156,9 @@ SYMBOL_FUNC1(or)
 SYMBOL_FUNC1(then)
 SYMBOL_FUNC1(assign)
 SYMBOL_FUNC1(system)
+#ifdef KN_EXT_NEGATE
+SYMBOL_FUNC1(negate)
+#endif 
 
 WORD_FUNC1(block)
 WORD_FUNC1(call)
@@ -285,7 +286,12 @@ const parsefn functions[256] = {
 	['{']  = _strip,
 	['|']  = _function_or,
 	['}']  = _strip,
+# ifdef KN_EXT_NEGATE
+	['~']  = _function_negate,
+# else
 	['~']  = _invalid,
+# endif /* KN_EXT_NEGATE */
+
 	[0x7f ... 0xff] = _invalid
 };
 

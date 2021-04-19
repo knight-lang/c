@@ -1,0 +1,17 @@
+; XCLASS animal {
+	METHOD speak () {
+		OUTPUT +++ "" this " says " X. this sayswhat
+	}	
+}
+
+; XCLASS dog () {
+	PARENT animal
+	#STATIC FIELD species
+	METHOD sayswhat () {
+		+ "woof" 0
+	}
+}
+
+; = puppy XNEW dog X[X]
+; OUTPUT XCALLM puppy sayswhat X[X]
+NULL

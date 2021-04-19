@@ -408,11 +408,11 @@ DECLARE_FUNCTION(mod, 2, "%") {
 }
 
 DECLARE_FUNCTION(pow, 2, "^") {
-	kn_value lhs = kn_value_to_number(args[0]);
+	kn_value lhs = kn_value_run(args[0]);
 
 #ifndef KN_RECKLESS
 	if (!kn_value_is_number(lhs))
-		die("can only exponentiate numbers");
+		die("can only exponentiate numbers: %lld", lhs);
 #endif /* !KN_RECKLESS */
 
 	kn_number result;
