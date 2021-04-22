@@ -1,7 +1,7 @@
 #ifndef KN_AST_H
 #define KN_AST_H
 
-#include "function.h" /* kn_function */
+#include "function.h" /* kn_function, KN_MAX_ARGC */
 #include "value.h"    /* kn_value */
 
 /*
@@ -18,8 +18,10 @@ struct kn_ast {
 
 	/*
 	 * How many references to this object exist.
+	 *
+	 * A negative refcount means that the object should not be freed.
 	 */
-	unsigned refcount;
+	int refcount;
 
 	/*
 	 * The arguments of this ast.
@@ -29,6 +31,8 @@ struct kn_ast {
 
 /*
  * Allocates a new `kn_ast` with the given number of arguments.
+ *
+ * `argc` musn't be larger than `KN_MAX_ARGC`.
  */
 struct kn_ast *kn_ast_alloc(unsigned argc);
 

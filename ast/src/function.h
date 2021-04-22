@@ -4,6 +4,13 @@
 #include "value.h" /* kn_value */
 
 /*
+ * The maximum argc for functions. Used for optimizations in some places.
+ */
+#ifndef KN_MAX_ARGC
+# define KN_MAX_ARGC 4
+#endif /* !KN_MAX_ARGC */
+
+/*
  * This struct is used to keep track of all data relevant for a Knight function.
  */
 struct kn_function {
