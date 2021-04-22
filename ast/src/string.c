@@ -201,7 +201,7 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 			return kn_string_clone(string);
 
 		evict_string(string);
-	};
+	}
 
 	// it may be embeddable, so don't just call `allocate_heap_string`.
 	*cache = string = kn_string_alloc(length);
