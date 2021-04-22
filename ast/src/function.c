@@ -408,7 +408,7 @@ DECLARE_FUNCTION(mod, 2, "%") {
 }
 
 DECLARE_FUNCTION(pow, 2, "^") {
-	kn_value lhs = kn_value_to_number(args[0]);
+	kn_value lhs = kn_value_run(args[0]);
 
 #ifndef KN_RECKLESS
 	if (!kn_value_is_number(lhs))
@@ -425,8 +425,15 @@ DECLARE_FUNCTION(pow, 2, "^") {
 	else if (base == -1) result = exponent & 1 ? -1 : 1;
 	else if (exponent == 1) result = base;
 	else if (exponent == 0) result = 1;
-	else if (exponent < 0) result = 0; // already handled `base == -1`
-	else {
+	else if (exponent < 0) {
+
+#ifndef KN_RECKLESS
+		if (base == 0)
+			die("attempted to exponentiate zero to a negative power");
+#endif /* KN_RECKLESS */
+
+		result = 0; // already handled `base == -1`
+	} else {
 		for (result = 1; exponent > 0; --exponent)
 			result *= base;
 	}
