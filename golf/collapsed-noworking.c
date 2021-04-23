@@ -28,7 +28,7 @@ isdigit(*S))v=v*10+*S++-(J=48);I(J)R 1|v<<4;W(islower(*n=c=*S)||isdigit(c)||95==
 c)J?++S:(J=1,t=S);I(J)R 4|(ll)Z(t,S-t);I(c==34||c==39){t=++S;W(*S++-c){}R 2|(ll)
 Z(t,S-t-1);}++S;I(isupper(c))W(isupper(*S)||*S==95)++S;I(N(n,"TFN"))
 	// R c-85?c-78?8:4:12;
-	R c=='T'?12:c=='F'?4:8;
+	R c=='T'?12:c=='F'?8:4;
 	v=8|(ll)(f=calloc(40,1));*f=c;I (c==82||c==80)R v;f[1]=p();I(N(n,//yay!:)
 "EBC`Q!LDO"))R v;f[2]=p();I(!N(n,"GIS"))R v;f[3]=p();I(c-71&&c-73)f[4]=p();R v;}
 ll r(ll);char*tos(ll v){R v&1?sprintf(BF,"%lld",v>>4),BF:v&2?B(v):v<13?v-4?v-8?
@@ -36,7 +36,7 @@ ll r(ll);char*tos(ll v){R v&1?sprintf(BF,"%lld",v>>4),BF:v&2?B(v):v<13?v-4?v-8?
 :tob(r(v));}ll ton(ll v){R v&1?v>>4:v&2?strtoll(B(v),0,10):v<13?v==12:ton(r(v));
 }ll r(ll v){ll t,t2,t3=1;char*s,*ts,*ts2;FILE*f;I(v&3||v<13)R v;I(v&4)for(J=H;+J
 --;)I(!Q(B(v),O[J]))R M[J];I(J=H,v&4)W(J--)I(!Q(B(v),O[J]))R M[J];switch(*(ll*)U
-(v)){C'R':R E(rand()&65535);C'P':s=0;getline(&s,&z,stdin);R F(Z(s,L(s)));C'E':S=tos(T)
+(v)){C'R':R E(rand());C'P':s=0;getline(&s,&z,stdin);R F(Z(s,L(s)));C'E':S=tos(T)
 ;R r(p());C'B':R T;C'C':R r(r(T));C'`':f=popen(tos(T),"r");s=malloc(b=2048);W((a
 =fread(s+d,1,b-d,f)))I((d+=a)==b)s=realloc(s,b*=2);R F(s);C'Q':exit(ton(T));C'!'
 :R G(!tob(T));C'L':R E(L(tos(T)));

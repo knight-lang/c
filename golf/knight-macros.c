@@ -56,8 +56,13 @@ R E(t3);C'<':R G((1&(t=r(T)))?D(t)<ton(V):2&t?Q(B(t),tos(V))<0:tob(V)&&t!=12);C
 2&(t=r(T)))?2&(t2=r(V))&&!Q(B(t),B(t2)):t==r(V));C'&':R tob(t=r(T))?r(V):t;C'|':
 R tob(t=r(T))?t:r(V);C';':R r(T),r(V);C'=':t=r(V);for(J=0;J<H;++J)I(!Q(B(T),O[J]
 ))R M[J]=t;R O[H]=B(T),M[H++]=t;C'W':W(tob(T))r(V);R 8;C'I':R r(A(tob(T)?2:3));C
-'G':s=tos(T)+ton(V);R F(Z(s,ton(A(3))));C'S':ts=tos(T);t=ton(V);t2=ton(A(3));ts2
-=tos(A(4));R F(K(K(strncat(calloc(L(ts)+L(ts2)+t2+1,1),ts,t),ts2),ts+t2));}R 1;}
+'G':s=tos(T)+ton(V);R F(Z(s,ton(A(3))));
+	C'S':
+		ts=tos(T);
+		t=ton(V);
+		t2=ton(A(3));
+		ts2=tos(A(4));
+		R F(K(K(strncat(calloc(L(ts)+L(ts2)+t2+1+t,1),ts,t),ts2),ts+t2+t));}R 1;}
 int main(int c,char**v){srand((int)v);I(!c)R fprintf(stderr,//knight, in c, 2021
 "usage: %s (-e 'program' | -f file)\n",*v),1;I('f'-v[1][1])S=v[2];else getdelim(
 &S,&z,0,fopen(v[2],"r"));r(p());}
