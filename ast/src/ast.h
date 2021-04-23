@@ -30,6 +30,11 @@ struct kn_ast {
 };
 
 /*
+ * Frees memory associated with zombie ASTs.
+ */
+void kn_ast_shutdown(void);
+
+/*
  * Allocates a new `kn_ast` with the given number of arguments.
  *
  * `argc` musn't be larger than `KN_MAX_ARGC`.

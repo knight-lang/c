@@ -5,10 +5,19 @@
 #include <assert.h> /* assert */
 
 #ifndef KN_AST_FREE_CACHE_LEN
-#	define KN_AST_FREE_CACHE_LEN 32
+# define KN_AST_FREE_CACHE_LEN 32
 #endif /* !KN_AST_FREE_CACHE_LEN */
 
 struct kn_ast *freed_asts[KN_MAX_ARGC + 1][KN_AST_FREE_CACHE_LEN];
+
+void kn_ast_shutdown(void) {
+	for (unsigned i = 0; i <= KN_MAX_ARGC; ++i) {
+		for (unsigned j = 0; j < KN_AST_FREE_CACHE_LEN; ++j) {
+			if (freed_asts[i][j] != NULL)
+				free(freed_asts[i][j]);
+		}
+	}
+}
 
 struct kn_ast *kn_ast_alloc(unsigned argc) {
 	struct kn_ast *ast;
