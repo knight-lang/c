@@ -1,9 +1,13 @@
-SRCDIR?=src
-OBJDIR?=obj
-EXE?=knight
-
 CC?=gcc
 CFLAGS+=-Wall -Wextra -Wpedantic -std=c11
+SRCDIR?=src
+OBJDIR?=obj
+BINDIR?=bin
+
+exe=$(BINDIR)/knight
+lib=$(BINDIR)/libknight.so
+objects=$(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(wildcard $(SRCDIR)/*.c))
+
 override CFLAGS+=-F$(SRCDIR)
 
 ifdef DEBUG
@@ -16,21 +20,25 @@ ifdef COMPUTED_GOTOS
 override CFLAGS+=-DKN_COMPUTED_GOTOS -Wno-gnu-label-as-value -Wno-gnu-designator
 endif
 
-objects = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(wildcard $(SRCDIR)/*.c))
+.PHONY: all optimized clean shared
 
-.PHONY: all optimized clean
-
-all: $(EXE)
-
-optimized:
-	$(CC) $(CFLAGS) $(CEXEFLAGS) -o $(EXE) $(wildcard $(SRCDIR)/*.c)
-
-$(EXE): $(objects)
-	$(CC) $(CFLAGS) $(CEXEFLAGS) -o $@ $+
+all: $(exe)
+shared: $(lib)
 
 clean:
-	-@rm -r $(OBJDIR)
-	-@rm $(EXE)
+	-@rm -r $(OBJDIR) $(BINDIR)
+
+optimized:
+	$(CC) $(CFLAGS) -o $(exe) $(wildcard $(SRCDIR)/*.c)
+
+$(exe): $(objects) | $(BINDIR)
+	$(CC) $(CFLAGS) -o $@ $+
+
+$(lib): $(objects) | $(BINDIR)
+	$(CC) $(CFLAGS) -shared -o $@ $+
+
+$(BINDIR):
+	@mkdir -p $(BINDIR)
 
 $(OBJDIR):
 	@mkdir -p $(OBJDIR)
