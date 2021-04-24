@@ -118,7 +118,6 @@ static void strip_keyword() {
 	}
 }
 
-
 // Macros used either for computed gotos or switch statements (the switch
 // statement is only used when `KN_COMPUTED_GOTOS` is not defined.)
 #ifdef KN_COMPUTED_GOTOS

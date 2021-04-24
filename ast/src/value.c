@@ -21,10 +21,10 @@
  * 0...10000 - TRUE
  * 0...11000 - undefined.
  * X...XX001 - 61-bit signed integer
- * X...XX010 - variable (nonzero `X`)
- * X...XX011 - string (nonzero `X`)
- * X...XX100 - function (nonzero `X`)
- * X...XX110 - custom (nonzero `X`) (only with `KN_CUSTOM`)
+ * X...XX010 - variable
+ * X...XX011 - string
+ * X...XX100 - function
+ * X...XX110 - custom (only with `KN_CUSTOM`)
  * note all pointers are 8-bit-aligned.
  */
 #define KN_SHIFT 3
@@ -37,7 +37,6 @@
 #ifdef KN_CUSTOM
 # define KN_TAG_CUSTOM 5
 #endif /* KN_CUSTOM */
-
 
 #define KN_TAG_MASK ((1 << KN_SHIFT) - 1)
 #define KN_TAG(x) ((x) & KN_TAG_MASK)

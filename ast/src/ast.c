@@ -49,7 +49,6 @@ struct kn_ast *kn_ast_alloc(unsigned argc) {
 		return ast;
 	}
 
-
 	// there are no cached free asts, so we have to allocate.
 	ast = xmalloc(sizeof(struct kn_ast) + sizeof(kn_value [argc]));
 	ast->refcount = 1;
