@@ -13,18 +13,17 @@ struct kn_string _Alignas(8) kn_string_empty = KN_STRING_NEW_EMBED("");
 # define KN_STRING_CACHE_MAXLEN 32
 #endif /* !KN_STRING_CACHE_MAXLEN */
 
-#ifndef KN_STRING_CACHE_LINESIZE
-# define KN_STRING_CACHE_LINESIZE (1<<14)
-#endif /* !KN_STRING_CACHE_LINESIZE */
+#ifndef KN_STRING_CACHE_LINELEN
+# define KN_STRING_CACHE_LINELEN (1<<14)
+#endif /* !KN_STRING_CACHE_LINELEN */
+
+static struct kn_string *cache[KN_STRING_CACHE_MAXLEN][KN_STRING_CACHE_LINELEN];
 
 static struct kn_string **cache_lookup(unsigned long hash, size_t length) {
-	static struct kn_string *cache[
-		KN_STRING_CACHE_MAXLEN][KN_STRING_CACHE_LINESIZE];
-
 	assert(length != 0);
 	assert(length <= KN_STRING_CACHE_MAXLEN);
 
-	return &cache[length - 1][hash & (KN_STRING_CACHE_LINESIZE - 1)];
+	return &cache[length - 1][hash & (KN_STRING_CACHE_LINELEN - 1)];
 }
 
 struct kn_string *kn_string_cache_lookup(unsigned long hash, size_t length) {
@@ -101,18 +100,24 @@ static void deallocate_string(struct kn_string *string) {
 	free(string);
 }
 
-static void evict_string(struct kn_string *string) {
-	assert(string != NULL);
-
-	// If there are no more references to it, deallocate the stirng.
-	if (string->refcount == 0) {
-		deallocate_string(string);
-		return;
-	}
-
-	// otherwise, indicate that the string is no longer cached.
+static void evict_string_active(struct kn_string *string) {
+	assert(string->refcount != 0);
 	assert(string->flags & KN_STRING_FL_CACHED);
+
 	string->flags -= KN_STRING_FL_CACHED;
+}
+
+static void evict_string(struct kn_string *string) {
+	// we only cache allocated strings.
+	assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
+
+	if (string->refcount == 0) {
+		// If there are no more references to it, deallocate the stirng.
+		deallocate_string(string);
+	} else {
+		// otherwise, just evict it from the cache slot.
+		evict_string_active(string);
+	}
 }
 
 struct kn_string *kn_string_alloc(size_t length) {
@@ -196,6 +201,10 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 	struct kn_string *string = *cache;
 
 	if (KN_LIKELY(string != NULL)) {
+		// cached strings must be allocated.
+		assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
+		assert(kn_string_length(string) == length);
+
 		// if the string is the same, then that means we want the cached one.
 		if (KN_LIKELY(strncmp(kn_string_deref(string), str, length) == 0))
 			return kn_string_clone(string);

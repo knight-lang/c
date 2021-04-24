@@ -5,7 +5,7 @@ OBJDIR?=obj
 BINDIR?=bin
 
 exe=$(BINDIR)/knight
-lib=$(BINDIR)/libknight.so
+dyn=$(BINDIR)/libknight.so
 objects=$(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(wildcard $(SRCDIR)/*.c))
 
 override CFLAGS+=-F$(SRCDIR)
@@ -23,7 +23,7 @@ endif
 .PHONY: all optimized clean shared
 
 all: $(exe)
-shared: $(lib)
+shared: $(dyn)
 
 clean:
 	-@rm -r $(OBJDIR) $(BINDIR)
@@ -34,7 +34,7 @@ optimized:
 $(exe): $(objects) | $(BINDIR)
 	$(CC) $(CFLAGS) -o $@ $+
 
-$(lib): $(objects) | $(BINDIR)
+$(dyn): $(objects) | $(BINDIR)
 	$(CC) $(CFLAGS) -shared -o $@ $+
 
 $(BINDIR):

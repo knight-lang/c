@@ -11,10 +11,16 @@
 struct kn_ast *freed_asts[KN_MAX_ARGC + 1][KN_AST_FREE_CACHE_LEN];
 
 void kn_ast_shutdown(void) {
+	struct kn_ast *ast;
+
 	for (unsigned i = 0; i <= KN_MAX_ARGC; ++i) {
 		for (unsigned j = 0; j < KN_AST_FREE_CACHE_LEN; ++j) {
-			if (freed_asts[i][j] != NULL)
-				free(freed_asts[i][j]);
+			ast = freed_asts[i][j];
+
+			if (ast != NULL) {
+				assert(ast->refcount == 0);
+				free(ast);
+			}
 		}
 	}
 }
