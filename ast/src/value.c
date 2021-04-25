@@ -347,7 +347,7 @@ void kn_value_dump(kn_value value) {
 		case KN_TRUE:  printf("Boolean(true)"); return;
 		case KN_FALSE: printf("Boolean(false)"); return;
 		case KN_NULL:  printf("Null()"); return;
-#ifndef NDEBUG // we dump undefined only for debugging. 
+#ifndef NDEBUG // we dump undefined only for debugging.
 		case KN_UNDEFINED: printf("<KN_UNDEFINED>"); return;
 #endif /* !NDEBUG */
 

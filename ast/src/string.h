@@ -138,6 +138,20 @@ extern struct kn_string kn_string_empty;
 		.embed = { .length = sizeof(data_) - 1, .data = data_ } \
 	}
 
+
+/*
+ * Frees cached strings with a zero refcount.
+ *
+ * To improve performance, string structs with a zero refcount aren't actually
+ * deallocated until they are evicted by another string with the same hash.
+ * However, this means that inaccessible strings are left in memory. This
+ * function is used to clean up the memory associated with these zombie strings.
+ *
+ * Note that this will _not_ clean up live strings, but only ones with a
+ * refcount of zero.
+ */
+void kn_string_cleanup(void);
+
 /*
  * Allocates a new `kn_string` that can hold at least the given length.
  *

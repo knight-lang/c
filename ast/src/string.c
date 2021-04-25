@@ -112,7 +112,7 @@ static void evict_string(struct kn_string *string) {
 	assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
 
 	if (string->refcount == 0) {
-		// If there are no more references to it, deallocate the stirng.
+		// If there are no more references to it, deallocate the string.
 		deallocate_string(string);
 	} else {
 		// otherwise, just evict it from the cache slot.
@@ -247,4 +247,23 @@ struct kn_string *kn_string_clone_static(struct kn_string *string) {
 		kn_string_deref(string),
 		kn_string_length(string)
 	);
+}
+
+void kn_string_cleanup() {
+	struct kn_string *string;
+
+	for (unsigned i = 0; i < KN_STRING_CACHE_MAXLEN; ++i) {
+		for (unsigned j = 0; j < KN_STRING_CACHE_LINELEN; ++j) {
+			string = cache[i][j];
+
+			if (string != NULL) {
+				// we only cache allocated strings.
+				assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
+
+				// If there are no more references to it, deallocate the string.
+				if (string->refcount == 0)
+					deallocate_string(string);
+			}
+		}
+	}
 }

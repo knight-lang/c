@@ -32,7 +32,7 @@ struct kn_ast {
 /*
  * Frees memory associated with zombie ASTs.
  */
-void kn_ast_shutdown(void);
+void kn_ast_cleanup(void);
 
 /*
  * Allocates a new `kn_ast` with the given number of arguments.

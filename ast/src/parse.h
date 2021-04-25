@@ -8,7 +8,7 @@
  * Parses out a `kn_value` from the given stream, returning `KN_UNDEFINED` if no
  * value could be parsed.
  *
- * Note that this will overwrite the previous parsing stream. The function 
+ * Note that this will overwrite the previous parsing stream. The function
  * `kn_parse_value` can be used to fetch the next value and update the parsing
  * stream.
  */

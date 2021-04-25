@@ -10,7 +10,7 @@
 
 struct kn_ast *freed_asts[KN_MAX_ARGC + 1][KN_AST_FREE_CACHE_LEN];
 
-void kn_ast_shutdown(void) {
+void kn_ast_cleanup(void) {
 	struct kn_ast *ast;
 
 	for (unsigned i = 0; i <= KN_MAX_ARGC; ++i) {
@@ -45,7 +45,7 @@ struct kn_ast *kn_ast_alloc(unsigned argc) {
 		assert(ast->refcount == 0);
 
 		// increase the refcount as we're now using it.
-		++ast->refcount; 
+		++ast->refcount;
 		return ast;
 	}
 
