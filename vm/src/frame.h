@@ -1,35 +1,14 @@
-#ifndef FRAME_H
-#define FRAME_H
-
-#include "value.h"
-
-typedef enum {
-	OP_HALT,
-	OP_DUMP = 'D',
-	OP_PUSHL,
-
-	OP_JMP,
-	OP_JZ,
-
-	OP_ADD = '+',
-	OP_SUB = '-',
-	OP_MUL = '*',
-	OP_DIV = '/'
-} opcode;
-
-typedef union {
-	opcode opcode;
-	value value;
-} bytecode;
+#pragma once
+#include "bytecode.h"
+#include <src/value.h>
 
 typedef struct {
-	unsigned num_locals, bytecode_len;
-	value *locals;
-	bytecode *bytecode;
-} frame;
+	unsigned nlocals, nglobals, nconsts, codelen;
 
-frame *parse_frame(char *);
-void free_frame(frame *);
-void frame_dmp(frame *);
+	struct kn_variable **globals;
+	kn_value *consts;
+	opcode_t *code;
+} frame_t;
 
-#endif
+frame_t *frame_from(kn_value);
+kn_value run_frame(const frame_t *);

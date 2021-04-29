@@ -1,18 +1,19 @@
-SRCDIR ?= src
-OBJDIR ?= obj
-EXE ?= knight
+SRCDIR?=src
+OBJDIR?=obj
+EXE?=knight
 
-CC = gcc 
-CFLAGS = -Wall -Wextra -Wpedantic
-CFLAGS += $(CER)
+CC=gcc
+CFLAGS=-Wall -Wextra -Wpedantic -I../ast
+LDFLAGS=-lknight -L../ast/bin
+
 override CFLAGS += -F$(SRCDIR)
 
 ifdef DEBUG
-override CFLAGS += -g -fsanitize=address,undefined
+override CFLAGS+=-g -fsanitize=address,undefined
 endif
 
 ifdef OPTIMIZED
-CEXEFLAGS += -O3 -DNDEBUG -flto -march=native -Wno-gnu
+CEXEFLAGS+=-O3 -DNDEBUG -flto -march=native -Wno-gnu
 endif
 
 # ifdef COMPUTED_GOTOS
@@ -24,10 +25,10 @@ objects = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(wildcard $(SRCDIR)/*.c))
 all: $(EXE)
 
 optimized:
-	$(CC) $(CFLAGS) $(CEXEFLAGS) -o $(EXE) $(wildcard $(SRCDIR)/*.c)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(CEXEFLAGS) -o $(EXE) $(wildcard $(SRCDIR)/*.c)
 
 $(EXE): $(objects)
-	$(CC) $(CFLAGS) $(CEXEFLAGS) -o $@ $+
+	$(CC) $(CFLAGS) $(LDFLAGS) $(CEXEFLAGS) -o $@ $+
 
 clean:
 	-@rm -r $(OBJDIR)

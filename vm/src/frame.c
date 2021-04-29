@@ -1,165 +1,178 @@
 #include "frame.h"
-#include "shared.h"
-#include <stdlib.h>
-#include <ctype.h>
 #include <assert.h>
-#include <string.h>
-#include <stdio.h>
+#include <src/shared.h>
+#include <src/function.h>
+#include <src/env.h>
 
-typedef struct {
-	unsigned length, capacity;
-	bytecode *code;
-} frame_code;
+frame_t *frame_from(kn_value value) {
+	frame_t *frame = xmalloc(sizeof(frame_t));
+ 
+	// frame->locals.len = 2;
+	// frame->consts.len = 3;
+/*
+; = a 3
+: OUTPUT + 'a*4=' * a 4
 
-#define NBYTECODE (4096*4096)
+; = a 3
+; = _0 'a*4='
+; = _2 0
+; = _1 * a _0
+; = 
+: OUTPUT + 'a*4=' * a 4
 
-typedef struct {
-	char *input;
 
-	struct {
-		unsigned label, local, bytecode;
-	} next;
+c0 = 3
+c1 = 'a*4='
+c2 = 4
 
-	bytecode bytecode[NBYTECODE];
+l0 = 3
+l1 = 
 
-} parse_context;
+*/
 
-static int iswhitespace(char c) {
-	return isspace(c)
-		|| c == '(' || c == ')'
-		|| c == '[' || c == ']'
-		|| c == '{' || c == '}'
-		|| c == ':';
-}
-
-static parse_context ctx;
-
-#define PEEK() (*ctx.input)
-#define ADVANCE() (++ctx.input)
-#define PEEK_ADVANCE() (*ctx.input++)
-#define ADVANCE_PEEK() (*++ctx.input)
-#define PUSH_OP(op) (ctx.bytecode[ctx.next.bytecode++].opcode = (op))
-#define PUSH_VALUE(val) \
-	(PUSH_OP(OP_PUSHL), ctx.bytecode[ctx.next.bytecode++].value = (val))
-
-void parse_frame_inner() {
-	char c;
-
-	printf("%p [%c] [%d]\n", ctx.input, PEEK(), PEEK());
-	// strip whitespace
-	while (iswhitespace(c=PEEK()) || c == '#')
-		if (PEEK_ADVANCE() == '#')
-			while (PEEK_ADVANCE() != '\n');
-
-	assert(ctx.next.bytecode < NBYTECODE);
-	if(c == '\0') DIE("nothing to parse");
-
-	if (isdigit(c)) {
-		number num = c - '0';
-
-		while (isdigit(c = PEEK_ADVANCE()))
-			num = num * 10 + (c - '0');
-
-		PUSH_VALUE(NUMBER_TO_VALUE(num));
-		return;
-	}
-
-	if (c == '\'' || c == '\"') {
-		ADVANCE();
-		char *start = ctx.input;
-
-		while (PEEK_ADVANCE() != c) {
-			if(PEEK() == '\0') DIE("unterminated quote");
-		}
-
-		unsigned size = ctx.input - start - 1;
-
-		PUSH_VALUE(STRING_TO_VALUE(strndup(start, size)));
-		return;
-	}
-
-	if (c == 'T' || c == 'F' || c == 'N') {
-		while (isupper(PEEK()) || PEEK() == '_')
-			ADVANCE();
-
-		PUSH_VALUE(c == 'N' ? V_NULL : c == 'T' ? V_TRUE : V_FALSE);
-		return;
-	}
-
-	if (islower(c) || c == '_') {
-		char *start = ctx.input;
-
-		while (islower(c) || isdigit(c) || c == '_')
-			c = ADVANCE_PEEK();
-
-		char *ident = strndup(ctx.input, ctx.input - start);
-		// ?????
-		(void)ident;
-		abort();
-	}
-
-	opcode op = c;
-	unsigned arity;
-
-	switch(op) {
-	case '+':
-	case '-':
-	case '*':
-	case '/': arity = 2; break;
-	case 'D': arity = 1; break;
-	default: DIE("invalid function '%c'", c);
-	}
-
-	if (isupper(c)) {
-		do { c = ADVANCE_PEEK(); } while (isupper(c) || c == '_');
-	} else {
-		ADVANCE();
-	}
-
-	for (unsigned i = 0; i < arity; ++i)
-		parse_frame_inner();
-
-	PUSH_OP(op);
-}
-
-frame *parse_frame(char *input) {
-	ctx.next.label = 0;
-	ctx.next.local = 0;
-	ctx.next.bytecode = 0;
-	ctx.input = input;
-
-	parse_frame_inner();
-
-	frame *frame = malloc(sizeof(frame));
-
-	frame->locals = malloc(sizeof(value [frame->num_locals = ctx.next.local]));
-	frame->bytecode = malloc(sizeof(bytecode [frame->bytecode_len = ctx.next.bytecode]));
-	memcpy(frame->bytecode, ctx.bytecode, 5);
+	(void) value;
 
 	return frame;
 }
 
-void frame_dump(frame *frame) {
-	for (unsigned i = 0; i < frame->bytecode_len; ++i) {
-		printf("\t% 3d\t", i);
+kn_value kn_fn_prompt_function(kn_value *);
+kn_value kn_fn_random_function(kn_value *);
+kn_value kn_fn_eval_function(kn_value *);
+kn_value kn_fn_block_function(kn_value *);
+kn_value kn_fn_call_function(kn_value *);
+kn_value kn_fn_system_function(kn_value *);
+kn_value kn_fn_quit_function(kn_value *);
+kn_value kn_fn_not_function(kn_value *);
+kn_value kn_fn_length_function(kn_value *);
+kn_value kn_fn_dump_function(kn_value *);
+kn_value kn_fn_output_function(kn_value *);
+kn_value kn_fn_add_function(kn_value *);
+kn_value kn_fn_sub_function(kn_value *);
+kn_value kn_fn_mul_function(kn_value *);
+kn_value kn_fn_div_function(kn_value *);
+kn_value kn_fn_mod_function(kn_value *);
+kn_value kn_fn_pow_function(kn_value *);
+kn_value kn_fn_lth_function(kn_value *);
+kn_value kn_fn_gth_function(kn_value *);
+kn_value kn_fn_eql_function(kn_value *);
+kn_value kn_fn_and_function(kn_value *);
+kn_value kn_fn_or_function(kn_value *);
+kn_value kn_fn_then_function(kn_value *);
+kn_value kn_fn_assign_function(kn_value *);
+kn_value kn_fn_while_function(kn_value *);
+kn_value kn_fn_if_function(kn_value *);
+kn_value kn_fn_get_function(kn_value *);
+kn_value kn_fn_substitute_function(kn_value *);
 
-		if (frame->bytecode[i].opcode == OP_PUSHL) {
-			printf("$\t");
-			value_dump(frame->bytecode[++i].value);
-		} else {
-			printf("<%1$c> [%1$d]", frame->bytecode[i].opcode);
+#define OPCODE(idx) (frame->code[idx])
+#define NEXT_INDEX() (OPCODE(ip++).index)
+#define NEXT_LOCAL() (locals[NEXT_INDEX()])
+
+kn_value
+run_frame(const frame_t *frame)
+{
+	kn_value locals[frame->nlocals];
+	kn_value op_result;
+	kn_value fn_args[KN_MAX_ARGC];
+	bytecode_t bytecode;
+
+	unsigned ip, sp, idx;
+
+	for (ip = sp = 0 ;; locals[sp++] = op_result) {
+	top:
+		assert(ip < frame->codelen);
+
+		switch (bytecode = OPCODE(ip++).bytecode) {
+		case OP_RETURN:
+			idx = NEXT_INDEX();
+
+			for (unsigned i = 0; i < sp; ++i)
+				if (i != idx) kn_value_free(locals[i]);
+
+			return locals[idx];
+
+		case OP_GLOAD_FAST:
+			op_result = kn_variable_run(frame->globals[NEXT_INDEX()]);
+			continue;
+
+		case OP_GSTORE_FAST: {
+			struct kn_variable *variable = frame->globals[NEXT_INDEX()];
+			op_result = locals[OPCODE(ip++).index];
+
+			kn_variable_assign(variable, kn_value_clone(op_result));
+			continue;
 		}
 
-		printf("\n");
+		case OP_CLOAD:
+			op_result = frame->consts[NEXT_INDEX()];
+			continue;
+
+		case OP_JUMP:
+			ip = OPCODE(ip).index;
+			goto top;
+
+		default:
+			; // fallthru
+		}
+
+		// else, it's a normal type
+
+		for (idx = 0; idx < BYTECODE_ARGC(bytecode); ++idx)
+			fn_args[idx] = NEXT_LOCAL();
+
+#define KNIGHT_FUNCTION(name) \
+	op_result = kn_fn_##name##_function(fn_args); continue
+
+		switch(bytecode) {
+		case OP_PROMPT: KNIGHT_FUNCTION(prompt);
+		case OP_RANDOM: KNIGHT_FUNCTION(random);
+		case OP_EVAL: assert(0);
+		case OP_BLOCK: assert(0);
+		case OP_CALL: assert(0);
+		case OP_SYSTEM: KNIGHT_FUNCTION(system);
+		case OP_QUIT: KNIGHT_FUNCTION(quit);
+		case OP_NOT: KNIGHT_FUNCTION(not);
+		case OP_LENGTH: KNIGHT_FUNCTION(length);
+		case OP_DUMP: KNIGHT_FUNCTION(dump);
+		case OP_OUTPUT: KNIGHT_FUNCTION(output);
+		case OP_ADD: KNIGHT_FUNCTION(add);
+		case OP_SUB: KNIGHT_FUNCTION(sub);
+		case OP_MUL: KNIGHT_FUNCTION(mul);
+		case OP_DIV: KNIGHT_FUNCTION(div);
+		case OP_MOD: KNIGHT_FUNCTION(mod);
+		case OP_POW: KNIGHT_FUNCTION(pow);
+		case OP_LTH: KNIGHT_FUNCTION(lth);
+		case OP_GTH: KNIGHT_FUNCTION(gth);
+		case OP_EQL: KNIGHT_FUNCTION(eql);
+		case OP_AND: KNIGHT_FUNCTION(and);
+		case OP_OR:  KNIGHT_FUNCTION(or);
+		case OP_THEN: KNIGHT_FUNCTION(then);
+		case OP_ASSIGN: KNIGHT_FUNCTION(assign);
+		case OP_WHILE: KNIGHT_FUNCTION(while);
+		case OP_IF: KNIGHT_FUNCTION(if);
+		case OP_GET: KNIGHT_FUNCTION(get);
+		case OP_SUBSTITUTE: KNIGHT_FUNCTION(substitute);
+		default:
+			assert(0);
+		}
 	}
-	// unsigned num_locals, bytecode_len;
-	// value *locals;
-	// bytecode *bytecode;
-
 }
 
-void free_frame(frame *frame) {
-	free(frame->locals);
-	free(frame->bytecode);
-	free(frame);
-}
+/*
+typedef struct {
+	struct {
+		unsigned len;
+	} locals;
+
+	struct {
+		unsigned len;
+		kn_value *values;
+	} consts;
+
+	struct {
+		unsigned len;
+		opcode_t *opcode;
+	} code;
+} frame_t;
+*/
+

@@ -1,11 +1,10 @@
-#ifndef VM_H
-#define VM_H
+#pragma once
+#include "frame.h"
+#include <src/value.h>
 
-#include "value.h"
-#include "bytecode.h"
+typedef struct {
+	unsigned ip;
+} vm_t;
 
-#define STACKSIZE 10000
-
-value_t vm_run(block_t *);
-
-#endif
+void vm_init(vm_t *);
+kn_value vm_run(vm_t *, frame_t *);
