@@ -2,82 +2,132 @@
 #include <stdlib.h>
 #include <src/knight.h>
 #include <src/parse.h>
+#include <src/env.h>
 #include <src/string.h>
+#include <stdio.h>
+
+opcode_t code[100];
+kn_value consts[100];
+struct kn_variable *globals[100];
 
 int main ()  {
 	kn_startup();
 	frame_t frame;
-	frame.nlocals = 5;
+	frame.nlocals = 4;
 	frame.nglobals = 0;
-	frame.nconsts = 2;
-	frame.consts = malloc(sizeof(kn_value[2]));
-	kn_value consts[6] = {
-		kn_value_new_number(0),
-		kn_value_new_number(0),
-		kn_value_new_number(11),
-		kn_value_new_string(kn_string_new_borrowed("acc: ", 5)),
-		kn_value_new_number(1),
-		kn_value_new_string(kn_string_new_borrowed("done: ", 6))
-	};
+	frame.nconsts = 0;
+	frame.globals = globals;
+	frame.consts = consts;
+	frame.code = code;
 
-	frame.codelen = 100;
+#define DECL_CONST(cnst) frame.consts[frame.nconsts++] = (cnst)
+#define DECL_GLOBAL(glbl) frame.globals[frame.nglobals++] = (glbl)
+#define	GLOBAL(idx) (~(idx))
+#define	LOCAL(idx) ((idx)+1)
+#define	CONST(idx) ((idx))
+#define pos frame.codelen
+#define CODE(kind, value) frame.code[pos++].kind = value
 
-#define OP(x) { .bytecode = OP_##x }
-#define IDX(x) { .index = x }
+	DECL_GLOBAL(kn_env_fetch("i", 1)); // 0
+	DECL_GLOBAL(kn_env_fetch("acc", 3)); // 1
 
-	static opcode_t code[100] = {
-		OP(CLOAD), idx(0)
-	};
-	frame.code = &code;
+	DECL_CONST(kn_value_new_number(0)); // 0
+	DECL_CONST(kn_value_new_number(0)); // 1
+	DECL_CONST(kn_value_new_number(11)); // 2
+	DECL_CONST(kn_value_new_string(kn_string_new_borrowed("acc: ", 5))); // 3
+	DECL_CONST(kn_value_new_number(1)); // 4
+	DECL_CONST(kn_value_new_string(kn_string_new_borrowed("done: ", 6))); // 5
 
-#define CODE(kind, value) frame.code[idx++].kind = value;
-
+	pos = 0;
+	// (_0) = i 0
 	CODE(bytecode, OP_CLOAD);
+	CODE(index, CONST(0));
+	CODE(index, GLOBAL(0));
+goto run;
+	// (_1) = acc 0
 	CODE(bytecode, OP_CLOAD);
-	kn_value parsed = kn_parse("\n\
-; = i 0                         \n\
-; = acc 0                       \n\
-; WHILE < i 11                  \n\
-	; = acc + acc i             \n\
-	; OUTPUT + 'acc: ' acc      \n\
-	: = i + i 1                 \n\
-: OUTPUT + 'done: ' acc         \n");
+	CODE(index, CONST(1));
+	CODE(index, GLOBAL(1));
 
-	frame.code[0].bytecode = OP_CLOAD;  // sp=0
-	frame.code[1].index = 0;
-	frame.code[2].bytecode = OP_CLOAD;  // sp=1
-	frame.code[3].index = 1;
-	frame.code[4].bytecode = OP_ADD;    // sp=2
-	frame.code[5].index = 0;
-	frame.code[6].index = 1;
-	frame.code[7].bytecode = OP_OUTPUT; // sp=3
-	frame.code[8].index = 2;
-	frame.code[9].bytecode = OP_RETURN; // sp=4
-	frame.code[10].index = 2;
+	int loop = pos;
 
+	// (_2) 11
+	CODE(bytecode, OP_CLOAD);
+	CODE(index, CONST(2));
+	CODE(index, LOCAL(0));
+
+	// (_2) < acc _2
+	CODE(bytecode, OP_LTH);
+	CODE(index, GLOBAL(1));
+	CODE(index, LOCAL(0));
+	CODE(index, LOCAL(0));
+
+	// if !_2, goto end 
+	CODE(bytecode, OP_JUMP_IF_FALSE);
+	CODE(index, LOCAL(0));
+	CODE(index, 0); // will be updated later
+	int *dst = &frame.code[pos-1].index;
+
+	// = acc + acc i
+	CODE(bytecode, OP_ADD);
+	CODE(index, GLOBAL(1));
+	CODE(index, GLOBAL(0));
+	CODE(index, GLOBAL(1));
+
+	// (_2) 'acc: '
+	CODE(bytecode, OP_CLOAD);
+	CODE(index, CONST(3));
+	CODE(index, LOCAL(0));
+
+	// (_2) + _2 acc
+	CODE(bytecode, OP_ADD);
+	CODE(index, LOCAL(0));
+	CODE(index, GLOBAL(1));
+	CODE(index, LOCAL(0));
+
+	// OUTPUT _2
+	CODE(bytecode, OP_OUTPUT);
+	CODE(index, LOCAL(0));
+	CODE(index, LOCAL(0));
+
+	// (_2) 1
+	CODE(bytecode, OP_CLOAD);
+	CODE(index, CONST(4));
+	CODE(index, LOCAL(0));
+
+	// = i + i _2
+	CODE(bytecode, OP_ADD);
+	CODE(index, GLOBAL(0));
+	CODE(index, LOCAL(0));
+	CODE(index, GLOBAL(0));
+
+	// goto loop
+	CODE(bytecode, OP_JUMP);
+	CODE(index, loop);
+	*dst = pos;
+
+	// (_2) 'done: '
+	CODE(bytecode, OP_CLOAD);
+	CODE(index, CONST(5));
+	CODE(index, LOCAL(0));
+
+	// (_2) + _2 acc
+	CODE(bytecode, OP_ADD);
+	CODE(index, LOCAL(0));
+	CODE(index, GLOBAL(1));
+	CODE(index, LOCAL(0));
+
+	// OUTPUT _2
+	CODE(bytecode, OP_OUTPUT);
+	CODE(index, LOCAL(0));
+	CODE(index, LOCAL(0));
+
+run:
+	CODE(bytecode, OP_RETURN);
+	CODE(index, LOCAL(0));
 	kn_value_dump(run_frame(&frame));
 
-	kn_shutdown();
-// typedef struct {
-// 	unsigned nlocals, nglobals, nconsts, codelen;
-
-// 	struct kn_variable **globals;
-// 	kn_value *consts;
-// 	opcode_t *code;
-// } frame_t;
-
-	// frame_t *frame;
-
-	// kn_startup();
-
-	// frame = frame_from(kn_parse("; = a 3 : OUTPUT + 'a*4=' * a 4"));
-	// kn_value_free(run_frame(frame));
-
-	// kn_shutdown();
-}
-
-/*
-	kn_value parsed = kn_parse("\n\
+	parse_and_run("\n\
 ; = i 0                         \n\
 ; = acc 0                       \n\
 ; WHILE < i 11                  \n\
@@ -85,4 +135,6 @@ int main ()  {
 	; OUTPUT + 'acc: ' acc      \n\
 	: = i + i 1                 \n\
 : OUTPUT + 'done: ' acc         \n");
-*/
+
+	kn_shutdown();
+}

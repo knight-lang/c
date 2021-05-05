@@ -6,8 +6,10 @@ typedef enum {
 	OP_RETURN = 0x00,
 	OP_PROMPT,
 	OP_RANDOM,
+	OP_HALT,
 
 	OP_JUMP = 0x21,
+	OP_JUMP_IF_FALSE,
 	OP_GLOAD_FAST,
 	OP_CLOAD,
 	OP_EVAL,
@@ -44,5 +46,5 @@ typedef enum {
 
 typedef union {
 	bytecode_t bytecode;
-	unsigned index;
+	int index;
 } opcode_t;
