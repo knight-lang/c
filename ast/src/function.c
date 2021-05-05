@@ -30,7 +30,7 @@ void kn_function_startup(void) {
 }
 
 #define DECLARE_FUNCTION(func, arity, name) \
-	static KN_DECLARE_FUNCTION(kn_fn_##func, arity, name)
+	KN_DECLARE_FUNCTION(kn_fn_##func, arity, name)
 
 DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 	(void) args;
