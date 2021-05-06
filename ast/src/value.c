@@ -92,7 +92,7 @@ kn_value kn_value_new_custom(struct kn_custom *custom) {
 #endif /* KN_CUSTOM */
 
 bool kn_value_is_number(kn_value value) {
-	return (value & KN_TAG_NUMBER) == KN_TAG_NUMBER;
+	return (value & KN_TAG_MASK) == KN_TAG_NUMBER;
 }
 
 bool kn_value_is_boolean(kn_value value) {
@@ -100,20 +100,20 @@ bool kn_value_is_boolean(kn_value value) {
 }
 
 bool kn_value_is_string(kn_value value) {
-	return (value & KN_TAG_STRING) == KN_TAG_STRING;
+	return (value & KN_TAG_MASK) == KN_TAG_STRING;
 }
 
 bool kn_value_is_variable(kn_value value) {
-	return (value & KN_TAG_VARIABLE) == KN_TAG_VARIABLE;
+	return (value & KN_TAG_MASK) == KN_TAG_VARIABLE;
 }
 
 bool kn_value_is_ast(kn_value value) {
-	return (value & KN_TAG_AST) == KN_TAG_AST;
+	return (value & KN_TAG_MASK) == KN_TAG_AST;
 }
 
 #ifdef KN_CUSTOM
 bool kn_value_is_custom(kn_value value) {
-	return (value & KN_TAG_CUSTOM) == KN_TAG_CUSTOM;
+	return (value & KN_TAG_MASK) == KN_TAG_CUSTOM;
 }
 #endif /* KN_CUSTOM */
 
