@@ -7,11 +7,12 @@ typedef struct {
 
 	struct kn_variable **globals;
 	kn_value *consts;
-	opcode_t *code;
+	bytecode_t *code;
 } frame_t;
 
 frame_t *frame_from(kn_value);
 void free_frame(frame_t *);
+void dump_frame(const frame_t *);
 void clone_frame(frame_t *);
 kn_value run_frame(const frame_t *);
 kn_value parse_and_run(const char *);

@@ -3,45 +3,20 @@
 #include "frame.h"
 #include <assert.h>
 #include <src/parse.h>
+#include <src/ast.h>
 #include <src/shared.h>
 #include <src/function.h>
 #include <src/env.h>
 
-// #define EXTERN_KN_FN(name) extern kn_value kn_fn_##name##_function(kn_value *)
-
-// EXTERN_KN_FN(prompt);
-// EXTERN_KN_FN(random);
-// EXTERN_KN_FN(eval);
-// EXTERN_KN_FN(block);
-// EXTERN_KN_FN(call);
-// EXTERN_KN_FN(system);
-// EXTERN_KN_FN(quit);
-// EXTERN_KN_FN(not);
-// EXTERN_KN_FN(length);
-// EXTERN_KN_FN(dump);
-// EXTERN_KN_FN(output);
-// EXTERN_KN_FN(add);
-// EXTERN_KN_FN(sub);
-// EXTERN_KN_FN(mul);
-// EXTERN_KN_FN(div);
-// EXTERN_KN_FN(mod);
-// EXTERN_KN_FN(pow);
-// EXTERN_KN_FN(lth);
-// EXTERN_KN_FN(gth);
-// EXTERN_KN_FN(eql);
-// EXTERN_KN_FN(and);
-// EXTERN_KN_FN(or);
-// EXTERN_KN_FN(then);
-// EXTERN_KN_FN(assign);
-// EXTERN_KN_FN(while);
-// EXTERN_KN_FN(if);
-// EXTERN_KN_FN(get);
-// EXTERN_KN_FN(substitute);
-
-
 #define OPCODE(idx) (frame->code[idx])
 #define NEXT_INDEX() (OPCODE(ip++).index)
 #define NEXT_VALUE() ((tmp=NEXT_INDEX()) < 0 ? kn_variable_run(frame->globals[-tmp]) : locals[tmp])
+
+#ifdef NDEBUG
+#define LOG(...)
+#else
+#define LOG(msg, ...) printf("[%s:%d] " msg "\n", __func__, __LINE__, __VA_ARGS__);
+#endif
 
 kn_value
 run_frame(const frame_t *frame)
@@ -52,7 +27,7 @@ run_frame(const frame_t *frame)
 
 	kn_value op_result;
 	kn_value fn_args[KN_MAX_ARGC];
-	bytecode_t bytecode;
+	opcode_t opcode;
 
 	unsigned ip, sp, idx, tmp;
 
@@ -63,7 +38,9 @@ run_frame(const frame_t *frame)
 	top:
 		assert(ip < frame->codelen);
 
-		switch (bytecode = OPCODE(ip++).bytecode) {
+		LOG("opcode=%d", OPCODE(ip).opcode);
+
+		switch (opcode = OPCODE(ip++).opcode) {
 		case OP_RETURN:
 			idx = NEXT_INDEX();
 
@@ -72,11 +49,11 @@ run_frame(const frame_t *frame)
 
 			return locals[idx];
 
-		case OP_GLOAD_FAST:
+		case OP_GLOAD:
 			op_result = kn_variable_run(frame->globals[NEXT_INDEX()]);
 			continue;
 
-		case OP_GSTORE_FAST: {
+		case OP_GSTORE: {
 			struct kn_variable *variable = frame->globals[NEXT_INDEX()];
 			op_result = NEXT_VALUE();
 
@@ -88,7 +65,7 @@ run_frame(const frame_t *frame)
 			op_result = frame->consts[NEXT_INDEX()];
 			continue;
 
-		case OP_JUMP_IF_FALSE:
+		case OP_JMPFALSE:
 			if (kn_value_to_boolean(NEXT_VALUE())) {
 				NEXT_INDEX();
 				goto top;
@@ -105,13 +82,13 @@ run_frame(const frame_t *frame)
 
 		// else, it's a normal type
 
-		for (idx = 0; idx < BYTECODE_ARGC(bytecode); ++idx) 
+		for (idx = 0; idx < OPCODE_ARGC(opcode); ++idx) 
 			fn_args[idx] = NEXT_VALUE();
 
 #define KNIGHT_FUNCTION(name) \
 	op_result = kn_fn_##name##_function(fn_args); continue
 
-		switch(bytecode) {
+		switch(opcode) {
 		case OP_PROMPT: KNIGHT_FUNCTION(prompt);
 		case OP_RANDOM: KNIGHT_FUNCTION(random);
 		case OP_EVAL: assert(0);
@@ -141,42 +118,232 @@ run_frame(const frame_t *frame)
 		case OP_GET: KNIGHT_FUNCTION(get);
 		case OP_SUBSTITUTE: KNIGHT_FUNCTION(substitute);
 		default:
-			printf("bad bytecode: 0x%x\n", bytecode);
+			printf("bad opcode: 0x%x\n", opcode);
 			assert(0);
 		}
 	}
 }
 
+typedef struct {
+	frame_t *frame;
+	unsigned globalcap, constcap, codecap;
+} frame_parser_t;
+
+#define CONCAT(a, b) a ## b
+#define CONCAT2(a, b) CONCAT(a, b)
+#define COUNT(n1,n2,n3,n4,n5,...) n5
+
+#define INSTRUCTION(fp, ...) INSTRUCTION_(fp, COUNT(dummy, __VA_ARGS__,3,2,1,0), __VA_ARGS__)
+#define INSTRUCTION_(fp, n, oc, ...) \
+	do { \
+		if ((fp)->codecap + n >= (fp)->frame->codelen) { \
+			(fp)->frame->code = xrealloc( \
+				(fp)->frame->code, sizeof(bytecode_t[(fp)->codecap*=2])); \
+		} \
+		(fp)->frame->code[(fp)->frame->codelen++].opcode = (oc); \
+		CONCAT2(SET_INDICES,n)((fp), __VA_ARGS__); \
+	} while(0)
+
+#define SET_INDICES1(fp)
+#define SET_INDICES2(fp, idx1) \
+	(fp)->frame->code[(fp)->frame->codelen++].index = (idx1);
+#define SET_INDICES3(fp, idx1, idx2) \
+	(fp)->frame->code[(fp)->frame->codelen++].index = (idx1); \
+	(fp)->frame->code[(fp)->frame->codelen++].index = (idx2);
+#define SET_INDICES4(fp, idx1, idx2, idx3) \
+	(fp)->frame->code[(fp)->frame->codelen++].index = (idx1); \
+	(fp)->frame->code[(fp)->frame->codelen++].index = (idx2); \
+	(fp)->frame->code[(fp)->frame->codelen++].index = (idx3);
+#define SET_INDICES5(fp, idx1, idx2, idx3, idx4) \
+	(fp)->frame->code[(fp)->frame->codelen++].index = (idx1); \
+	(fp)->frame->code[(fp)->frame->codelen++].index = (idx2); \
+	(fp)->frame->code[(fp)->frame->codelen++].index = (idx3); \
+	(fp)->frame->code[(fp)->frame->codelen++].index = (idx4); 
+
+#define SET_NEXT(fp, cap, count, store, kind) \
+	if (fp->cap == fp->frame->count) \
+		fp->frame->store = xrealloc(fp->frame->store, sizeof(kind[fp->cap *= 2])); \
+	fp->frame->store[fp->frame->count++]
+
+#define GLB2IDX(glbl) (~(glbl))
+#define CONST2IDX(cnst) (cnst)
+
+
+opcode_t
+func2op(char name)
+{
+	switch (name) {
+	case 'P': return OP_PROMPT;
+	case 'R': return OP_RANDOM;
+
+	case 'E': return OP_EVAL;
+	case 'B': return OP_BLOCK;
+	case 'C': return OP_CALL;
+	case '`': return OP_SYSTEM;
+	case 'Q': return OP_QUIT;
+	case '!': return OP_NOT;
+	case 'L': return OP_LENGTH;
+	case 'D': return OP_DUMP;
+	case 'O': return OP_OUTPUT;
+
+	case '+': return OP_ADD;
+	case '-': return OP_SUB;
+	case '*': return OP_MUL;
+	case '/': return OP_DIV;
+	case '%': return OP_MOD;
+	case '^': return OP_POW;
+	case '<': return OP_LTH;
+	case '>': return OP_GTH;
+	case '?': return OP_EQL;
+	case '&': return OP_AND;
+	case '|': return OP_OR;
+	case ';': return OP_THEN;
+	case '=': return OP_ASSIGN;
+	case 'W': return OP_WHILE;
+
+	case 'I': return OP_IF;
+	case 'G': return OP_GET;
+
+	case 'S': return OP_SUBSTITUTE;
+
+	default:
+		die("invalid name: %c", name);
+	}
+}
+
+static inline void
+reserve_code(frame_parser_t *fp, unsigned length)
+{
+	if (fp->codecap + length >= fp->frame->codelen)
+		fp->frame->code = 
+			xrealloc(fp->frame->code, sizeof(bytecode_t[fp->codecap *= 2]));
+}
+
+static inline void
+set_next_opcode(frame_parser_t *fp, opcode_t op) {
+	reserve_code(fp, 1);
+	fp->frame->code[fp->frame->codelen++].opcode = op;
+}
+
+static inline void
+set_next_index(frame_parser_t *fp, unsigned idx) {
+	reserve_code(fp, 1);
+	fp->frame->code[fp->frame->codelen++].index = idx;
+}
+
+static inline unsigned
+declare_variable(frame_parser_t *fp, struct kn_variable *variable)
+{
+	unsigned index;
+
+	for (index = 0; index < fp->frame->nglobals; ++index)
+		if (fp->frame->globals[index] == variable) // ie identical pointer
+			return index;
+
+	if (fp->globalcap == fp->frame->nglobals)
+		fp->frame->globals = xrealloc(
+			fp->frame->globals, 
+			sizeof(struct kn_variable *[fp->globalcap *= 2])
+		);
+
+	fp->frame->globals[index = fp->frame->nglobals++] = variable;
+	return index;
+}
+
+static inline void
+set_next_variable(frame_parser_t *fp, struct kn_variable *variable)
+{
+	reserve_code(fp, 1);
+	SET_NEXT(fp, globalcap, nglobals, globals, struct kn_variable *) = variable;
+	INSTRUCTION(fp, OP_GLOAD, GLB2IDX(fp->frame->nglobals - 1), fp->frame->nlocals++);
+}
+
+static inline void
+set_next_constant(frame_parser_t *fp, kn_value value)
+{
+	SET_NEXT(fp, constcap, nconsts, consts, kn_value) = value;
+	INSTRUCTION(fp, OP_CLOAD, CONST2IDX(fp->frame->nconsts - 1), fp->frame->nlocals++);
+}
+
+void
+static process_frame(frame_parser_t *fp, kn_value value)
+{
+	if (!kn_value_is_ast(value)) {
+		if (kn_value_is_variable(value))
+			set_next_variable(fp, kn_value_as_variable(value));
+		else
+			set_next_constant(fp, value);
+		return;
+	}
+
+	struct kn_ast *ast = kn_value_as_ast(value);
+
+	opcode_t op = func2op(*ast->func->name);
+
+	unsigned arity = ast->func->arity, args[arity+1];
+
+	switch (ast->func->name[0]) {
+		case 'E': die("todo: OP_EVAL");
+		case 'B': die("todo: OP_BLOCK");
+		case 'C': die("todo: OP_CALL");
+		case '&': die("todo: OP_AND");
+		case '|': die("todo: OP_OR");
+		case ';': die("todo: OP_THEN");
+		case 'W': die("todo: OP_WHILE");
+		case '=': {
+			process_frame(fp, ast->args[1]);
+			// args[0] = set_next_variable
+			unsigned arg_index = fp->frame->nlocals - 1;
+		}
+			// set_next_opcode(fp, op);
+			// SET_NEXT_OPCODE(fp, OP_ASSIGN);
+			// SET_NEXT_INDEX()
+			// fp->frame->code[fp->frame->codelen++].opcode = op;
+			// args[i] = fp->frame->nlocals-1;
+
+		case 'I': die("todo: OP_IF");
+		default:
+			;
+			// fallthrough
+	}
+
+	for (unsigned i = 0; i < arity; ++i) {
+		process_frame(fp, ast->args[i]);
+		args[i] = fp->frame->nlocals-1;
+	}
+
+	reserve_code(fp, arity);
+
+	set_next_opcode(fp, op);
+
+	for (unsigned i = 0; i < arity; ++i)
+		fp->frame->code[fp->frame->codelen++].index = args[i];
+	fp->frame->code[fp->frame->codelen++].index = fp->frame->nlocals++;
+}
+
 frame_t *
 frame_from(kn_value value)
 {
-	frame_t *frame = xmalloc(sizeof(frame_t));
- 
-	// frame->locals.len = 2;
-	// frame->consts.len = 3;
-/*
-; = a 3
-: OUTPUT + 'a*4=' * a 4
+	frame_parser_t fp;
+	fp.globalcap = 10;
+	fp.constcap = 10;
+	fp.codecap = 100;
 
-; = a 3
-; = _0 'a*4='
-; = _2 0
-; = _1 * a _0
-; = 
-: OUTPUT + 'a*4=' * a 4
+	fp.frame = xmalloc(sizeof(frame_t));
+	frame_t *frame = fp.frame;
 
+	frame->refcount = 1;
+	frame->nlocals = frame->nglobals = frame->nconsts = frame->codelen = 0;
+	frame->globals = xmalloc(sizeof(struct kn_variable *[fp.globalcap]));
+	frame->consts = xmalloc(sizeof(kn_value[fp.constcap]));
+	frame->code = xmalloc(sizeof(bytecode_t[fp.codecap]));
 
-c0 = 3
-c1 = 'a*4='
-c2 = 4
+	process_frame(&fp, value);
+	INSTRUCTION(&fp, OP_RETURN, frame->nlocals-1);
 
-l0 = 3
-l1 = 
-
-*/
-
-	(void) value;
-
+	frame->globals = xrealloc(frame->globals, sizeof(struct kn_variable *[frame->nglobals]));
+	frame->consts = xrealloc(frame->consts, sizeof(kn_value[frame->nconsts]));
+	frame->code = xrealloc(frame->code, sizeof(bytecode_t[frame->codelen]));
 	return frame;
 }
 
@@ -209,8 +376,50 @@ parse_and_run(const char *stream)
 	if (parsed == KN_UNDEFINED) die("cannot parse stream");
 
 	frame_t *frame = frame_from(parsed);
+	dump_frame(frame);
+
 	kn_value ret = run_frame(frame);
 	free_frame(frame);
 
 	return ret;
 }
+
+void
+dump_frame(const frame_t *frame)
+{
+	printf("frame {\nnlocals=%u\nnglobals=%u\n", frame->nlocals, frame->nglobals);
+	for (unsigned i = 0; i < frame->nglobals; ++i) {
+		printf("%4u: ", i);
+		kn_value_dump(kn_value_new_variable(frame->globals[i]));
+		putchar('\n');
+	}
+	printf("nconsts=%u\n", frame->nconsts);
+	for (unsigned i = 0; i < frame->nconsts; ++i) {
+		printf("%4u: ", i);
+		kn_value_dump(frame->consts[i]);
+		putchar('\n');
+	}
+	printf("codelen=%u\n", frame->codelen);
+
+	for (unsigned i = 0; i < frame->codelen;) {
+		opcode_t op = frame->code[i++].opcode;
+		printf("[%1$4d:%1$-4x] (%3$02x) %2$-12s", i-1, op2str(op), op);
+
+		for (unsigned j = 0; j <= OPCODE_ARGC(op); ++j) {
+			int index = frame->code[i++].index;
+			if (j) printf(",  ");
+
+			if (index < 0) printf("var(%.6s)", frame->globals[~index]->name);
+			else if (op == OP_CLOAD && !j) kn_value_dump(frame->consts[index]);
+			else if (op == OP_JUMP || (op == OP_JMPFALSE && index)) printf("line(%d)", index);
+			else printf("local(%d)", index);
+		}
+
+		putchar('\n');
+		continue;
+	}
+	putchar('\n');
+	fflush(stdout);
+	putchar('\n');
+}
+

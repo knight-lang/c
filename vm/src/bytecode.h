@@ -1,16 +1,16 @@
 #pragma once
 
-#define BYTECODE_ARGC(bytecode) ((bytecode) / 0x20)
+#define OPCODE_ARGC(opcode) ((opcode) / 0x20)
 
 typedef enum {
-	OP_RETURN = 0x00,
 	OP_PROMPT,
 	OP_RANDOM,
 	OP_HALT,
+	OP_JUMP,
+	OP_RETURN,
 
-	OP_JUMP = 0x21,
-	OP_JUMP_IF_FALSE,
-	OP_GLOAD_FAST,
+	OP_JMPFALSE = 0x21,
+	OP_GLOAD,
 	OP_CLOAD,
 	OP_EVAL,
 	OP_BLOCK,
@@ -37,14 +37,17 @@ typedef enum {
 	OP_ASSIGN,
 	OP_WHILE,
 
-	OP_GSTORE_FAST = 0x60,
+	OP_GSTORE = 0x60,
 	OP_IF,
 	OP_GET,
 
-	OP_SUBSTITUTE
-} bytecode_t;
+	OP_SUBSTITUTE = 0x80
+} opcode_t;
 
 typedef union {
-	bytecode_t bytecode;
+	opcode_t opcode;
 	int index;
-} opcode_t;
+} bytecode_t;
+
+
+const char *op2str(opcode_t);
