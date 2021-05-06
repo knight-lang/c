@@ -6,7 +6,7 @@ const char *op2str(opcode_t op) {
 	case OP_RANDOM: return "RANDOM";
 	case OP_HALT: return "HALT";
 
-	case OP_JUMP: return "JUMP";
+	case OP_JMP: return "JUMP";
 	case OP_RETURN: return "RETURN";
 	case OP_JMPFALSE: return "JMPFALSE";
 	case OP_GLOAD: return "GLOAD";

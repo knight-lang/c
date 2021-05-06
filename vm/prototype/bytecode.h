@@ -6,10 +6,11 @@ typedef enum {
 	OP_PROMPT,
 	OP_RANDOM,
 	OP_HALT,
-	OP_JUMP,
+	OP_JMP,
 	OP_RETURN,
 
 	OP_JMPFALSE = 0x21,
+	OP_MOV,
 	OP_GLOAD,
 	OP_CLOAD,
 	OP_EVAL,
@@ -44,9 +45,14 @@ typedef enum {
 	OP_SUBSTITUTE = 0x80
 } opcode_t;
 
+typedef int local_or_global_index_t;
+typedef unsigned index_t;
+typedef unsigned offset_t;
+
 typedef union {
 	opcode_t opcode;
-	int index;
+	local_or_global_index_t index;
+	index_t offset;
 } bytecode_t;
 
 

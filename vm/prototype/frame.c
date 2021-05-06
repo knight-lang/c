@@ -78,7 +78,7 @@ run_frame(const frame_t *frame)
 			}
 
 			// otheriwse, fallthrough
-		case OP_JUMP:
+		case OP_JMP:
 			ip = OPCODE(ip).index;
 			goto top;
 
@@ -215,7 +215,7 @@ func2op(char name)
 static inline void
 reserve_code(frame_parser_t *fp, unsigned length)
 {
-	if (fp->codecap + length >= fp->frame->codelen)
+	if (fp->codecap >= fp->frame->codelen + length)
 		fp->frame->code = 
 			xrealloc(fp->frame->code, sizeof(bytecode_t[fp->codecap *= 2]));
 }
@@ -227,11 +227,14 @@ set_next_opcode(frame_parser_t *fp, opcode_t op)
 	fp->frame->code[fp->frame->codelen++].opcode = op;
 }
 
-static inline void
+static inline index_t *
 set_next_index(frame_parser_t *fp, unsigned idx)
 {
 	reserve_code(fp, 1);
-	fp->frame->code[fp->frame->codelen++].index = idx;
+
+	index_t *index = (index_t *) &fp->frame->code[fp->frame->codelen++].index;
+	*index = idx;
+	return index;
 }
 
 static inline unsigned
@@ -277,11 +280,11 @@ declare_constant(frame_parser_t *fp, kn_value constant)
 	return index;
 }
 
-static inline unsigned
+static inline index_t
 set_next_variable(frame_parser_t *fp, struct kn_variable *variable)
 {
-	unsigned result_index = fp->frame->nlocals++;
-	unsigned global_index = declare_variable(fp, variable);
+	index_t result_index = fp->frame->nlocals++;
+	index_t global_index = declare_variable(fp, variable);
 
 	reserve_code(fp, 3);
 	set_next_opcode(fp, OP_GLOAD);
@@ -291,11 +294,17 @@ set_next_variable(frame_parser_t *fp, struct kn_variable *variable)
 	return result_index;
 }
 
-static inline unsigned
+static inline offset_t
+current_label(frame_parser_t *fp)
+{
+	return fp->frame->codelen;
+}
+
+static inline index_t
 set_next_constant(frame_parser_t *fp, kn_value value)
 {
-	unsigned result_index = fp->frame->nlocals++;
-	unsigned const_index = declare_constant(fp, value);
+	index_t result_index = fp->frame->nlocals++;
+	index_t const_index = declare_constant(fp, value);
 
 	reserve_code(fp, 3);
 	set_next_opcode(fp, OP_CLOAD);
@@ -309,7 +318,6 @@ unsigned
 static process_frame(frame_parser_t *fp, kn_value value)
 {
 	if (!kn_value_is_ast(value)) {
-		kn_value_dump(value);
 		if (kn_value_is_variable(value)) {
 			return set_next_variable(fp, kn_value_as_variable(value));
 		} else {
@@ -345,19 +353,50 @@ static process_frame(frame_parser_t *fp, kn_value value)
 			set_next_index(fp, result_index);
 			return result_index;
 
-		case 'I': die("todo: OP_IF");
+		case 'I': {
+			index_t *iffalse, *end, condition, tmp;
+			condition = process_frame(fp, ast->args[0]);
+
+			reserve_code(fp, 3);
+			set_next_opcode(fp, OP_JMPFALSE);
+			set_next_index(fp, LOCAL(condition));
+			iffalse = set_next_index(fp, 0);
+
+			tmp = process_frame(fp, ast->args[1]);
+
+			reserve_code(fp, 5);
+			set_next_opcode(fp, OP_MOV);
+			set_next_index(fp, tmp);
+			set_next_index(fp, result_index);
+			set_next_opcode(fp, OP_JMP);
+			end = set_next_index(fp, 0);
+			printf("here3G %p\n", iffalse);
+			*iffalse = 1;
+			//  = current_label(fp);
+			// *iffalse = current_label(fp);
+			printf("here3H\n");
+			exit(0);
+
+			printf("here4\n");
+			tmp = process_frame(fp, ast->args[2]);
+			reserve_code(fp, 3);
+			set_next_opcode(fp, OP_MOV);
+			set_next_index(fp, tmp);
+			set_next_index(fp, result_index);
+			*end = current_label(fp);
+			printf("here5\n");
+			return result_index;
+		}
+			die("todo: OP_IF");
 		default:
 			;
 			// fallthrough
 	}
 
-	for (unsigned i = 0; i < arity; ++i) {
-		process_frame(fp, ast->args[i]);
-		args[i] = fp->frame->nlocals-1;
-	}
+	for (unsigned i = 0; i < arity; ++i)
+		args[i] = process_frame(fp, ast->args[i]);
 
 	reserve_code(fp, arity+1);
-
 	set_next_opcode(fp, op);
 
 	for (unsigned i = 0; i < arity; ++i)
@@ -424,6 +463,7 @@ parse_and_run(const char *stream)
 
 	frame_t *frame = frame_from(parsed);
 	dump_frame(frame);
+	exit(0);
 
 	kn_value ret = run_frame(frame);
 	free_frame(frame);
@@ -459,7 +499,7 @@ dump_frame(const frame_t *frame)
 
 			if (index < 0) printf("var(%.6s)", frame->globals[~index]->name);
 			else if (op == OP_CLOAD && !j) kn_value_dump(frame->consts[index]);
-			else if (op == OP_JUMP || (op == OP_JMPFALSE && index)) printf("line(%d)", index);
+			else if (op == OP_JMP || (op == OP_JMPFALSE && index)) printf("line(%d)", index);
 			else printf("local(%d)", index);
 		}
 
