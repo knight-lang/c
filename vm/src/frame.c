@@ -5,6 +5,7 @@
 #include <src/parse.h>
 #include <src/ast.h>
 #include <src/shared.h>
+#include <src/string.h>
 #include <src/function.h>
 #include <src/env.h>
 
@@ -17,6 +18,12 @@
 #else
 #define LOG(msg, ...) printf("[%s:%d] " msg "\n", __func__, __LINE__, __VA_ARGS__);
 #endif
+
+#define GLBL2IDX(glbl) (~(glbl))
+#define IDX2GLBL(idx) (~(idx))
+#define LOCAL(idx) (idx)
+#define CNST2IDX(cnst) (cnst)
+#define IDX2CNST(idx) (idx)
 
 kn_value
 run_frame(const frame_t *frame)
@@ -38,7 +45,7 @@ run_frame(const frame_t *frame)
 	top:
 		assert(ip < frame->codelen);
 
-		LOG("opcode=%d", OPCODE(ip).opcode);
+		// LOG("opcode=%02x", OPCODE(ip).opcode);
 
 		switch (opcode = OPCODE(ip++).opcode) {
 		case OP_RETURN:
@@ -50,19 +57,18 @@ run_frame(const frame_t *frame)
 			return locals[idx];
 
 		case OP_GLOAD:
-			op_result = kn_variable_run(frame->globals[NEXT_INDEX()]);
+			op_result = kn_variable_run(frame->globals[IDX2GLBL(NEXT_INDEX())]);
 			continue;
 
-		case OP_GSTORE: {
-			struct kn_variable *variable = frame->globals[NEXT_INDEX()];
+		case OP_GSTORE:
 			op_result = NEXT_VALUE();
+			struct kn_variable *variable = frame->globals[IDX2GLBL(NEXT_INDEX())];
 
 			kn_variable_assign(variable, kn_value_clone(op_result));
 			continue;
-		}
 
 		case OP_CLOAD:
-			op_result = frame->consts[NEXT_INDEX()];
+			op_result = frame->consts[IDX2CNST(NEXT_INDEX())];
 			continue;
 
 		case OP_JMPFALSE:
@@ -118,8 +124,7 @@ run_frame(const frame_t *frame)
 		case OP_GET: KNIGHT_FUNCTION(get);
 		case OP_SUBSTITUTE: KNIGHT_FUNCTION(substitute);
 		default:
-			printf("bad opcode: 0x%x\n", opcode);
-			assert(0);
+			die("bad opcode: 0x%x\n", opcode);
 		}
 	}
 }
@@ -164,10 +169,6 @@ typedef struct {
 	if (fp->cap == fp->frame->count) \
 		fp->frame->store = xrealloc(fp->frame->store, sizeof(kind[fp->cap *= 2])); \
 	fp->frame->store[fp->frame->count++]
-
-#define GLB2IDX(glbl) (~(glbl))
-#define CONST2IDX(cnst) (cnst)
-
 
 opcode_t
 func2op(char name)
@@ -220,13 +221,15 @@ reserve_code(frame_parser_t *fp, unsigned length)
 }
 
 static inline void
-set_next_opcode(frame_parser_t *fp, opcode_t op) {
+set_next_opcode(frame_parser_t *fp, opcode_t op)
+{
 	reserve_code(fp, 1);
 	fp->frame->code[fp->frame->codelen++].opcode = op;
 }
 
 static inline void
-set_next_index(frame_parser_t *fp, unsigned idx) {
+set_next_index(frame_parser_t *fp, unsigned idx)
+{
 	reserve_code(fp, 1);
 	fp->frame->code[fp->frame->codelen++].index = idx;
 }
@@ -240,42 +243,81 @@ declare_variable(frame_parser_t *fp, struct kn_variable *variable)
 		if (fp->frame->globals[index] == variable) // ie identical pointer
 			return index;
 
-	if (fp->globalcap == fp->frame->nglobals)
+	if (fp->globalcap <= fp->frame->nglobals)
 		fp->frame->globals = xrealloc(
-			fp->frame->globals, 
-			sizeof(struct kn_variable *[fp->globalcap *= 2])
+			fp->frame->globals, sizeof(struct kn_variable *[fp->globalcap *= 2])
 		);
 
 	fp->frame->globals[index = fp->frame->nglobals++] = variable;
 	return index;
 }
 
-static inline void
+
+static inline unsigned
+declare_constant(frame_parser_t *fp, kn_value constant)
+{
+	unsigned index;
+	kn_value tmp;
+
+	for (index = 0; index < fp->frame->nconsts; ++index)
+		if ((tmp = fp->frame->consts[index]) == constant || (
+			kn_value_is_string(constant) && kn_value_is_string(tmp) &&
+			kn_string_equal(kn_value_as_string(constant), kn_value_as_string(tmp))
+		)) {
+			kn_value_free(constant);
+			return index;
+		}
+
+	if (fp->constcap <= fp->frame->nconsts)
+		fp->frame->consts = xrealloc(
+			fp->frame->consts, sizeof(kn_value *[fp->constcap *= 2])
+		);
+
+	fp->frame->consts[index = fp->frame->nconsts++] = constant;
+	return index;
+}
+
+static inline unsigned
 set_next_variable(frame_parser_t *fp, struct kn_variable *variable)
 {
-	reserve_code(fp, 1);
-	SET_NEXT(fp, globalcap, nglobals, globals, struct kn_variable *) = variable;
-	INSTRUCTION(fp, OP_GLOAD, GLB2IDX(fp->frame->nglobals - 1), fp->frame->nlocals++);
+	unsigned result_index = fp->frame->nlocals++;
+	unsigned global_index = declare_variable(fp, variable);
+
+	reserve_code(fp, 3);
+	set_next_opcode(fp, OP_GLOAD);
+	set_next_index(fp, GLBL2IDX(global_index));
+	set_next_index(fp, LOCAL(result_index));
+
+	return result_index;
 }
 
-static inline void
+static inline unsigned
 set_next_constant(frame_parser_t *fp, kn_value value)
 {
-	SET_NEXT(fp, constcap, nconsts, consts, kn_value) = value;
-	INSTRUCTION(fp, OP_CLOAD, CONST2IDX(fp->frame->nconsts - 1), fp->frame->nlocals++);
+	unsigned result_index = fp->frame->nlocals++;
+	unsigned const_index = declare_constant(fp, value);
+
+	reserve_code(fp, 3);
+	set_next_opcode(fp, OP_CLOAD);
+	set_next_index(fp, CNST2IDX(const_index));
+	set_next_index(fp, LOCAL(result_index));
+
+	return result_index;
 }
 
-void
+unsigned
 static process_frame(frame_parser_t *fp, kn_value value)
 {
 	if (!kn_value_is_ast(value)) {
-		if (kn_value_is_variable(value))
-			set_next_variable(fp, kn_value_as_variable(value));
-		else
-			set_next_constant(fp, value);
-		return;
+		kn_value_dump(value);
+		if (kn_value_is_variable(value)) {
+			return set_next_variable(fp, kn_value_as_variable(value));
+		} else {
+			return set_next_constant(fp, value);
+		}
 	}
 
+	unsigned result_index = fp->frame->nlocals++;
 	struct kn_ast *ast = kn_value_as_ast(value);
 
 	opcode_t op = func2op(*ast->func->name);
@@ -288,18 +330,20 @@ static process_frame(frame_parser_t *fp, kn_value value)
 		case 'C': die("todo: OP_CALL");
 		case '&': die("todo: OP_AND");
 		case '|': die("todo: OP_OR");
-		case ';': die("todo: OP_THEN");
+		case ';':
+			fp->frame->nlocals--;
+			process_frame(fp, ast->args[0]);
+			return process_frame(fp, ast->args[1]);
 		case 'W': die("todo: OP_WHILE");
-		case '=': {
-			process_frame(fp, ast->args[1]);
-			// args[0] = set_next_variable
-			unsigned arg_index = fp->frame->nlocals - 1;
-		}
-			// set_next_opcode(fp, op);
-			// SET_NEXT_OPCODE(fp, OP_ASSIGN);
-			// SET_NEXT_INDEX()
-			// fp->frame->code[fp->frame->codelen++].opcode = op;
-			// args[i] = fp->frame->nlocals-1;
+		case '=':
+			args[1] = process_frame(fp, ast->args[1]);
+			args[0] = declare_variable(fp, kn_value_as_variable(ast->args[0]));
+
+			set_next_opcode(fp, OP_GSTORE);
+			set_next_index(fp, args[1]);
+			set_next_index(fp, GLBL2IDX(args[0]));
+			set_next_index(fp, result_index);
+			return result_index;
 
 		case 'I': die("todo: OP_IF");
 		default:
@@ -312,13 +356,16 @@ static process_frame(frame_parser_t *fp, kn_value value)
 		args[i] = fp->frame->nlocals-1;
 	}
 
-	reserve_code(fp, arity);
+	reserve_code(fp, arity+1);
 
 	set_next_opcode(fp, op);
 
 	for (unsigned i = 0; i < arity; ++i)
 		fp->frame->code[fp->frame->codelen++].index = args[i];
-	fp->frame->code[fp->frame->codelen++].index = fp->frame->nlocals++;
+
+	fp->frame->code[fp->frame->codelen++].index = result_index;
+
+	return result_index;
 }
 
 frame_t *
@@ -338,8 +385,8 @@ frame_from(kn_value value)
 	frame->consts = xmalloc(sizeof(kn_value[fp.constcap]));
 	frame->code = xmalloc(sizeof(bytecode_t[fp.codecap]));
 
-	process_frame(&fp, value);
-	INSTRUCTION(&fp, OP_RETURN, frame->nlocals-1);
+	unsigned index = process_frame(&fp, value);
+	INSTRUCTION(&fp, OP_RETURN, index);
 
 	frame->globals = xrealloc(frame->globals, sizeof(struct kn_variable *[frame->nglobals]));
 	frame->consts = xrealloc(frame->consts, sizeof(kn_value[frame->nconsts]));
@@ -403,11 +450,12 @@ dump_frame(const frame_t *frame)
 
 	for (unsigned i = 0; i < frame->codelen;) {
 		opcode_t op = frame->code[i++].opcode;
-		printf("[%1$4d:%1$-4x] (%3$02x) %2$-12s", i-1, op2str(op), op);
+		printf("[%1$4d:%1$-4x] [%3$02x]%2$-12s", i-1, op2str(op), op);
 
 		for (unsigned j = 0; j <= OPCODE_ARGC(op); ++j) {
 			int index = frame->code[i++].index;
-			if (j) printf(",  ");
+			if (j) printf(",\t");
+			printf("[%02x]", frame->code[i-1].opcode);
 
 			if (index < 0) printf("var(%.6s)", frame->globals[~index]->name);
 			else if (op == OP_CLOAD && !j) kn_value_dump(frame->consts[index]);

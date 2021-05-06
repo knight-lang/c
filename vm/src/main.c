@@ -15,7 +15,12 @@ int main ()  {
 	kn_startup();
 	// kn_variable_assign(kn_env_fetch("foo", 3), KN_FALSE);
 		// kn_value_dump(parse_and_run("+ 1 2"));
-	kn_value_dump(parse_and_run("; = a 3 : + 1 a"));
+	// kn_value_dump(parse_and_run("foo"));
+	// kn_value_dump(parse_and_run("R")); putchar('\n');
+	kn_value_dump(parse_and_run("'ls'")); putchar('\n');
+	// kn_value_dump(parse_and_run("!T")); putchar('\n');
+	// kn_value_dump(parse_and_run("L'?'")); putchar('\n');
+	// kn_value_dump(parse_and_run("O4")); putchar('\n');
 	// ignore();
 // 	parse_and_run("\n\
 // ; = i 0                         \n\

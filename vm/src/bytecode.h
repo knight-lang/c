@@ -36,9 +36,9 @@ typedef enum {
 	OP_THEN,
 	OP_ASSIGN,
 	OP_WHILE,
+	OP_GSTORE,
 
-	OP_GSTORE = 0x60,
-	OP_IF,
+	OP_IF = 0x60,
 	OP_GET,
 
 	OP_SUBSTITUTE = 0x80
