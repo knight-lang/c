@@ -40,7 +40,7 @@ void *xrealloc(void *ptr, size_t size) {
 	ptr = realloc(ptr, size);
 
 #ifndef KN_RECKLESS
-	if (KN_UNLIKELY(ptr == NULL && size != NULL)) {
+	if (KN_UNLIKELY(ptr == NULL && size != 0)) {
 		fprintf(stderr, "realloc failure for size %zd\n", size);
 		abort();
 	}
