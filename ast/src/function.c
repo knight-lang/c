@@ -7,7 +7,8 @@
 #include "string.h"   /* kn_string, kn_string_new_owned, kn_string_new_borrowed,
                          kn_string_alloc, kn_string_free, kn_string_empty,
                          kn_string_deref, kn_string_length, kn_string_cache,
-                         kn_string_clone_static, kn_string_cache_lookup */
+                         kn_string_clone_static, kn_string_cache_lookup,
+                         kn_string_equal */
 #include "value.h"    /* kn_value, kn_number, KN_TRUE, KN_FALSE, KN_NULL,
                          KN_UNDEFINED, kn_value_new_number, kn_value_new_string,
                          kn_value_new_boolean, kn_value_clone, kn_value_free,
@@ -455,12 +456,7 @@ DECLARE_FUNCTION(eql, 2, "?") {
 	if (!(eql = (kn_value_is_string(lhs) && kn_value_is_string(rhs))))
 		goto free_and_return;
 
-	struct kn_string *lstr = kn_value_as_string(lhs);
-	struct kn_string *rstr = kn_value_as_string(rhs);
-	size_t llen = kn_string_length(lstr);
-
-	eql = llen == kn_string_length(rstr) &&
-		!memcmp(kn_string_deref(lstr), kn_string_deref(rstr), llen);
+	eql = kn_string_equal(kn_value_as_string(lhs), kn_value_as_string(rhs));
 
 free_and_return:
 

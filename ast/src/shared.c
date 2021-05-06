@@ -28,7 +28,7 @@ void *xmalloc(size_t size) {
 
 #ifndef KN_RECKLESS
 	if (KN_UNLIKELY(ptr == NULL)) {
-		fprintf(stderr, "malloc failure for size %zd", size);
+		fprintf(stderr, "malloc failure for size %zd\n", size);
 		abort();
 	}
 #endif /* !KN_RECKLESS */
@@ -40,8 +40,8 @@ void *xrealloc(void *ptr, size_t size) {
 	ptr = realloc(ptr, size);
 
 #ifndef KN_RECKLESS
-	if (KN_UNLIKELY(ptr == NULL)) {
-		fprintf(stderr, "realloc failure for size %zd", size);
+	if (KN_UNLIKELY(ptr == NULL && size != 0)) {
+		fprintf(stderr, "realloc failure for size %zd\n", size);
 		abort();
 	}
 #endif /* !KN_RECKLESS */

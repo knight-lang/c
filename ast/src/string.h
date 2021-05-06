@@ -1,7 +1,8 @@
 #ifndef KN_STRING_H
 #define KN_STRING_H
 
-#include <stddef.h> /* size_t */
+#include <stddef.h>  /* size_t */
+#include <stdbool.h> /* bool */
 
 /*
  * These flags are used to record information about how the memory of a
@@ -232,5 +233,11 @@ struct kn_string *kn_string_clone_static(struct kn_string *string);
  * we don't end up allocating multiple times for the same string.
  */
 void kn_string_free(struct kn_string *string);
+
+/*
+ * Checks to see if two strings have the same contents.
+ */
+bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs);
+
 
 #endif /* !KN_STRING_H */

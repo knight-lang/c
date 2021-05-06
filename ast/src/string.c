@@ -2,7 +2,7 @@
                        KN_STRING_NEW_EMBED */
 #include "shared.h" /* xmalloc, kn_hash, KN_LIKELY, KN_UNLIKELY */
 #include <stdlib.h> /* free, NULL */
-#include <string.h> /* strlen, strcmp, memcpy, strndup, strncmp */
+#include <string.h> /* strlen, strcmp, memcpy, strndup, strncmp, memcmp */
 #include <assert.h> /* assert */
 
 // The empty string.
@@ -51,6 +51,20 @@ char *kn_string_deref(struct kn_string *string) {
 	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
 		? string->embed.data
 		: string->alloc.str;
+}
+
+bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs) {
+	if (lhs == rhs) // shortcut if they have the same pointer.
+		return true;
+
+	if (kn_string_length(lhs) != kn_string_length(rhs))
+		return false;
+
+	return !memcmp(
+		kn_string_deref((struct kn_string *) lhs),
+		kn_string_deref((struct kn_string *) rhs),
+		kn_string_length(lhs)
+	);
 }
 
 // Allocate a `kn_string` and populate it with the given `str`.
@@ -267,3 +281,4 @@ void kn_string_cleanup() {
 		}
 	}
 }
+
