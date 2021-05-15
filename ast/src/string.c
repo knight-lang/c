@@ -191,11 +191,15 @@ struct kn_string *kn_string_new_owned(char *str, size_t length) {
 	if (KN_LIKELY(string != NULL)) {
 		// if it's the same as `str`, use the cached version.
 		if (KN_LIKELY(strcmp(kn_string_deref(string), str) == 0)) {
+			;//fprintf(stderr, "hit\n");
 			free(str); // we don't need this string anymore, free it.
 			return kn_string_clone(string);
 		}
+			;//fprintf(stderr, "miss\n");
 
 		evict_string(string);
+	} else {
+			;//fprintf(stderr, "cold\n");
 	}
 
 	*cacheline = string = allocate_heap_string(str, length);
@@ -220,11 +224,15 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 		assert(kn_string_length(string) == length);
 
 		// if the string is the same, then that means we want the cached one.
-		if (KN_LIKELY(strncmp(kn_string_deref(string), str, length) == 0))
+		if (KN_LIKELY(strncmp(kn_string_deref(string), str, length) == 0)) {
+			;//fprintf(stderr, "hit\n");
 			return kn_string_clone(string);
+		}
 
+		;//fprintf(stderr, "cold\n");
 		evict_string(string);
-	}
+	} else 
+		;//fprintf(stderr, "miss\n");
 
 	// it may be embeddable, so don't just call `allocate_heap_string`.
 	*cache = string = kn_string_alloc(length);

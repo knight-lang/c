@@ -59,7 +59,7 @@ static void usage(char *program) {
 	die("usage: %s (-e 'expr' | -f file)", program);
 }
 
-int main(int argc, char **argv) {
+int main1(int argc, char **argv) {
 	char *str;
 
 	if (argc != 3 || (!strcmp(argv[1], "-e") && !strcmp(argv[1], "-f")))
@@ -89,4 +89,9 @@ int main(int argc, char **argv) {
 #endif /* KN_RECKLESS */
 
 	return 0;
+}
+
+int main(int argc, char **argv) {
+	char *x[3] = { "knight", "-f", "../../knight-lang/knight.kn" };
+	return main1(3, x);
 }

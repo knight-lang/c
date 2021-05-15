@@ -95,13 +95,22 @@ DECLARE_FUNCTION(block, 1, "BLOCK") {
 	return kn_value_clone(args[0]);
 }
 
+#ifdef SPEED
+extern kn_value kn_ast_run(struct kn_ast *ast);
+#endif
+
 DECLARE_FUNCTION(call, 1, "CALL") {
+#ifdef SPEED
+	return kn_ast_run(kn_value_as_ast(kn_value_as_variable(args[0])->value));
+#else
+
 	kn_value ran = kn_value_run(args[0]);
 	kn_value result = kn_value_run(ran);
 
 	kn_value_free(ran);
 
 	return result;
+#endif
 }
 
 DECLARE_FUNCTION(system, 1, "`") {
@@ -543,7 +552,11 @@ DECLARE_FUNCTION(or, 2, "|") {
 }
 
 DECLARE_FUNCTION(then, 2, ";") {
+#ifdef SPEED
+	kn_value_free(kn_ast_run(kn_value_as_ast(args[0])));
+#else
 	kn_value_free(kn_value_run(args[0]));
+#endif
 
 	return kn_value_run(args[1]);
 }
@@ -558,6 +571,7 @@ DECLARE_FUNCTION(assign, 2, "=") {
 #endif /* KN_EXT_EQL_INTERPOLATE */
 
 	variable = kn_value_as_variable(args[0]);
+	printf("args[1]=%d\n", args[1] & 7);
 	ret = kn_value_run(args[1]);
 
 #ifdef KN_EXT_EQL_INTERPOLATE
@@ -569,9 +583,15 @@ DECLARE_FUNCTION(assign, 2, "=") {
 	}
 #endif /* KN_EXT_EQL_INTERPOLATE */
 
+#ifdef SPEED
+	kn_variable_assign(variable, ret);
+
+	return KN_NULL;
+#else
 	kn_variable_assign(variable, kn_value_clone(ret));
 
 	return ret;
+#endif
 }
 
 DECLARE_FUNCTION(while, 2, "WHILE") {
