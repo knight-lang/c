@@ -17,9 +17,11 @@ struct kn_string _Alignas(8) kn_string_empty = KN_STRING_NEW_EMBED("");
 # define KN_STRING_CACHE_LINELEN (1<<14)
 #endif /* !KN_STRING_CACHE_LINELEN */
 
-static struct kn_string *cache[KN_STRING_CACHE_MAXLEN][KN_STRING_CACHE_LINELEN];
+static struct kn_string cache[KN_STRING_CACHE_MAXLEN][KN_STRING_CACHE_LINELEN];
 
-static struct kn_string **cache_lookup(unsigned long hash, size_t length) {
+#define IS_CACHE_COLD(string) ((string)->flags == 0)
+
+static struct kn_string *cache_lookup(unsigned long hash, size_t length) {
 	assert(length != 0);
 	assert(length <= KN_STRING_CACHE_MAXLEN);
 
@@ -30,10 +32,11 @@ struct kn_string *kn_string_cache_lookup(unsigned long hash, size_t length) {
 	if (length == 0 || KN_STRING_CACHE_MAXLEN < length)
 		return NULL;
 
-	return *cache_lookup(hash, length);
+	return NULL;
+	return cache_lookup(hash, length);
 }
 
-static struct kn_string **get_cache_slot(const char *str, size_t length) {
+static struct kn_string *get_cache_slot(const char *str, size_t length) {
 	return cache_lookup(kn_hash(str, length), length);
 }
 
@@ -98,6 +101,7 @@ static struct kn_string *allocate_embed_string(size_t length) {
 static void deallocate_string(struct kn_string *string) {
 	assert(string != NULL);
 	assert(string->refcount == 0); // don't dealloc live strings...
+	assert(string->flags);
 
 	// If the struct isn't actually allocated, then return.
 	if (!(string->flags & KN_STRING_FL_STRUCT_ALLOC)) {
@@ -156,18 +160,19 @@ void kn_string_cache(struct kn_string *string) {
 	if (KN_STRING_CACHE_MAXLEN < kn_string_length(string))
 		return;
 
-	struct kn_string **cacheline = get_cache_slot(
+	return;
+/*	struct kn_string *cacheline = get_cache_slot(
 		kn_string_deref(string),
 		kn_string_length(string)
 	);
 
 	// If there was something there and has no live references left, free it.
 	if (KN_LIKELY(*cacheline != NULL))
-		evict_string(*cacheline);
+		return; // evict_string(*cacheline);
 
 	// Indicate that the string is now cached, and replace the old cache line.
 	string->flags |= KN_STRING_FL_CACHED;
-	*cacheline = string;
+	*cacheline = string;*/
 }
 
 struct kn_string *kn_string_new_owned(char *str, size_t length) {
@@ -182,66 +187,158 @@ struct kn_string *kn_string_new_owned(char *str, size_t length) {
 	}
 
 	// if it's too big just dont cache it
-	if (KN_STRING_CACHE_MAXLEN < length)
+	if (KN_STRING_CACHE_MAXLEN < length || 1)
 		return allocate_heap_string(str, length);
 
-	struct kn_string **cacheline = get_cache_slot(str, length);
-	struct kn_string *string = *cacheline;
+	struct kn_string *string = get_cache_slot(str, length);
 
-	if (KN_LIKELY(string != NULL)) {
-		// if it's the same as `str`, use the cached version.
-		if (KN_LIKELY(strcmp(kn_string_deref(string), str) == 0)) {
-			;//fprintf(stderr, "hit\n");
-			free(str); // we don't need this string anymore, free it.
-			return kn_string_clone(string);
-		}
-			;//fprintf(stderr, "miss\n");
+	assert(string != NULL);
 
-		evict_string(string);
-	} else {
-			;//fprintf(stderr, "cold\n");
+	// if we have no flags, it's entirely unused.
+	if (!string->flags) 
+		goto cold_string;
+
+	assert(string->flags & KN_STRING_FL_CACHED);
+	assert(kn_string_length(string) == length);
+
+	// if they're the same string, we're good.
+	if (!strncmp(kn_string_deref(string), str, length)) {
+		free(str);
+		++string->refcount;
+		return string;
 	}
 
-	*cacheline = string = allocate_heap_string(str, length);
-	string->flags |= KN_STRING_FL_CACHED;
+	// if the string is currently populated, that's not good, make a new string.
+	if (string->refcount)
+		return allocate_heap_string(str, length);
 
+	if (!(string->flags & KN_STRING_FL_EMBED))
+		free(string->alloc.str);
+
+cold_string:
+	string->flags = KN_STRING_FL_CACHED;
+
+	assert(string->refcount == 0);
+	// otherwise, increment the refcount on the string, as we well reuse its buffer.
+	string->refcount = 1;
+
+	string->alloc.length = length;
+	string->alloc.str = str;
 	return string;
+	// struct kn_string *string = get_cache_slot(str, length);
+	// struct kn_string *string = *cacheline;
+
+	// if (KN_LIKELY(string != NULL)) {
+	// 	// if it's the same as `str`, use the cached version.
+	// 	if (KN_LIKELY(strcmp(kn_string_deref(string), str) == 0)) {
+	// 		;//fprintf(stderr, "hit\n");
+	// 		free(str); // we don't need this string anymore, free it.
+	// 		return kn_string_clone(string);
+	// 	}
+	// 		;//fprintf(stderr, "miss\n");
+
+	// 	evict_string(string);
+	// } else {
+	// 		;//fprintf(stderr, "cold\n");
+	// }
+
+	// *cacheline = string = allocate_heap_string(str, length);
+	// string->flags |= KN_STRING_FL_CACHED;
 }
 
 struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 	if (KN_UNLIKELY(length == 0))
 		return &kn_string_empty;
 
-	if (KN_STRING_CACHE_MAXLEN < length)
+	if (KN_STRING_CACHE_MAXLEN < length || 1)
 		return allocate_heap_string(strndup(str, length), length);
 
-	struct kn_string **cache = get_cache_slot(str, length);
-	struct kn_string *string = *cache;
+	struct kn_string *string = get_cache_slot(str, length);
 
-	if (KN_LIKELY(string != NULL)) {
-		// cached strings must be allocated.
-		assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
-		assert(kn_string_length(string) == length);
+	assert(string != NULL);
 
-		// if the string is the same, then that means we want the cached one.
-		if (KN_LIKELY(strncmp(kn_string_deref(string), str, length) == 0)) {
-			;//fprintf(stderr, "hit\n");
-			return kn_string_clone(string);
-		}
+	// if we have no flags, it's entirely unused.
+	if (!string->flags) 
+		goto cold_string;
 
-		;//fprintf(stderr, "cold\n");
-		evict_string(string);
-	} else 
-		;//fprintf(stderr, "miss\n");
+	assert(string->flags & KN_STRING_FL_CACHED);
+	assert(kn_string_length(string) == length);
 
-	// it may be embeddable, so don't just call `allocate_heap_string`.
-	*cache = string = kn_string_alloc(length);
-	string->flags |= KN_STRING_FL_CACHED;
+	// if they're the same string, we're good.
+	if (!strncmp(kn_string_deref(string), str, length)) {
+		++string->refcount;
+		return string;
+	}
 
+	// if the string is currently populated, that's not good, make a new string.
+	if (string->refcount) {
+		string = kn_string_alloc(length);
+	} else {
+		// otherwise, increment the refcount on the string, as we well reuse its buffer.
+		++string->refcount;
+	}
+
+populate:
+
+	// populate the string--either the new one we allocated, or reuse the previous one.
 	memcpy(kn_string_deref(string), str, length);
 	kn_string_deref(string)[length] = '\0';
-
 	return string;
+
+	// the string wasn't populated 
+cold_string:
+	string->refcount = 1;
+	string->flags = KN_STRING_FL_CACHED;
+
+	// if we're embeddable, simply mark that
+	if (length <= KN_STRING_EMBEDDED_LENGTH) {
+		string->embed.length = length;
+		string->flags |= KN_STRING_FL_EMBED;
+	} else {
+		// otherwise, we have to allocate the buffer.
+		string->alloc.length = length;
+		string->alloc.str = xmalloc(length + 1);
+	}
+
+	goto populate;
+
+	// if it's currently occupied, tough.
+	// if (string->refcount != 0)
+	// 	return allocate_heap_string(strndup(str, length), length);
+
+	// string->refcount = 1;
+
+	// if (length <= KN_STRING_EMBEDDED_LENGTH) {
+	// 	string->flags = KN_STRING_FL_STRUCT_ALLOC | KN_STRING_FL_EMBED;
+	// string->refcount = 1;
+	// string->embed.length = length;
+
+	// // if it's entirely unoccupied, allocate it.
+	// kn_string_alloc
+	// string
+
+	// if (KN_LIKELY(string != NULL)) {
+	// 	// cached strings must be allocated.
+	// 	assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
+	// 	assert(kn_string_length(string) == length);
+
+	// 	// if the string is the same, then that means we want the cached one.
+	// 	if (KN_LIKELY(strncmp(kn_string_deref(string), str, length) == 0)) {
+	// 		;//fprintf(stderr, "hit\n");
+	// 		return kn_string_clone(string);
+	// 	}
+
+	// 	;//fprintf(stderr, "cold\n");
+	// 	evict_string(string);
+	// } else 
+	// 	;//fprintf(stderr, "miss\n");
+
+	// // it may be embeddable, so don't just call `allocate_heap_string`.
+	// *cache = string = kn_string_alloc(length);
+	// string->flags |= KN_STRING_FL_CACHED;
+
+	// memcpy(kn_string_deref(string), str, length);
+	// kn_string_deref(string)[length] = '\0';
 }
 
 void kn_string_free(struct kn_string *string) {
@@ -274,9 +371,11 @@ struct kn_string *kn_string_clone_static(struct kn_string *string) {
 void kn_string_cleanup() {
 	struct kn_string *string;
 
+	if (1) return;
+
 	for (unsigned i = 0; i < KN_STRING_CACHE_MAXLEN; ++i) {
 		for (unsigned j = 0; j < KN_STRING_CACHE_LINELEN; ++j) {
-			string = cache[i][j];
+			string = &cache[i][j];
 
 			if (string != NULL) {
 				// we only cache allocated strings.

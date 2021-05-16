@@ -571,7 +571,6 @@ DECLARE_FUNCTION(assign, 2, "=") {
 #endif /* KN_EXT_EQL_INTERPOLATE */
 
 	variable = kn_value_as_variable(args[0]);
-	printf("args[1]=%d\n", args[1] & 7);
 	ret = kn_value_run(args[1]);
 
 #ifdef KN_EXT_EQL_INTERPOLATE
