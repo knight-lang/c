@@ -32,8 +32,8 @@ struct kn_string *kn_string_cache_lookup(unsigned long hash, size_t length) {
 	if (length == 0 || KN_STRING_CACHE_MAXLEN < length)
 		return NULL;
 
+	struct kn_string *string = cache_lookup(hash, length);
 	return NULL;
-	return cache_lookup(hash, length);
 }
 
 static struct kn_string *get_cache_slot(const char *str, size_t length) {
@@ -151,28 +151,38 @@ struct kn_string *kn_string_alloc(size_t length) {
 	return allocate_heap_string(xmalloc(length + 1), length);
 }
 
-// Cache a string. note that it could have previously een cached.
-void kn_string_cache(struct kn_string *string) {
+// Cache a string retuend by `kn_string_alloc`.
+void kn_string_cache(struct kn_string **string) {
 	// empty strings should never be cached.
-	assert(kn_string_length(string) != 0);
+	assert(kn_string_length(*string) != 0);
+	assert((*string)->refcount == 1);
 
 	// If it's too large for the cache, then just ignore it.
-	if (KN_STRING_CACHE_MAXLEN < kn_string_length(string))
+	if (KN_STRING_CACHE_MAXLEN < kn_string_length(*string))
 		return;
 
-	return;
-/*	struct kn_string *cacheline = get_cache_slot(
-		kn_string_deref(string),
-		kn_string_length(string)
+	struct kn_string *slot = get_cache_slot(
+		kn_string_deref(*string),
+		kn_string_length(*string)
 	);
 
-	// If there was something there and has no live references left, free it.
-	if (KN_LIKELY(*cacheline != NULL))
-		return; // evict_string(*cacheline);
+	// would imply we're cahing a non-alloc result.
+	assert(*string != slot);
 
-	// Indicate that the string is now cached, and replace the old cache line.
-	string->flags |= KN_STRING_FL_CACHED;
-	*cacheline = string;*/
+	// If it's not cold.
+	if (slot->flags) {
+		// if there's something, then we don't cache.
+		if (slot->refcount)
+			return;
+
+		// nothing there, so free what was there.
+		if (!(slot->flags & KN_STRING_FL_EMBED))
+			free(slot->alloc.str);
+	}
+
+	memcpy(slot, *string, sizeof(struct kn_string));
+	*string = slot;
+	slot->flags |= KN_STRING_FL_CACHED;
 }
 
 struct kn_string *kn_string_new_owned(char *str, size_t length) {
@@ -187,7 +197,7 @@ struct kn_string *kn_string_new_owned(char *str, size_t length) {
 	}
 
 	// if it's too big just dont cache it
-	if (KN_STRING_CACHE_MAXLEN < length || 1)
+	if (KN_STRING_CACHE_MAXLEN < length)
 		return allocate_heap_string(str, length);
 
 	struct kn_string *string = get_cache_slot(str, length);
@@ -250,7 +260,7 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 	if (KN_UNLIKELY(length == 0))
 		return &kn_string_empty;
 
-	if (KN_STRING_CACHE_MAXLEN < length || 1)
+	if (KN_STRING_CACHE_MAXLEN < length)
 		return allocate_heap_string(strndup(str, length), length);
 
 	struct kn_string *string = get_cache_slot(str, length);

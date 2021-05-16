@@ -279,7 +279,7 @@ allocate_and_cache:
 	memcpy(str + lhslen, kn_string_deref(rhs), rhslen);
 	str[length] = '\0';
 
-	kn_string_cache(string);
+	kn_string_cache(&string);
 free_and_return:
 
 	kn_string_free(lhs);
@@ -682,7 +682,7 @@ DECLARE_FUNCTION(substitute, 4, "SUBSTITUTE") {
 	);
 
 	kn_string_free(string);
-	kn_string_cache(result);
+	kn_string_cache(&result);
 
 	return kn_value_new_string(result);
 }

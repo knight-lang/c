@@ -169,7 +169,7 @@ struct kn_string *kn_string_alloc(size_t length);
  * This should only be used in conjunction with `kn_string_alloc`, as the other
  * string creation functions will automatically cache any strings they create.
  */
-void kn_string_cache(struct kn_string *string);
+void kn_string_cache(struct kn_string **string);
 
 /*
  * Creates a new `kn_string` of the given length, and then initializes it to
