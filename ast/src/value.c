@@ -192,12 +192,15 @@ kn_number kn_value_to_number(kn_value value) {
 
 	switch (KN_EXPECT(KN_TAG(value), KN_TAG_NUMBER)) {
 	case KN_TAG_NUMBER:
+		printf("number %10s\n", "number");
 		return kn_value_as_number(value);
 
 	case KN_TAG_CONSTANT:
+		printf("number %10s\n", "constant");
 		return value == KN_TRUE;
 
 	case KN_TAG_STRING:
+		printf("number %10s\n", "string");
 		return string_to_number(kn_value_as_string(value));
 
 #ifdef KN_CUSTOM
@@ -211,7 +214,10 @@ kn_number kn_value_to_number(kn_value value) {
 #endif /* KN_CUSTOM */
 
 	case KN_TAG_VARIABLE:
+		printf("number %10s\n", "variable");
 	case KN_TAG_AST: {
+		if (KN_TAG(value) == KN_TAG_AST)
+			printf("number %10s\n", "ast");
 		// simply execute the value and call this function again.
 		kn_value ran = kn_value_run(value);
 		kn_number ret = kn_value_to_number(ran);
