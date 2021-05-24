@@ -12,16 +12,14 @@
  */
 struct kn_ast {
 	/*
+	 * How many references to this object exist.
+	 */
+	unsigned refcount;
+
+	/*
 	 * The function associated with this ast.
 	 */
 	_Alignas(16) const struct kn_function *func;
-
-	/*
-	 * How many references to this object exist.
-	 *
-	 * A negative refcount means that the object should not be freed.
-	 */
-	int refcount;
 
 	/*
 	 * The arguments of this ast.
@@ -58,3 +56,4 @@ void kn_ast_free(struct kn_ast *ast);
 kn_value kn_ast_run(struct kn_ast *ast);
 
 #endif /* !KN_AST_H */
+ 

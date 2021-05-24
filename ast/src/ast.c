@@ -4,13 +4,16 @@
 #include <stdlib.h> /* free, NULL */
 #include <assert.h> /* assert */
 
-#ifndef KN_AST_FREE_CACHE_LEN
-# define KN_AST_FREE_CACHE_LEN 32
-#endif /* !KN_AST_FREE_CACHE_LEN */
+#ifdef KN_AST_CACHE
+# ifndef KN_AST_FREE_CACHE_LEN
+#  define KN_AST_FREE_CACHE_LEN 32
+# endif /* !KN_AST_FREE_CACHE_LEN */
 
 struct kn_ast *freed_asts[KN_MAX_ARGC + 1][KN_AST_FREE_CACHE_LEN];
+#endif /* KN_AST_CACHE */
 
 void kn_ast_cleanup(void) {
+#ifdef KN_AST_CACHE
 	struct kn_ast *ast;
 
 	for (unsigned i = 0; i <= KN_MAX_ARGC; ++i) {
@@ -23,6 +26,7 @@ void kn_ast_cleanup(void) {
 			}
 		}
 	}
+#endif /* KN_AST_CACHE */
 }
 
 struct kn_ast *kn_ast_alloc(unsigned argc) {
@@ -30,6 +34,7 @@ struct kn_ast *kn_ast_alloc(unsigned argc) {
 
 	assert(argc <= KN_MAX_ARGC);
 
+#ifdef KN_AST_CACHE
 	// try to find a freed ast we can repurpose.
 	for (unsigned i = 0; i < KN_AST_FREE_CACHE_LEN; ++i) {
 		ast = freed_asts[argc][i];
@@ -48,6 +53,7 @@ struct kn_ast *kn_ast_alloc(unsigned argc) {
 		++ast->refcount;
 		return ast;
 	}
+#endif /* KN_AST_CACHE */
 
 	// there are no cached free asts, so we have to allocate.
 	ast = xmalloc(sizeof(struct kn_ast) + sizeof(kn_value [argc]));
@@ -79,6 +85,7 @@ void kn_ast_free(struct kn_ast *ast) {
 	for (unsigned i = 0; i < arity; ++i)
 		kn_value_free(ast->args[i]);
 
+#ifdef KN_AST_CACHE
 	// attempt to cache this ast, so another allocation can reuse its space.
 	for (unsigned i = 0; i < KN_AST_FREE_CACHE_LEN; ++i) {
 		// if the freed slot is unused, claim it.
@@ -87,7 +94,8 @@ void kn_ast_free(struct kn_ast *ast) {
 			return;
 		}
 	}
-
+#endif /* KN_AST_CACHE */
+	
 	// all free slots are used, we cannot repurpose it.
 	free(ast);
 }

@@ -69,20 +69,20 @@ enum kn_string_flags {
  */
 struct kn_string {
 	/*
-	 * The flags that dictate how to manage this struct's memory.
-	 *
-	 * Note that the struct _must_ have an 8-bit alignment, so as to work with
-	 * `kn_value`'s layout.
-	 */
-	_Alignas(8) enum kn_string_flags flags;
-
-	/*
 	 * The amount of references to this string.
 	 *
 	 * This is increased when `kn_string_clone`d and decreased when
 	 * `kn_string_free`d, and when it reaches zero, the struct will be freed.
 	 */
-	unsigned refcount;
+	_Alignas(8) unsigned refcount;
+
+	/*
+	 * The flags that dictate how to manage this struct's memory.
+	 *
+	 * Note that the struct _must_ have an 8-bit alignment, so as to work with
+	 * `kn_value`'s layout.
+	 */
+	enum kn_string_flags flags;
 
 	/* All strings are either embedded or allocated. */
 	union {
@@ -138,7 +138,6 @@ extern struct kn_string kn_string_empty;
 		.flags = KN_STRING_FL_EMBED, \
 		.embed = { .length = sizeof(data_) - 1, .data = data_ } \
 	}
-
 
 /*
  * Frees cached strings with a zero refcount.
@@ -238,6 +237,5 @@ void kn_string_free(struct kn_string *string);
  * Checks to see if two strings have the same contents.
  */
 bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs);
-
 
 #endif /* !KN_STRING_H */
