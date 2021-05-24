@@ -1,6 +1,8 @@
+// this is *almost* but not exactly `golf.c`
 #include<stdio.h>
 #include<stdlib.h>
 #include<ctype.h>
+#include<math.h>
 #include<string.h>
 #include<time.h>
 #define ll long long
@@ -165,26 +167,7 @@ ll run(ll value) {
 		return NEWSTR(tstr);
 	case '/': return NEWNUM(ton(ARG(1)) / ton(ARG(2)));
 	case '%': return NEWNUM(ton(ARG(1)) % ton(ARG(2)));
-	case '^':
-		tval=ton(ARG(1));
-		tval2=ton(ARG(2));
-		if (tval == -1) return tval2 & 1 ? -1 : 1;
-		if (tval2 == -1) return tval2 & 1 ? -1 : 1;
-		if (tval2 < 2) return tval2==1 ? tval : tval2==0;
-		for(;tval2>0;--tval2)tval3*=tval;
-		return NEWNUM(tval3);
-		// exit(1);
-// // there's no builtin way to do integer exponentiation, so we have to
-// // do it manually.
-// if (base == 1) result = 1;
-// else if (base == -1) result = exponent & 1 ? -1 : 1;
-// else if (exponent == 1) result = base;
-// else if (exponent == 0) result = 1;
-// else if (exponent < 0) result = 0; // already handled `base == -1`
-// else {
-// 	for (result = 1; exponent > 0; --exponent)
-// 		result *= base;
-// }
+	case '^': return NEWNUM(pow(ton(ARG(1)), ton(ARG(2))))
 
 	case '<':
 		return NEWBOOL(
