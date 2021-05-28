@@ -207,6 +207,35 @@ DECLARE_FUNCTION(output, 1, "OUTPUT") {
 	return KN_NULL;
 }
 
+DECLARE_FUNCTION(ascii, 1, "ASCII") {
+	kn_value value = kn_value_run(args[0]);
+
+	// If lhs is a string, convert both to a string and concatenate.
+	if (kn_value_is_string(value)) {
+#ifndef KN_RECKLESS
+		if (kn_string_length(kn_value_as_string(value)) == 0)
+			die("ASCII called with empty string.");
+#endif /* !KN_RECKLESS */
+		return kn_value_new_number(*kn_string_deref(kn_value_as_string(value)));
+	}
+
+#ifndef KN_RECKLESS
+	if (!kn_value_is_number(value))
+		die("can only call ASCII on numbers and strings.");
+#endif /* !KN_RECKLESS */
+
+	kn_number ord = kn_value_as_number(value);
+
+#ifndef KN_RECKLESS
+	// just check for ASCIIness, not actually full-blown knight correctness. 
+	if (ord < 0 || 127 < ord)
+		die("Numeric value is out of range for ascii char.");
+#endif
+
+	char buf[2] = { ord, 0 };
+	return kn_value_new_string(kn_string_new_borrowed(buf, 1));
+}
+
 #ifdef KN_EXT_VALUE
 DECLARE_FUNCTION(value, 1, "VALUE") {
 	struct kn_string *string = kn_value_to_string(args[0]);
@@ -383,7 +412,7 @@ DECLARE_FUNCTION(div, 2, "/") {
 
 #ifndef KN_RECKLESS
 	if (divisor == 0)
-		die("attempted to divide by zero");
+		die("aettempted to divide by zero");
 #endif /* !KN_RECKLESS */
 
 	return kn_value_new_number(dividend / divisor);

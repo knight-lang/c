@@ -6,7 +6,10 @@ BINDIR?=bin
 
 exe=$(BINDIR)/knight
 dyn=$(BINDIR)/libknight.so
-objects=$(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(wildcard $(SRCDIR)/*.c))
+source_files=$(wildcard $(SRCDIR)/*.c)
+objects=$(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(source_files))
+
+KN_FLAGS?=-DKN_AST_CACHE -DKN_STRING_CACHE
 
 override CFLAGS+=-F$(SRCDIR)
 
@@ -20,6 +23,8 @@ ifdef COMPUTED_GOTOS
 override CFLAGS+=-DKN_COMPUTED_GOTOS -Wno-gnu-label-as-value -Wno-gnu-designator
 endif
 
+override CFLAGS+=$(KN_FLAGS)
+
 .PHONY: all optimized clean shared
 
 all: $(exe)
@@ -29,7 +34,7 @@ clean:
 	-@rm -r $(OBJDIR) $(BINDIR)
 
 optimized:
-	$(CC) $(CFLAGS) -o $(exe) $(wildcard $(SRCDIR)/*.c)
+	$(CC) $(CFLAGS) -o $(exe) $(source_files)
 
 $(exe): $(objects) | $(BINDIR)
 	$(CC) $(CFLAGS) -o $@ $+

@@ -56,4 +56,3 @@ void kn_ast_free(struct kn_ast *ast);
 kn_value kn_ast_run(struct kn_ast *ast);
 
 #endif /* !KN_AST_H */
- 

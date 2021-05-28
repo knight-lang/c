@@ -9,13 +9,13 @@
 // we need the alignment for embedding.
 struct kn_string _Alignas(8) kn_string_empty = KN_STRING_NEW_EMBED("");
 
-#ifndef KN_STRING_CACHE_MAXLEN
-# define KN_STRING_CACHE_MAXLEN 32
-#endif /* !KN_STRING_CACHE_MAXLEN */
-
-#ifndef KN_STRING_CACHE_LINELEN
-# define KN_STRING_CACHE_LINELEN (1<<14)
-#endif /* !KN_STRING_CACHE_LINELEN */
+#ifdef KN_STRING_CACHE
+# ifndef KN_STRING_CACHE_MAXLEN
+#  define KN_STRING_CACHE_MAXLEN 32
+# endif /* !KN_STRING_CACHE_MAXLEN */
+# ifndef KN_STRING_CACHE_LINELEN
+#  define KN_STRING_CACHE_LINELEN (1<<14)
+# endif /* !KN_STRING_CACHE_LINELEN */
 
 static struct kn_string *cache[KN_STRING_CACHE_MAXLEN][KN_STRING_CACHE_LINELEN];
 
@@ -36,6 +36,7 @@ struct kn_string *kn_string_cache_lookup(unsigned long hash, size_t length) {
 static struct kn_string **get_cache_slot(const char *str, size_t length) {
 	return cache_lookup(kn_hash(str, length), length);
 }
+#endif /* KN_STRING_CACHE */
 
 size_t kn_string_length(const struct kn_string *string) {
 	assert(string != NULL);
