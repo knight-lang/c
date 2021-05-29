@@ -195,7 +195,7 @@ static bool is_idempotent(kn_value value) {
 
 static unsigned depth;
 
-static kn_value parse_list() {
+kn_value parse_list() {
 	unsigned current_depth = depth++;
 
 	struct kn_custom *custom

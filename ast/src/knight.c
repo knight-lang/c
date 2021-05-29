@@ -10,9 +10,16 @@
 #include "shared.h"   /* die */
 #endif /* !KN_RECKLESS */
 
+#ifdef KN_CUSTOM
+extern void kn_extension_startup(void);
+#endif /* KN_CUSTOM */
+
 void kn_startup() {
 	kn_function_startup();
 	kn_env_startup();
+#ifdef KN_CUSTOM
+	kn_extension_startup();
+#endif /* KN_CUSTOM */
 }
 
 void kn_shutdown() {

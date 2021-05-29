@@ -130,9 +130,9 @@ static kn_value _invalid() { die("unknown token start '%c'", kn_parse_peek()); }
 static kn_value _number() { return kn_value_new_number(kn_parse_number()); }
 static kn_value _string() { return kn_value_new_string(kn_parse_string()); }
 static kn_value _identifier() { return kn_value_new_variable(kn_parse_variable()); }
-static kn_value _literal_true() { while(iswordfunc(kn_parse_advance_peek())); return KN_TRUE; }
-static kn_value _literal_false() { while(iswordfunc(kn_parse_advance_peek())); return KN_FALSE; }
-static kn_value _literal_null() { while(iswordfunc(kn_parse_advance_peek())); return KN_NULL; }
+static kn_value _literal_true() { while(iswordfunc(kn_parse_advance_peek())){} return KN_TRUE; }
+static kn_value _literal_false() { while(iswordfunc(kn_parse_advance_peek())){} return KN_FALSE; }
+static kn_value _literal_null() { while(iswordfunc(kn_parse_advance_peek())){} return KN_NULL; }
 #ifdef KN_CUSTOM
 static kn_value _function_extension() { kn_parse_advance(); return kn_parse_extension(); }
 #endif
@@ -222,7 +222,7 @@ WORD_FUNC1(while)
 
 typedef kn_value (*parsefn)(void);
 
-const parsefn functions[256] = {
+parsefn kn_parse_functions[256] = {
 	['\0'] = _expected_token,
 	[0x01 ... 0x08] = _invalid,
 	['\t' ... '\r'] = _strip,
@@ -301,7 +301,7 @@ const parsefn functions[256] = {
 };
 
 kn_value kn_parse_value() {
-	return functions[kn_parse_peek()]();
+	return kn_parse_functions[(int) kn_parse_peek()]();
 }
 
 kn_value kn_parse_value1() {
