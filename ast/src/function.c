@@ -1,5 +1,6 @@
 #include "function.h" /* prototypes */
 #include "knight.h"   /* kn_run */
+#include "ast.h"      /* kn_ast_run */
 #include "env.h"      /* kn_env_fetch, kn_variable, kn_variable_run,
                          kn_variable_assign */
 #include "shared.h"   /* die, xmalloc, xrealloc, kn_hash, kn_hash_acc,
@@ -572,7 +573,11 @@ DECLARE_FUNCTION(or, 2, "|") {
 }
 
 DECLARE_FUNCTION(then, 2, ";") {
-	kn_value_free(kn_value_run(args[0]));
+	// Since evaluating anything other than an ast is meaningless (evaluating
+	// undefined variables is UB so we choose to just ignore it), we only
+	// evaluate if it's an ast.
+	if (KN_LIKELY(kn_value_is_ast(args[0])))
+		kn_value_free(kn_ast_run(kn_value_as_ast(args[0])));
 
 	return kn_value_run(args[1]);
 }

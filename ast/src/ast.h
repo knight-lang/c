@@ -3,6 +3,7 @@
 
 #include "function.h" /* kn_function, KN_MAX_ARGC */
 #include "value.h"    /* kn_value */
+#include <stdalign.h> /* alignas */
 
 /*
  * The type that represents a function and its arguments in Knight.
@@ -14,12 +15,12 @@ struct kn_ast {
 	/*
 	 * How many references to this object exist.
 	 */
-	unsigned refcount;
+	alignas(8) unsigned refcount;
 
 	/*
 	 * The function associated with this ast.
 	 */
-	_Alignas(16) const struct kn_function *func;
+	const struct kn_function *func;
 
 	/*
 	 * The arguments of this ast.
