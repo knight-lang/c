@@ -9,8 +9,8 @@
 #define B(s)(char*)U(s)
 #define D(s)(s>>4)
 #define E(n)1|(n)<<4
-#define F(n)2|(l)n
-#define G(n)n?12:4
+#define F(n)2|(l)(n)
+#define G(n)(n)?12:4
 #define A(n)((l*)U(v))[n]
 #define L strlen
 #define P printf
