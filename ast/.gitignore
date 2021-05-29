@@ -1,3 +1,4 @@
 obj/*
-./knight
+bin/*
+knight
 knight.dSYM

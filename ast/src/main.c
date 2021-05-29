@@ -2,7 +2,7 @@
 #include "shared.h" /* die, xmalloc, xrealloc */
 
 #include <stdlib.h> /* free, NULL, size_t */
-#include <stdio.h>  /* FILE, fopen, feof, fread, fclose, perror, stdin EOF, */
+#include <stdio.h>  /* FILE, fopen, feof, fread, fclose, perror, EOF */
 #include <string.h> /* strcmp, strerror */
 
 #ifndef KN_RECKLESS
@@ -27,8 +27,8 @@ static char *read_file(const char *filename) {
 		if (amntread == 0) {
 
 #ifndef KN_RECKLESS
-		if (!feof(stdin))
-			die("unable to line in file '%s': %s'", filename, strerror(errno));
+			if (!feof(file))
+				die("unable to read file '%s': %s'", filename, strerror(errno));
 #endif /* !KN_RECKLESS */
 
 			break;

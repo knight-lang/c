@@ -114,6 +114,11 @@ struct kn_ast *kn_parse_ast(const struct kn_function *fn) {
 	return ast;
 }
 
+static void strip_keyword() {
+	while (iswordfunc(kn_parse_advance_peek())) {
+		/* do nothing */
+	}
+}
 
 static kn_value _strip() { kn_parse_strip(); return kn_parse_value(); }
 static kn_value _expected_token() { return KN_UNDEFINED; }
@@ -465,6 +470,20 @@ SYMBOL_FUNC(system, '`');
 SYMBOL_FUNC(negate, '~');
 #endif /* KN_EXT_NEGATE */
 
+LABEL(function_prompt)
+CASES1('P') {
+	static struct kn_ast ast_prompt = { .func = &kn_fn_prompt, .refcount = -1 };
+	strip_keyword();
+	return kn_value_new_ast(&ast_prompt);
+}
+
+LABEL(function_random)
+CASES1('R') {
+	static struct kn_ast ast_random = { .func = &kn_fn_random, .refcount = -1 };
+	strip_keyword();
+	return kn_value_new_ast(&ast_random);
+}
+
 WORD_FUNC(block, 'B');
 WORD_FUNC(call, 'C');
 WORD_FUNC(dump, 'D');
@@ -473,9 +492,7 @@ WORD_FUNC(get, 'G');
 WORD_FUNC(if, 'I');
 WORD_FUNC(length, 'L');
 WORD_FUNC(output, 'O');
-WORD_FUNC(prompt, 'P');
 WORD_FUNC(quit, 'Q');
-WORD_FUNC(random, 'R');
 WORD_FUNC(substitute, 'S');
 WORD_FUNC(while, 'W');
 
@@ -484,10 +501,9 @@ WORD_FUNC(value, 'V');
 #endif /* KN_EXT_VALUE */
 
 parse_kw_function:
-	while (iswordfunc(kn_parse_advance_peek())) {
-		/* do nothing */
-	}
+	strip_keyword();
 	// fallthrough
+
 parse_function:
 	return kn_value_new_ast(kn_parse_ast(function));
 

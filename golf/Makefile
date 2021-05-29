@@ -8,12 +8,12 @@ endif
 
 .PHONY: clean
 
-knight: knight.o
-	$(CC) $(CFLAGS) knight.o -o knight
+golf: golf.o
+	$(CC) $(CFLAGS) golf.o -o golf
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $<
 
 clean:
 	-@rm *.o
-	-@rm knight
+	-@rm golf

@@ -21,10 +21,10 @@
  * 0...10000 - TRUE
  * 0...11000 - undefined.
  * X...XX001 - 61-bit signed integer
- * X...XX010 - variable (nonzero `X`)
- * X...XX011 - string (nonzero `X`)
- * X...XX100 - function (nonzero `X`)
- * X...XX110 - custom (nonzero `X`) (only with `KN_CUSTOM`)
+ * X...XX010 - variable
+ * X...XX011 - string
+ * X...XX100 - function
+ * X...XX110 - custom (only with `KN_CUSTOM`)
  * note all pointers are 8-bit-aligned.
  */
 #define KN_SHIFT 3
@@ -37,7 +37,6 @@
 #ifdef KN_CUSTOM
 # define KN_TAG_CUSTOM 5
 #endif /* KN_CUSTOM */
-
 
 #define KN_TAG_MASK ((1 << KN_SHIFT) - 1)
 #define KN_TAG(x) ((x) & KN_TAG_MASK)
@@ -287,8 +286,8 @@ static struct kn_string *number_to_string(kn_number num) {
 	if (is_neg)
 		*--ptr = '-';
 
-	number_string.alloc.str = ptr;
-	number_string.alloc.length = &buf[sizeof(buf) - 1] - ptr;
+	number_string.ptr = ptr;
+	number_string.length = &buf[sizeof(buf) - 1] - ptr;
 
 	return &number_string;
 }
@@ -348,7 +347,7 @@ void kn_value_dump(kn_value value) {
 		case KN_TRUE:  printf("Boolean(true)"); return;
 		case KN_FALSE: printf("Boolean(false)"); return;
 		case KN_NULL:  printf("Null()"); return;
-#ifndef NDEBUG // we dump undefined only for debugging. 
+#ifndef NDEBUG // we dump undefined only for debugging.
 		case KN_UNDEFINED: printf("<KN_UNDEFINED>"); return;
 #endif /* !NDEBUG */
 

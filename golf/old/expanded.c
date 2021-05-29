@@ -61,7 +61,7 @@ ll r(ll v){ll t,t2,t3=1;char*s,*ts,*ts2;FILE*f;
 	I(i=MN,v&4)W(i--)I(!Q(ASSTR(v),MI[i]))R M[i];
 
 	switch(*(ll*)U(v)){
-	C'R':R NN(rand());
+	C'R':R NN(rand()&0xfffff);
 	C'P':s=0;getline(&s,&z,stdin);R NS(strdup(s));
 	C'E':S=tos(A1);R r(p());
 	C'B':R A1;

@@ -1,8 +1,9 @@
 #ifndef KN_AST_H
 #define KN_AST_H
 
-#include "function.h" /* kn_function */
+#include "function.h" /* kn_function, KN_MAX_ARGC */
 #include "value.h"    /* kn_value */
+#include <stdalign.h> /* alignas */
 
 /*
  * The type that represents a function and its arguments in Knight.
@@ -12,14 +13,14 @@
  */
 struct kn_ast {
 	/*
-	 * The function associated with this ast.
-	 */
-	_Alignas(16) const struct kn_function *func;
-
-	/*
 	 * How many references to this object exist.
 	 */
-	unsigned refcount;
+	alignas(8) unsigned refcount;
+
+	/*
+	 * The function associated with this ast.
+	 */
+	const struct kn_function *func;
 
 	/*
 	 * The arguments of this ast.
@@ -28,7 +29,14 @@ struct kn_ast {
 };
 
 /*
+ * Frees memory associated with zombie ASTs.
+ */
+void kn_ast_cleanup(void);
+
+/*
  * Allocates a new `kn_ast` with the given number of arguments.
+ *
+ * `argc` musn't be larger than `KN_MAX_ARGC`.
  */
 struct kn_ast *kn_ast_alloc(unsigned argc);
 

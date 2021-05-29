@@ -3,6 +3,8 @@
 #include "function.h" /* kn_function_startup */
 #include "parse.h"    /* kn_parse */
 #include "env.h"      /* kn_env_startup, kn_env_shutdown */
+#include "ast.h"      /* kn_ast_cleanup */
+#include "string.h"   /* kn_string_cleanup */
 
 #ifndef KN_RECKLESS
 #include "shared.h"   /* die */
@@ -15,6 +17,8 @@ void kn_startup() {
 
 void kn_shutdown() {
 	kn_env_shutdown();
+	kn_ast_cleanup();
+	kn_string_cleanup();
 }
 
 kn_value kn_run(const char *stream) {

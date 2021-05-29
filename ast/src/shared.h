@@ -23,8 +23,8 @@
 # endif /* NDEBUG */
 #endif /* KN_USE_EXTENSIONS */
 
-#define KN_LIKELY(x) (__builtin_expect(!!(x), 1))
-#define KN_UNLIKELY(x) (__builtin_expect(!!(x), 0))
+#define KN_LIKELY(x) KN_EXPECT(!!(x), 1)
+#define KN_UNLIKELY(x) KN_EXPECT(!!(x), 0)
 
 /*
  * A macros that's used to halt the execution of the program, writing the

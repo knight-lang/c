@@ -1,30 +1,29 @@
 #include "string.h" /* prototypes, kn_string, kn_string_flags variants, size_t,
-                       KN_STRING_NEW_EMBED */
+                       KN_STRING_NEW_EMBED, alignas */
 #include "shared.h" /* xmalloc, kn_hash, KN_LIKELY, KN_UNLIKELY */
 #include <stdlib.h> /* free, NULL */
-#include <string.h> /* strlen, strcmp, memcpy, strndup, strncmp */
+#include <string.h> /* strlen, strcmp, memcpy, strndup, strncmp, memcmp */
 #include <assert.h> /* assert */
 
 // The empty string.
 // we need the alignment for embedding.
-struct kn_string _Alignas(8) kn_string_empty = KN_STRING_NEW_EMBED("");
+struct kn_string alignas(8) kn_string_empty = KN_STRING_NEW_EMBED("");
 
-#ifndef KN_STRING_CACHE_MAXLEN
-# define KN_STRING_CACHE_MAXLEN 32
-#endif /* !KN_STRING_CACHE_MAXLEN */
+#ifdef KN_STRING_CACHE
+# ifndef KN_STRING_CACHE_MAXLEN
+#  define KN_STRING_CACHE_MAXLEN 32
+# endif /* !KN_STRING_CACHE_MAXLEN */
+# ifndef KN_STRING_CACHE_LINELEN
+#  define KN_STRING_CACHE_LINELEN (1<<14)
+# endif /* !KN_STRING_CACHE_LINELEN */
 
-#ifndef KN_STRING_CACHE_LINESIZE
-# define KN_STRING_CACHE_LINESIZE (1<<14)
-#endif /* !KN_STRING_CACHE_LINESIZE */
+static struct kn_string *cache[KN_STRING_CACHE_MAXLEN][KN_STRING_CACHE_LINELEN];
 
 static struct kn_string **cache_lookup(unsigned long hash, size_t length) {
-	static struct kn_string *cache[
-		KN_STRING_CACHE_MAXLEN][KN_STRING_CACHE_LINESIZE];
-
 	assert(length != 0);
 	assert(length <= KN_STRING_CACHE_MAXLEN);
 
-	return &cache[length - 1][hash & (KN_STRING_CACHE_LINESIZE - 1)];
+	return &cache[length - 1][hash & (KN_STRING_CACHE_LINELEN - 1)];
 }
 
 struct kn_string *kn_string_cache_lookup(unsigned long hash, size_t length) {
@@ -37,21 +36,34 @@ struct kn_string *kn_string_cache_lookup(unsigned long hash, size_t length) {
 static struct kn_string **get_cache_slot(const char *str, size_t length) {
 	return cache_lookup(kn_hash(str, length), length);
 }
+#endif /* KN_STRING_CACHE */
 
 size_t kn_string_length(const struct kn_string *string) {
 	assert(string != NULL);
 
-	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
-		? (size_t) string->embed.length
-		: string->alloc.length;
+	return (size_t) string->length;
 }
 
 char *kn_string_deref(struct kn_string *string) {
 	assert(string != NULL);
 
 	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
-		? string->embed.data
-		: string->alloc.str;
+		? string->embed
+		: string->ptr;
+}
+
+bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs) {
+	if (lhs == rhs) // shortcut if they have the same pointer.
+		return true;
+
+	if (kn_string_length(lhs) != kn_string_length(rhs))
+		return false;
+
+	return !memcmp(
+		kn_string_deref((struct kn_string *) lhs),
+		kn_string_deref((struct kn_string *) rhs),
+		kn_string_length(lhs)
+	);
 }
 
 // Allocate a `kn_string` and populate it with the given `str`.
@@ -63,8 +75,8 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 
 	string->flags = KN_STRING_FL_STRUCT_ALLOC;
 	string->refcount = 1;
-	string->alloc.length = length;
-	string->alloc.str = str;
+	string->length = length;
+	string->ptr = str;
 
 	return string;
 }
@@ -76,7 +88,7 @@ static struct kn_string *allocate_embed_string(size_t length) {
 
 	string->flags = KN_STRING_FL_STRUCT_ALLOC | KN_STRING_FL_EMBED;
 	string->refcount = 1;
-	string->embed.length = length;
+	string->length = length;
 
 	return string;
 }
@@ -88,31 +100,37 @@ static void deallocate_string(struct kn_string *string) {
 
 	// If the struct isn't actually allocated, then return.
 	if (!(string->flags & KN_STRING_FL_STRUCT_ALLOC)) {
-		// Sanity check, as these are the only two non-struct-alloc flags.
+		// Sanity check, as these are the only two non-struct-ptr flags.
 		assert(string->flags & (KN_STRING_FL_EMBED | KN_STRING_FL_STATIC));
 		return;
 	}
 
 	// If we're not embedded, free the allocated string
 	if (KN_UNLIKELY(!(string->flags & KN_STRING_FL_EMBED)))
-		free(string->alloc.str);
+		free(string->ptr);
 
 	// Finally free the entire struct itself.
 	free(string);
 }
 
-static void evict_string(struct kn_string *string) {
-	assert(string != NULL);
-
-	// If there are no more references to it, deallocate the stirng.
-	if (string->refcount == 0) {
-		deallocate_string(string);
-		return;
-	}
-
-	// otherwise, indicate that the string is no longer cached.
+static void evict_string_active(struct kn_string *string) {
+	assert(string->refcount != 0);
 	assert(string->flags & KN_STRING_FL_CACHED);
+
 	string->flags -= KN_STRING_FL_CACHED;
+}
+
+static void evict_string(struct kn_string *string) {
+	// we only cache allocated strings.
+	assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
+
+	if (string->refcount == 0) {
+		// If there are no more references to it, deallocate the string.
+		deallocate_string(string);
+	} else {
+		// otherwise, just evict it from the cache slot.
+		evict_string_active(string);
+	}
 }
 
 struct kn_string *kn_string_alloc(size_t length) {
@@ -196,12 +214,16 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 	struct kn_string *string = *cache;
 
 	if (KN_LIKELY(string != NULL)) {
+		// cached strings must be allocated.
+		assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
+		assert(kn_string_length(string) == length);
+
 		// if the string is the same, then that means we want the cached one.
 		if (KN_LIKELY(strncmp(kn_string_deref(string), str, length) == 0))
 			return kn_string_clone(string);
 
 		evict_string(string);
-	};
+	}
 
 	// it may be embeddable, so don't just call `allocate_heap_string`.
 	*cache = string = kn_string_alloc(length);
@@ -239,3 +261,23 @@ struct kn_string *kn_string_clone_static(struct kn_string *string) {
 		kn_string_length(string)
 	);
 }
+
+void kn_string_cleanup() {
+	struct kn_string *string;
+
+	for (unsigned i = 0; i < KN_STRING_CACHE_MAXLEN; ++i) {
+		for (unsigned j = 0; j < KN_STRING_CACHE_LINELEN; ++j) {
+			string = cache[i][j];
+
+			if (string != NULL) {
+				// we only cache allocated strings.
+				assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
+
+				// If there are no more references to it, deallocate the string.
+				if (string->refcount == 0)
+					deallocate_string(string);
+			}
+		}
+	}
+}
+

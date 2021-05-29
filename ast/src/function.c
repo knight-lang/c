@@ -1,5 +1,6 @@
 #include "function.h" /* prototypes */
 #include "knight.h"   /* kn_run */
+#include "ast.h"      /* kn_ast_run */
 #include "env.h"      /* kn_env_fetch, kn_variable, kn_variable_run,
                          kn_variable_assign */
 #include "shared.h"   /* die, xmalloc, xrealloc, kn_hash, kn_hash_acc,
@@ -7,7 +8,8 @@
 #include "string.h"   /* kn_string, kn_string_new_owned, kn_string_new_borrowed,
                          kn_string_alloc, kn_string_free, kn_string_empty,
                          kn_string_deref, kn_string_length, kn_string_cache,
-                         kn_string_clone_static, kn_string_cache_lookup */
+                         kn_string_clone_static, kn_string_cache_lookup,
+                         kn_string_equal */
 #include "value.h"    /* kn_value, kn_number, KN_TRUE, KN_FALSE, KN_NULL,
                          KN_UNDEFINED, kn_value_new_number, kn_value_new_string,
                          kn_value_new_boolean, kn_value_clone, kn_value_free,
@@ -30,7 +32,7 @@ void kn_function_startup(void) {
 }
 
 #define DECLARE_FUNCTION(func, arity, name) \
-	static KN_DECLARE_FUNCTION(kn_fn_##func, arity, name)
+	KN_DECLARE_FUNCTION(kn_fn_##func, arity, name)
 
 DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 	(void) args;
@@ -204,6 +206,35 @@ DECLARE_FUNCTION(output, 1, "OUTPUT") {
 	kn_string_free(string);
 
 	return KN_NULL;
+}
+
+DECLARE_FUNCTION(ascii, 1, "ASCII") {
+	kn_value value = kn_value_run(args[0]);
+
+	// If lhs is a string, convert both to a string and concatenate.
+	if (kn_value_is_string(value)) {
+#ifndef KN_RECKLESS
+		if (kn_string_length(kn_value_as_string(value)) == 0)
+			die("ASCII called with empty string.");
+#endif /* !KN_RECKLESS */
+		return kn_value_new_number(*kn_string_deref(kn_value_as_string(value)));
+	}
+
+#ifndef KN_RECKLESS
+	if (!kn_value_is_number(value))
+		die("can only call ASCII on numbers and strings.");
+#endif /* !KN_RECKLESS */
+
+	kn_number ord = kn_value_as_number(value);
+
+#ifndef KN_RECKLESS
+	// just check for ASCIIness, not actually full-blown knight correctness. 
+	if (ord < 0 || 127 < ord)
+		die("Numeric value is out of range for ascii char.");
+#endif
+
+	char buf[2] = { ord, 0 };
+	return kn_value_new_string(kn_string_new_borrowed(buf, 1));
 }
 
 #ifdef KN_EXT_VALUE
@@ -382,7 +413,7 @@ DECLARE_FUNCTION(div, 2, "/") {
 
 #ifndef KN_RECKLESS
 	if (divisor == 0)
-		die("attempted to divide by zero");
+		die("aettempted to divide by zero");
 #endif /* !KN_RECKLESS */
 
 	return kn_value_new_number(dividend / divisor);
@@ -425,8 +456,15 @@ DECLARE_FUNCTION(pow, 2, "^") {
 	else if (base == -1) result = exponent & 1 ? -1 : 1;
 	else if (exponent == 1) result = base;
 	else if (exponent == 0) result = 1;
-	else if (exponent < 0) result = 0; // already handled `base == -1`
-	else {
+	else if (exponent < 0) {
+
+#ifndef KN_RECKLESS
+		if (base == 0)
+			die("attempted to exponentiate zero to a negative power");
+#endif /* KN_RECKLESS */
+
+		result = 0; // already handled `base == -1`
+	} else {
 		for (result = 1; exponent > 0; --exponent)
 			result *= base;
 	}
@@ -448,12 +486,7 @@ DECLARE_FUNCTION(eql, 2, "?") {
 	if (!(eql = (kn_value_is_string(lhs) && kn_value_is_string(rhs))))
 		goto free_and_return;
 
-	struct kn_string *lstr = kn_value_as_string(lhs);
-	struct kn_string *rstr = kn_value_as_string(rhs);
-	size_t llen = kn_string_length(lstr);
-
-	eql = llen == kn_string_length(rstr) &&
-		!memcmp(kn_string_deref(lstr), kn_string_deref(rstr), llen);
+	eql = kn_string_equal(kn_value_as_string(lhs), kn_value_as_string(rhs));
 
 free_and_return:
 
@@ -540,7 +573,11 @@ DECLARE_FUNCTION(or, 2, "|") {
 }
 
 DECLARE_FUNCTION(then, 2, ";") {
-	kn_value_free(kn_value_run(args[0]));
+	// Since evaluating anything other than an ast is meaningless (evaluating
+	// undefined variables is UB so we choose to just ignore it), we only
+	// evaluate if it's an ast.
+	if (KN_LIKELY(kn_value_is_ast(args[0])))
+		kn_value_free(kn_ast_run(kn_value_as_ast(args[0])));
 
 	return kn_value_run(args[1]);
 }

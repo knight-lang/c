@@ -11,7 +11,7 @@ todo: make the old `assert_reckless`s into actual errors
 - `KN_USE_EXTENSIONS`: Enables the use of compiler extensions, such as `__attribute__` and `__builtin_expect`. This does not imply `KN_COMPUTED_GOTOS`, and both need to be defined separately.
 - `KN_COMPUTED_GOTOS`: Enables the use of computed gotos, which can significantly increase the speed of the parsing functions. However, since this uses nonstandard features, it's not enabled by default.
 - `KN_STRING_CACHE_MAXLEN`: Can control the maximum length string that will be cached.
-- `KN_STRING_CACHE_LINESIZE`: The power of strings per length that can be cached. Should be an even multiple of two
+- `KN_STRING_CACHE_LINELEN`: The power of strings per length that can be cached. Should be an even multiple of two
 
 ## Macro-optimizations
 - `NDEBUG`: Disables all _internal_ debugging code. This should only be undefined when debugging.
