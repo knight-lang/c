@@ -1,5 +1,5 @@
 #include "string.h" /* prototypes, kn_string, kn_string_flags variants, size_t,
-                       KN_STRING_NEW_EMBED */
+                       KN_STRING_NEW_EMBED, alignas */
 #include "shared.h" /* xmalloc, kn_hash, KN_LIKELY, KN_UNLIKELY */
 #include <stdlib.h> /* free, NULL */
 #include <string.h> /* strlen, strcmp, memcpy, strndup, strncmp, memcmp */
@@ -7,7 +7,7 @@
 
 // The empty string.
 // we need the alignment for embedding.
-struct kn_string _Alignas(8) kn_string_empty = KN_STRING_NEW_EMBED("");
+struct kn_string alignas(8) kn_string_empty = KN_STRING_NEW_EMBED("");
 
 #ifdef KN_STRING_CACHE
 # ifndef KN_STRING_CACHE_MAXLEN
@@ -41,17 +41,15 @@ static struct kn_string **get_cache_slot(const char *str, size_t length) {
 size_t kn_string_length(const struct kn_string *string) {
 	assert(string != NULL);
 
-	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
-		? (size_t) string->embed.length
-		: string->alloc.length;
+	return (size_t) string->length;
 }
 
 char *kn_string_deref(struct kn_string *string) {
 	assert(string != NULL);
 
 	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
-		? string->embed.data
-		: string->alloc.str;
+		? string->embed
+		: string->ptr;
 }
 
 bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs) {
@@ -77,8 +75,8 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 
 	string->flags = KN_STRING_FL_STRUCT_ALLOC;
 	string->refcount = 1;
-	string->alloc.length = length;
-	string->alloc.str = str;
+	string->length = length;
+	string->ptr = str;
 
 	return string;
 }
@@ -90,7 +88,7 @@ static struct kn_string *allocate_embed_string(size_t length) {
 
 	string->flags = KN_STRING_FL_STRUCT_ALLOC | KN_STRING_FL_EMBED;
 	string->refcount = 1;
-	string->embed.length = length;
+	string->length = length;
 
 	return string;
 }
@@ -102,14 +100,14 @@ static void deallocate_string(struct kn_string *string) {
 
 	// If the struct isn't actually allocated, then return.
 	if (!(string->flags & KN_STRING_FL_STRUCT_ALLOC)) {
-		// Sanity check, as these are the only two non-struct-alloc flags.
+		// Sanity check, as these are the only two non-struct-ptr flags.
 		assert(string->flags & (KN_STRING_FL_EMBED | KN_STRING_FL_STATIC));
 		return;
 	}
 
 	// If we're not embedded, free the allocated string
 	if (KN_UNLIKELY(!(string->flags & KN_STRING_FL_EMBED)))
-		free(string->alloc.str);
+		free(string->ptr);
 
 	// Finally free the entire struct itself.
 	free(string);

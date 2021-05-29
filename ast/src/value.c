@@ -286,8 +286,8 @@ static struct kn_string *number_to_string(kn_number num) {
 	if (is_neg)
 		*--ptr = '-';
 
-	number_string.alloc.str = ptr;
-	number_string.alloc.length = &buf[sizeof(buf) - 1] - ptr;
+	number_string.ptr = ptr;
+	number_string.length = &buf[sizeof(buf) - 1] - ptr;
 
 	return &number_string;
 }

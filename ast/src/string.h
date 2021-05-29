@@ -1,8 +1,9 @@
 #ifndef KN_STRING_H
 #define KN_STRING_H
 
-#include <stddef.h>  /* size_t */
-#include <stdbool.h> /* bool */
+#include <stddef.h>   /* size_t */
+#include <stdbool.h>  /* bool */
+#include <stdalign.h> /* alignas */
 
 /*
  * These flags are used to record information about how the memory of a
@@ -42,7 +43,7 @@ enum kn_string_flags {
  * embedded, but the more memory used.
  */
 #ifndef KN_STRING_PADDING_LENGTH
-# define KN_STRING_PADDING_LENGTH 16
+# define KN_STRING_PADDING_LENGTH 32
 #endif /* !KN_STRING_PADDING_LENGTH */
 
 /*
@@ -74,7 +75,7 @@ struct kn_string {
 	 * This is increased when `kn_string_clone`d and decreased when
 	 * `kn_string_free`d, and when it reaches zero, the struct will be freed.
 	 */
-	_Alignas(8) unsigned refcount;
+	alignas(8) unsigned refcount;
 
 	/*
 	 * The flags that dictate how to manage this struct's memory.
@@ -84,42 +85,23 @@ struct kn_string {
 	 */
 	enum kn_string_flags flags;
 
+	/*
+	 * The length of the string.
+	 */
+	size_t length;
+
 	/* All strings are either embedded or allocated. */
 	union {
-		struct {
-			/*
-			 * The length of the embedded string.
-			 */
-			char length;
+		/*
+		 * The actual data for the embedded string.
+		 */
+		char embed[KN_STRING_EMBEDDED_LENGTH];
 
-			/*
-			 * The actual data for the embedded string.
-			 */
-			char data[KN_STRING_EMBEDDED_LENGTH];
-		} embed;
-
-		struct {
-			/*
-			 * The length of the allocated string.
-			 *
-			 * This should equal `strlen(str)`, and is just an optimization aid.
-			 */
-			size_t length;
-
-			/*
-			 * The data for an allocated string.
-			 */
-			char *str;
-		} alloc;
+		/*
+		 * The data for an allocated string.
+		 */
+		char *ptr;
 	};
-
-	/*
-	 * Extra padding for the struct, to make embedded strings have more room.
-	 *
-	 * This is generally a number that makes this struct's size an even multiple
-	 * of two (so as to fill the space an allocator gives us).
-	 */
-	char _padding[KN_STRING_PADDING_LENGTH];
 };
 
 /*
@@ -130,13 +112,14 @@ extern struct kn_string kn_string_empty;
 /*
  * A macro to create a new embedded struct.
  *
- * It's up to the caller to ensure that `data_` can fit within an embedded
+ * It's up to the caller to ensure that `data` can fit within an embedded
  * string.
  */
-#define KN_STRING_NEW_EMBED(data_) \
+#define KN_STRING_NEW_EMBED(data) \
 	{ \
 		.flags = KN_STRING_FL_EMBED, \
-		.embed = { .length = sizeof(data_) - 1, .data = data_ } \
+		.length = sizeof(data) - 1, \
+		.embed = data \
 	}
 
 /*
