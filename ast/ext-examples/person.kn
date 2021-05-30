@@ -19,10 +19,10 @@
 	METHOD to_boolean () { X. this happy }
 }
 
-; = samp XNEW person X[ "samp" 23 TRUE X]
+; = samp XNEW person X[ "samp" 123 TRUE X]
 ; OUTPUT samp
 ; OUTPUT + "they are " (IF samp "happy" "not happy")
 : OUTPUT ++"In one year, samp will be " (+ 1 samp)" years old"
-#=> A happy 23 year old named samp
+#=> A happy 123 year old named samp
 #=> they are happy
-#=> In one year, samp will be 24 years old
+#=> In one year, samp will be 124 years old

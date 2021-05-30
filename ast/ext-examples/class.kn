@@ -15,5 +15,6 @@
 	}
 }
 
-; = frac XNEW fraction X[ 5 2 X]
+; = frac XNEW fraction [ 5 2 ]
 : OUTPUT frac # => 5/2
+

@@ -17,7 +17,6 @@ extern kn_value parse_list(void);
 struct list;
 extern struct list *list_concat(struct list *, struct list *);
 
-
 KN_DECLARE_FUNCTION(list_concat_fn_or_default, 2, "+") {
 	kn_value lhs = kn_value_run(args[0]);
 	if (kn_value_is_custom(lhs)) {

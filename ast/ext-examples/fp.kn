@@ -34,3 +34,4 @@ NULL
 ; XFUNC reduce (list, func) {
 	LOCAL i acc val
 }
+

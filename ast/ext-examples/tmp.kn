@@ -6,7 +6,7 @@
 
 ; XCLASS dog () {
 	PARENT animal
-	#STATIC FIELD species
+	STATIC FIELD species
 	METHOD sayswhat () {
 		+ "woof" 0
 	}
