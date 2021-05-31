@@ -5,13 +5,14 @@
 }
 
 ; XCLASS dog () {
-	PARENT animal
-	STATIC FIELD species
+	# PARENTS animal
+	STATIC FIELD species 
+
 	METHOD sayswhat () {
 		+ "woof" 0
 	}
 }
 
-; = puppy XNEW dog X[X]
-; OUTPUT XCALLM puppy sayswhat X[X]
+; = puppy XNEW dog [ ]
+; OUTPUT XCALLM puppy sayswhat [ ]
 NULL

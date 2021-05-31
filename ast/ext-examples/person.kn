@@ -3,26 +3,27 @@
 	FIELD age
 	FIELD happy
 
-	METHOD constructor (name_ age_ happy_) {
-		; X.= this name name_
-		; X.= this age age_
-		: X.= this happy happy_
+	METHOD constructor (name age happy) {
+		; .= this name name
+		; .= this age age
+		: .= this happy happy
 	}
 
 	METHOD to_string () {
-		++ "A" (IF (X. this happy) " happy" "n unhappy")
-		++ " " (X. this age)
-		 + " year old named " (X. this name)
+		++ "A" (IF (. this happy) " happy" "n unhappy")
+		++ " " (. this age)
+		 + " year old named " (. this name)
 	}
 
-	METHOD to_number () { X. this age }
-	METHOD to_boolean () { X. this happy }
+	METHOD to_number () { . this age }
+	METHOD to_boolean () { . this happy }
 }
 
-; = samp XNEW person X[ "samp" 123 TRUE X]
+; = samp XNEW person [ "samp" 123 TRUE ]
 ; OUTPUT samp
 ; OUTPUT + "they are " (IF samp "happy" "not happy")
 : OUTPUT ++"In one year, samp will be " (+ 1 samp)" years old"
+
 #=> A happy 123 year old named samp
 #=> they are happy
 #=> In one year, samp will be 124 years old

@@ -14,42 +14,50 @@ void unsupported_function(void *arg) {
 extern kn_value (*kn_parse_functions[256])(void);
 extern kn_value parse_list(void);
 
-struct list;
-extern struct list *list_concat(struct list *, struct list *);
+// struct list;
+// extern struct list *list_concat(struct list *, struct list *);
 
-KN_DECLARE_FUNCTION(list_concat_fn_or_default, 2, "+") {
-	kn_value lhs = kn_value_run(args[0]);
-	if (kn_value_is_custom(lhs)) {
-		kn_value rhs = kn_value_run(args[1]);
-		kn_value ret = kn_value_new_custom(list_concat(
-			(struct list *)(kn_value_as_custom(lhs)->data), 
-			(struct list *)(kn_value_as_custom(rhs)->data)));
+// KN_DECLARE_FUNCTION(list_concat_fn_or_default, 2, "+") {
+// 	kn_value lhs = kn_value_run(args[0]);
+// 	if (kn_value_is_custom(lhs)) {
+// 		kn_value rhs = kn_value_run(args[1]);
+// 		struct list *ret = list_concat(
+// 			(struct list *)(kn_value_as_custom(lhs)->data), 
+// 			(struct list *)(kn_value_as_custom(rhs)->data));
 
-		kn_value_free(lhs);
-		kn_value_free(rhs);
-		return ret;
-	} else {
-		kn_value args2[2] = { lhs, args[1] };
-		kn_value ret = kn_fn_add_function(args2);
-		kn_value_free(lhs);
-		return ret;
-	}
-}
+// 		kn_value_free(lhs);
+// 		kn_value_free(rhs);
+// 		struct kn_custom *custom = kn_value_new_custom(list_concat(VALUE2LIST(lhs), VALUE2LIST(rhs)))
+// 		return ret;
+// 	} else {
+// 		kn_value args2[2] = { lhs, args[1] };
+// 		kn_value ret = kn_fn_add_function(args2);
+// 		kn_value_free(lhs);
+// 		return ret;
+// 	}
+// }
 
 kn_value parse_list_and_strip(void) {
 	kn_parse_advance();
 	return parse_list();
 }
 
-kn_value parse_list_concat_and_strip(void) {
-	kn_parse_advance();
+kn_value parse_extension_class(void);
+// kn_value parse_dot_or_dotassign_and_strip(void) {
+// 	TRY_PARSE_FUNCTION(".=", instance_field_assign_fn);
+// 	TRY_PARSE_FUNCTION(".", instance_field_fetch_fn);
+// }
 
-	return kn_value_new_ast(kn_parse_ast(&list_concat_fn_or_default));
-}
+// kn_value parse_list_concat_and_strip(void) {
+// 	kn_parse_advance();
+
+// 	return kn_value_new_ast(kn_parse_ast(&list_concat_fn_or_default));
+// }
 
 void kn_extension_startup() {
 	kn_parse_functions['['] = parse_list_and_strip;
-	kn_parse_functions['+'] = parse_list_concat_and_strip;
+	kn_parse_functions['.'] = parse_extension_class;
+	// kn_parse_functions['+'] = parse_list_concat_and_strip;
 }
 
 kn_value parse_extension_class(void);

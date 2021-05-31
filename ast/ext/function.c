@@ -152,6 +152,7 @@ kn_value parse_function_call() {
 		switch (parsed) {
 		case END_FUNCTION_CALL:
 			assert(start_depth == function_call_depth);
+			(void) start_depth;
 			goto done;
 		case KN_UNDEFINED:
 			die("missing closing 'X)'");

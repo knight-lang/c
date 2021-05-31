@@ -41,7 +41,7 @@ void dump_class(const struct class *class) {
 	printf("Class(%s)", class->name);
 }
 
-void *run_class(struct class *class) {
+kn_value run_class(struct class *class) {
 	if (!class->ran) {
 		class->ran = 1;
 		struct class **parents = malloc(sizeof(struct class *[class->nparents]));
@@ -279,7 +279,7 @@ KN_DECLARE_FUNCTION(instance_new_fn, 2, "X_NEW") {
 
 KN_DECLARE_FUNCTION(instance_class_of, 1, "X_CLASSOF") {
 	struct instance *instance = VALUE2DATA(kn_value_run(args[0]));
-	struct class *class = instance->class;
+	const struct class *class = instance->class;
 
 	kn_value ret = kn_value_clone(DATA2VALUE(class));
 
@@ -291,7 +291,7 @@ KN_DECLARE_FUNCTION(instance_class_of, 1, "X_CLASSOF") {
 const struct kn_custom_vtable class_vtable = {
 	.free = (void (*)(void *)) free_class,
 	.dump = (void (*)(void *)) dump_class,
-	.run = (void *(*)(void *)) run_class,
+	.run = (kn_value (*)(void *)) run_class,
 	.to_string = (struct kn_string *(*)(void *)) class_to_string,
 	.to_number = (kn_number (*)(void *)) unsupported_function,
 	.to_boolean = (kn_boolean (*)(void *)) unsupported_function
@@ -339,7 +339,8 @@ static kn_value parse_class() {
 		} else if (class->nparents != MAX_NPARENTS && stream_starts_with_strip("PARENTS")) {
 			do {
 				kn_parse_strip();
-				parents[class->nparents++] = kn_parse_variable();
+				die("Todo");
+				// parents[class->nparents++] = kn_parse_variable();
 				kn_parse_strip();
 			} while (islower(kn_parse_peek()) || kn_parse_peek() == '_');
 		} else if (class->nfields != MAX_NSTATICS && stream_starts_with_strip("STATIC METHOD")) {

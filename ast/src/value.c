@@ -100,15 +100,15 @@ bool kn_value_is_boolean(kn_value value) {
 }
 
 bool kn_value_is_string(kn_value value) {
-	return (value & KN_TAG_STRING) == KN_TAG_STRING;
+	return KN_TAG(value) == KN_TAG_STRING;
 }
 
 bool kn_value_is_variable(kn_value value) {
-	return (value & KN_TAG_VARIABLE) == KN_TAG_VARIABLE;
+	return KN_TAG(value) == KN_TAG_VARIABLE;
 }
 
 bool kn_value_is_ast(kn_value value) {
-	return (value & KN_TAG_AST) == KN_TAG_AST;
+	return KN_TAG(value) == KN_TAG_AST;
 }
 
 #ifdef KN_CUSTOM
