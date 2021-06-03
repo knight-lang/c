@@ -92,17 +92,41 @@ DECLARE_FUNCTION(eval, 1, "EVAL") {
 	return ret;
 }
 
+DECLARE_FUNCTION(noop, 1, ":") {
+	// literally just run its argument. Used with `BLOCK`.
+	return kn_value_run(args[0]);
+}
+
 DECLARE_FUNCTION(block, 1, "BLOCK") {
-	return kn_value_clone(args[0]);
+	if (KN_LIKELY(kn_value_is_ast(args[0]))) {
+		kn_ast_clone(kn_value_as_ast(args[0]));
+		return args[0];
+	}
+
+	struct kn_ast *ast = kn_ast_alloc(1);
+	ast->func = &kn_fn_noop;
+	ast->args[0] = args[0];
+	return ((kn_value *)args)[0] = kn_value_new_ast(ast);
 }
 
 DECLARE_FUNCTION(call, 1, "CALL") {
 	kn_value ran = kn_value_run(args[0]);
-	kn_value result = kn_value_run(ran);
 
-	kn_value_free(ran);
+#ifndef KN_RECKLESS
+	if (!kn_value_is_ast(ran))
+		die("can only call args.");
+#endif /* !KN_RECKLESS */
 
-	return result;
+	struct kn_ast *ast = kn_value_as_ast(ran);
+
+	// optimize for the case where we are running a non-unique ast.
+	if (KN_LIKELY(--ast->refcount))
+		return kn_ast_run(ast);
+
+	ast->refcount++;
+	ran = kn_ast_run(ast);
+	kn_ast_free(ast);
+	return ran;
 }
 
 DECLARE_FUNCTION(system, 1, "`") {
@@ -480,18 +504,31 @@ DECLARE_FUNCTION(eql, 2, "?") {
 	assert(lhs != KN_UNDEFINED);
 	assert(rhs != KN_UNDEFINED);
 
-	if ((eql = (lhs == rhs)))
-		goto free_and_return;
+	if (KN_UNLIKELY(!kn_value_is_string(lhs) || !kn_value_is_string(rhs)))
+		goto non_string_cmp;
 
-	if (!(eql = (kn_value_is_string(lhs) && kn_value_is_string(rhs))))
-		goto free_and_return;
+	struct kn_string *lstr = kn_value_as_string(lhs);
+	struct kn_string *rstr = kn_value_as_string(rhs);
 
-	eql = kn_string_equal(kn_value_as_string(lhs), kn_value_as_string(rhs));
+	eql = lstr->length == rstr->length &&
+		!memcmp(kn_string_deref(lstr), kn_string_deref(rstr), rstr->length);
 
-free_and_return:
+	kn_string_free(lstr);
+	kn_string_free(rstr);
 
-	kn_value_free(lhs);
-	kn_value_free(rhs);
+	return kn_value_new_boolean(eql);
+
+non_string_cmp:
+	eql = lhs == rhs;
+
+	// comparing asts is invalid, so only check when its non-reckless.
+#ifndef KN_RECKLESS
+	if (kn_value_is_ast(lhs))
+		kn_ast_free(kn_value_as_ast(lhs));
+
+	if (kn_value_is_ast(rhs))
+		kn_ast_free(kn_value_as_ast(rhs));
+#endif /* KN_RECKLESS */
 
 	return kn_value_new_boolean(eql);
 }
@@ -592,17 +629,18 @@ DECLARE_FUNCTION(assign, 2, "=") {
 #endif /* KN_EXT_EQL_INTERPOLATE */
 
 	variable = kn_value_as_variable(args[0]);
-	ret = kn_value_run(args[1]);
 
 #ifdef KN_EXT_EQL_INTERPOLATE
 	} else {
 		// otherwise, evaluate the expression, convert to a string,
 		// and then use that as the variable.
-		variable = kn_env_fetch(kn_string_deref(kn_value_to_string(args[0])));
-		ret = kn_value_run(args[1]);
+		struct kn_string *string = kn_value_to_string(args[0]);
+		variable = kn_env_fetch(kn_string_deref(string));
+		kn_string_free(string);
 	}
 #endif /* KN_EXT_EQL_INTERPOLATE */
 
+	ret = kn_value_run(args[1]);
 	kn_variable_assign(variable, kn_value_clone(ret));
 
 	return ret;
