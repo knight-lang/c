@@ -235,11 +235,11 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 	return string;
 }
 
-void kn_string_free(struct kn_string *string) {
-	assert(string != NULL);
+void kn_string_deallocate(struct kn_string *string) {
+	assert(string->refcount == 0);
 
-	// If we're the last reference and not cached, deallocate the string.
-	if (!--string->refcount && !(string->flags & KN_STRING_FL_CACHED))
+	// If we're not cached, deallocate the string.
+	if (!(string->flags & KN_STRING_FL_CACHED))
 		deallocate_string(string);
 }
 

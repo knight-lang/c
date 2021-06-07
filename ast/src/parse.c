@@ -320,14 +320,14 @@ SYMBOL_FUNC(negate, '~');
 
 LABEL(function_prompt)
 CASES1('P') {
-	static struct kn_ast ast_prompt = { .func = &kn_fn_prompt, .refcount = -1 };
+	static struct kn_ast ast_prompt = { .func = &kn_fn_prompt, .is_static = 1 };
 	strip_keyword();
 	return kn_value_new_ast(&ast_prompt);
 }
 
 LABEL(function_random)
 CASES1('R') {
-	static struct kn_ast ast_random = { .func = &kn_fn_random, .refcount = -1 };
+	static struct kn_ast ast_random = { .func = &kn_fn_random, .is_static = 1 };
 	strip_keyword();
 	return kn_value_new_ast(&ast_random);
 }

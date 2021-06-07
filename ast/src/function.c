@@ -640,13 +640,41 @@ DECLARE_FUNCTION(assign, 2, "=") {
 	}
 #endif /* KN_EXT_EQL_INTERPOLATE */
 
-	ret = kn_value_run(args[1]);
+
+	// vast majority of the time we're going to be assinging to an expr result.
+	if (KN_LIKELY(kn_value_is_ast(args[0]))) {
+		ret = kn_ast_run(kn_value_as_ast(args[0]));
+	} else {
+		ret = kn_value_run(args[1]);
+	}
+
 	kn_variable_assign(variable, kn_value_clone(ret));
 
 	return ret;
 }
 
 DECLARE_FUNCTION(while, 2, "WHILE") {
+	if (KN_UNLIKELY(!kn_value_is_ast(args[0]) || !kn_value_is_ast(args[1])))
+		goto non_ast;
+
+	while (true) {
+		kn_value cond = kn_ast_run(kn_value_as_ast(args[0]));
+
+		if (cond == KN_FALSE)
+			break;
+
+		if (KN_UNLIKELY(cond != KN_TRUE)) {
+			bool b = kn_value_to_boolean(cond);
+			kn_value_free(cond);
+			if (!b) break;
+		}
+
+		kn_value_free(kn_ast_run(kn_value_as_ast(args[1])));
+	}
+
+	return KN_NULL;
+
+non_ast:
 	while (kn_value_to_boolean(args[0]))
 		kn_value_free(kn_value_run(args[1]));
 
@@ -663,9 +691,27 @@ DECLARE_FUNCTION(get, 3, "GET") {
 	struct kn_string *string, *substring;
 	size_t start, length, string_length;
 
-	string = kn_value_to_string(args[0]);
-	start = (size_t) kn_value_to_number(args[1]);
-	length = (size_t) kn_value_to_number(args[2]);
+	// it's likely to have the first argument as a variable, as most other things
+	// don't make sense to dynamically substring.
+	if (KN_LIKELY(kn_value_is_variable(args[0]))) {
+		kn_value value = kn_variable_run(kn_value_as_variable(args[0]));
+		if (KN_LIKELY(kn_value_is_string(value))) {
+			string = kn_value_as_string(value);
+		} else {
+			string = kn_value_to_string(value);
+			kn_value_free(value);
+		}
+	} else {
+		string = kn_value_to_string(args[0]);
+	}
+
+	start = KN_LIKELY(kn_value_is_number(args[1]))
+			? (size_t) kn_value_as_number(args[1])
+			: (size_t) kn_value_to_number(args[1]);
+
+	length = KN_LIKELY(kn_value_is_number(args[2]))
+			? (size_t) kn_value_as_number(args[2])
+			: (size_t) kn_value_to_number(args[2]);
 
 	string_length = kn_string_length(string);
 

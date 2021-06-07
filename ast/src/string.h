@@ -206,6 +206,12 @@ struct kn_string *kn_string_clone(struct kn_string *string);
 struct kn_string *kn_string_clone_static(struct kn_string *string);
 
 /*
+ * Deallocates the memory associated with `string`; should only be called with
+ * a string with a zero refcount.
+ */
+void kn_string_deallocate(struct kn_string *string);
+
+/*
  * Indicates that the caller is done using this string.
  *
  * If this is the last live reference to the string, and the string is not
@@ -214,7 +220,10 @@ struct kn_string *kn_string_clone_static(struct kn_string *string);
  * is cached, it actually won't be deallocated until it's evicted---that way,
  * we don't end up allocating multiple times for the same string.
  */
-void kn_string_free(struct kn_string *string);
+static inline void kn_string_free(struct kn_string *string) {
+    if (--string->refcount == 0)
+        kn_string_deallocate(string);
+}
 
 /*
  * Checks to see if two strings have the same contents.

@@ -72,18 +72,18 @@ struct kn_custom_vtable {
  */
 struct kn_custom {
 	/*
-	 * The vtable associated with this struct.
-	 *
-	 * This will never be freed, and should probably be a global value.
-	 */
-	const struct kn_custom_vtable *vtable;
-
-	/*
 	 * The reference count for this type.
 	 *
 	 * This is manipulated via `kn_custom_free` and `kn_custom_clone`.
 	 */
 	unsigned refcount;
+
+	/*
+	 * The vtable associated with this struct.
+	 *
+	 * This will never be freed, and should probably be a global value.
+	 */
+	const struct kn_custom_vtable *vtable;
 
 	/*
 	 * The custom data for this struct.
@@ -110,13 +110,22 @@ struct kn_custom *kn_custom_alloc(
 );
 
 /*
+ * Frees the memory associated with `custom`. This should only be called with a
+ * zero-refcount `custom`.
+ */
+void kn_custom_deallocate(struct kn_custom *custom);
+
+/*
  * Indicates that this reference to `custom` is no longer needed.
  *
  * If called with the last reference to the custom struct, this will free the
  * resources associated with the struct. If a `free` function is provided in the
  * constructor, it will also be called.
  */
-void kn_custom_free(struct kn_custom *custom);
+static inline void kn_custom_free(struct kn_custom *custom) {
+	if (--custom->refcount == 0)
+		kn_custom_deallocate(custom);
+}
 
 /*
  * Returns a new reference to `custom`.

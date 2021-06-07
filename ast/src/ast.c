@@ -58,6 +58,7 @@ struct kn_ast *kn_ast_alloc(unsigned argc) {
 	// there are no cached free asts, so we have to allocate.
 	ast = xmalloc(sizeof(struct kn_ast) + sizeof(kn_value [argc]));
 	ast->refcount = 1;
+	ast->is_static = 0;
 
 	return ast;
 }
@@ -68,16 +69,10 @@ struct kn_ast *kn_ast_clone(struct kn_ast *ast) {
 	return ast;
 }
 
-void kn_ast_free(struct kn_ast *ast) {
-	assert(ast->refcount != 0);
+void kn_ast_deallocate(struct kn_ast *ast) {
+	assert(ast->refcount == 0);
 
-	// if we're static, dont attempt to free us.
-	if (KN_UNLIKELY(ast->refcount < 0))
-		return;
-
-	// if we're not the last reference, leave early.
-	if (--ast->refcount)
-		return;
+	if (ast->is_static) return;
 
 	unsigned arity = ast->func->arity;
 

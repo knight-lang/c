@@ -1,8 +1,8 @@
 #include "env.h"    /* kn_variable, kn_variable_run */
-#include "ast.h"    /* kn_ast, kn_ast_free, kn_ast_clone, kn_ast_run */
+#include "ast.h"    /* kn_ast, kn_ast_deallocate, kn_ast_clone, kn_ast_run */
 #include "value.h"  /* prototypes, bool, uint64_t, int64_t, kn_value, kn_number,
                        kn_boolean, KN_UNDEFINED, KN_NULL, KN_TRUE, KN_FALSE */
-#include "string.h" /* kn_string, kn_string_clone, kn_string_free,
+#include "string.h" /* kn_string, kn_string_clone, kn_string_deallocate,
                        kn_string_deref, kn_string_length, KN_STRING_FL_STATIC,
                        KN_STRING_NEW_EMBED */
 #include "custom.h" /* kn_custom, kn_custom_free, kn_custom_clone */
@@ -41,6 +41,7 @@
 #define KN_TAG_MASK ((1 << KN_SHIFT) - 1)
 #define KN_TAG(x) ((x) & KN_TAG_MASK)
 #define KN_UNMASK(x) ((x) & ~KN_TAG_MASK)
+#define KN_REFCOUNT(x) ((unsigned *) KN_UNMASK(x))
 
 kn_value kn_value_new_number(kn_number number) {
 	assert(number == (((kn_number) ((kn_value) number << KN_SHIFT)) >> KN_SHIFT));
@@ -312,7 +313,9 @@ struct kn_string *kn_value_to_string(kn_value value) {
 		return number_to_string(kn_value_as_number(value));
 
 	case KN_TAG_STRING:
-		return kn_string_clone(kn_value_as_string(value));
+		++*KN_REFCOUNT(value);
+
+		return kn_value_as_string(value);
 
 #ifdef KN_CUSTOM
 	case KN_TAG_CUSTOM: {
@@ -413,7 +416,8 @@ kn_value kn_value_run(kn_value value) {
 		return kn_variable_run(kn_value_as_variable(value));
 
 	case KN_TAG_STRING:
-		return kn_value_new_string(kn_string_clone(kn_value_as_string(value)));
+		++*KN_REFCOUNT(value);
+		// fallthrough
 
 	case KN_TAG_NUMBER:
 	case KN_TAG_CONSTANT:
@@ -439,54 +443,40 @@ kn_value kn_value_run(kn_value value) {
 kn_value kn_value_clone(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
-	switch (KN_EXPECT(KN_TAG(value), KN_TAG_STRING)) {
-	case KN_TAG_CONSTANT:
-	case KN_TAG_NUMBER:
-	case KN_TAG_VARIABLE:
-		// Note we don't need to clone variables, as they live for the lifetime
-		// of the program.
-		return value;
+	if (KN_TAG_VARIABLE < KN_TAG(value))
+		++*KN_REFCOUNT(value);
 
-	case KN_TAG_AST:
-		return kn_value_new_ast(kn_ast_clone(kn_value_as_ast(value)));
-
-	case KN_TAG_STRING:
-		return kn_value_new_string(kn_string_clone(kn_value_as_string(value)));
-
-#ifdef KN_CUSTOM
-	case KN_TAG_CUSTOM:
-		return kn_value_new_custom(kn_custom_clone(kn_value_as_custom(value)));
-#endif /* KN_CUSTOM */
-
-	default:
-		KN_UNREACHABLE();
-	}
+	return value;
 }
 
 void kn_value_free(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
-	switch (KN_EXPECT(KN_TAG(value), KN_TAG_STRING)) {
-	case KN_TAG_CONSTANT:
-	case KN_TAG_NUMBER:
-	case KN_TAG_VARIABLE:
-		// variables are freed when `kn_env_free` is run.
+	if (KN_TAG(value) <= KN_TAG_VARIABLE)
 		return;
 
+	if (KN_LIKELY(--*KN_REFCOUNT(value)))
+		return;
+
+	switch (KN_EXPECT(KN_TAG(value), KN_TAG_STRING)) {
+
 	case KN_TAG_STRING:
-		kn_string_free(kn_value_as_string(value));
+		kn_string_deallocate(kn_value_as_string(value));
 		return;
 
 	case KN_TAG_AST:
-		kn_ast_free(kn_value_as_ast(value));
+		kn_ast_deallocate(kn_value_as_ast(value));
 		return;
 
 #ifdef KN_CUSTOM
 	case KN_TAG_CUSTOM:
-		kn_custom_free(kn_value_as_custom(value));
+		kn_custom_deallocate(kn_value_as_custom(value));
 		return;
 #endif /* KN_CUSTOM */
 
+	case KN_TAG_CONSTANT:
+	case KN_TAG_NUMBER:
+	case KN_TAG_VARIABLE:
 	default:
 		KN_UNREACHABLE();
 	}

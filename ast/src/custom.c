@@ -25,10 +25,7 @@ struct kn_custom *kn_custom_alloc(
 	return custom;
 }
 
-void kn_custom_free(struct kn_custom *custom) {
-	if (--custom->refcount != 0)
-		return;
-
+void kn_custom_deallocate(struct kn_custom *custom) {
 	if (custom->vtable->free != NULL)
 		custom->vtable->free((void *) custom->data);
 
