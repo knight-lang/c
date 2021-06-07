@@ -192,7 +192,7 @@ kn_value kn_parse_value() {
 		['>']  = &&function_gth,
 		['?']  = &&function_eql,
 		['@']  = &&invalid,
-		['A']  = &&invalid,
+		['A']  = &&function_ascii,
 		['B']  = &&function_block,
 		['C']  = &&function_call,
 		['D']  = &&function_dump,
@@ -340,6 +340,7 @@ WORD_FUNC(get, 'G');
 WORD_FUNC(if, 'I');
 WORD_FUNC(length, 'L');
 WORD_FUNC(output, 'O');
+WORD_FUNC(ascii, 'A');
 WORD_FUNC(quit, 'Q');
 WORD_FUNC(substitute, 'S');
 WORD_FUNC(while, 'W');
