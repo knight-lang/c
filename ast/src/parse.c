@@ -370,6 +370,7 @@ CASES1('X')
 LABEL(invalid)
 #ifndef KN_COMPUTED_GOTOS
 default:
+	;
 #endif /* !KN_COMPUTED_GOTOS */
 #ifndef KN_RECKLESS
 	die("unknown token start '%c'", c);
