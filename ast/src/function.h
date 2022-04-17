@@ -116,14 +116,9 @@ kn_value kn_fn_output_function(const kn_value *args);
 extern const struct kn_function kn_fn_ascii;
 kn_value kn_fn_ascii_function(const kn_value *args);
 
-#ifdef KN_EXT_NEGATE
-/*
- * An extension which simply negates its argument, converting it to a number if
- * need be.
- */
+/* 4.2.12 ~ */
 extern const struct kn_function kn_fn_negate;
 kn_value kn_fn_negate_function(const kn_value *args);
-#endif /* KN_EXT_NEGATE */
 
 #ifdef KN_EXT_VALUE
 /*

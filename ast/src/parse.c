@@ -238,13 +238,7 @@ kn_value kn_parse_value() {
 		['{']  = &&strip,
 		['|']  = &&function_or,
 		['}']  = &&strip,
-
-# ifdef KN_EXT_NEGATE
 		['~']  = &&function_negate,
-# else
-		['~']  = &&invalid,
-# endif /* KN_EXT_NEGATE */
-
 		[0x7f ... 0xff] = &&invalid
 	};
 #endif /* KN_COMPUTED_GOTOS */
@@ -313,10 +307,7 @@ SYMBOL_FUNC(or, '|');
 SYMBOL_FUNC(then, ';');
 SYMBOL_FUNC(assign, '=');
 SYMBOL_FUNC(system, '`');
-
-#ifdef KN_EXT_NEGATE
 SYMBOL_FUNC(negate, '~');
-#endif /* KN_EXT_NEGATE */
 
 LABEL(function_prompt)
 CASES1('P') {

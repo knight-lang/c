@@ -16,7 +16,7 @@ override CFLAGS+=-F$(SRCDIR)
 ifdef DEBUG
 override CFLAGS+=-g -fsanitize=address,undefined
 else
-override CFLAGS+=-O3 -flto -march=native -DNDEBUG
+override CFLAGS+=-O3 -flto -DNDEBUG
 endif
 
 ifdef COMPUTED_GOTOS

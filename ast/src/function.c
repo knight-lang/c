@@ -271,11 +271,9 @@ DECLARE_FUNCTION(value, 1, "VALUE") {
 }
 #endif /* KN_EXT_VALUE */
 
-#ifdef KN_EXT_NEGATE
 DECLARE_FUNCTION(negate, 1, "~") {
 	return kn_value_new_number(-kn_value_to_number(args[0]));
 }
-#endif /* KN_EXT_NEGATE */
 
 static kn_value add_string(struct kn_string *lhs, struct kn_string *rhs) {
 	size_t lhslen, rhslen;
@@ -626,6 +624,11 @@ DECLARE_FUNCTION(assign, 2, "=") {
 #ifdef KN_EXT_EQL_INTERPOLATE
 	// if it's an identifier, special-case it where we don't evaluate it.
 	if (KN_LIKELY(kn_value_is_variable(args[0]))) {
+#else
+#	ifndef KN_RECKLESS
+		if (!kn_value_is_variable(args[0]))
+			die("can only assign to variables");
+#	endif /* KN_RECKLESS */
 #endif /* KN_EXT_EQL_INTERPOLATE */
 
 	variable = kn_value_as_variable(args[0]);
