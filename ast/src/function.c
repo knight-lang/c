@@ -264,7 +264,7 @@ DECLARE_FUNCTION(ascii, 1, "ASCII") {
 #ifdef KN_EXT_VALUE
 DECLARE_FUNCTION(value, 1, "VALUE") {
 	struct kn_string *string = kn_value_to_string(args[0]);
-	struct kn_variable *variable = kn_env_fetch(kn_string_deref(string));
+	struct kn_variable *variable = kn_env_fetch(kn_string_deref(string), kn_string_length(string));
 
 	kn_string_free(string);
 	return kn_variable_run(variable);
@@ -638,15 +638,15 @@ DECLARE_FUNCTION(assign, 2, "=") {
 		// otherwise, evaluate the expression, convert to a string,
 		// and then use that as the variable.
 		struct kn_string *string = kn_value_to_string(args[0]);
-		variable = kn_env_fetch(kn_string_deref(string));
+		variable = kn_env_fetch(kn_string_deref(string), kn_string_length(string));
 		kn_string_free(string);
 	}
 #endif /* KN_EXT_EQL_INTERPOLATE */
 
 
 	// vast majority of the time we're going to be assinging to an expr result.
-	if (KN_LIKELY(kn_value_is_ast(args[0]))) {
-		ret = kn_ast_run(kn_value_as_ast(args[0]));
+	if (KN_LIKELY(kn_value_is_ast(args[1]))) {
+		ret = kn_ast_run(kn_value_as_ast(args[1]));
 	} else {
 		ret = kn_value_run(args[1]);
 	}
