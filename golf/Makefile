@@ -11,9 +11,11 @@ endif
 golf: golf.o
 	$(CC) $(CFLAGS) golf.o -o golf
 
+expanded: expanded.o
+	$(CC) $(CFLAGS) expanded.o -o expanded
+
 %.o: %.c
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	-@rm *.o
-	-@rm golf
+	-@rm *.o expanded golf

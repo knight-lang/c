@@ -68,7 +68,7 @@ ll parse() {
 
 	// unary functions
 	func[1] = parse();
-	if (strspn(spn, "EBC`Q!LDO")) return value;
+	if (strspn(spn, "EBC`Q!LDOA~")) return value;
 
 	// binary functions
 	func[2] = parse();
@@ -112,8 +112,8 @@ ll MAP[1000];
 size_t size;
 
 ll run(ll value) {
-	ll tval,tval2,tval3=1;
-	char *str, *tstr,*tstr2,*tstr3;
+	ll tval,tval2;
+	char *str, *tstr,*tstr2;
 	FILE* file;	
 	static size_t tmp,cap,len;
 
@@ -150,6 +150,12 @@ ll run(ll value) {
 			printf("%.*s", (int) size, str);
 		else puts(str);
 		return NUL;
+	case 'A':
+		if (TNUM & (tval = run(ARG(1))))
+			return str=calloc(2,1),*str=ASNUM(tval),NEWSTR(str);
+		return NEWNUM(*ASSTR(tval));
+	case '~':
+		return NEWNUM(-ton(ARG(1)));
 
 	case '+':
 		if (TNUM & (tval = run(ARG(1)))) {
@@ -167,7 +173,7 @@ ll run(ll value) {
 		return NEWSTR(tstr);
 	case '/': return NEWNUM(ton(ARG(1)) / ton(ARG(2)));
 	case '%': return NEWNUM(ton(ARG(1)) % ton(ARG(2)));
-	case '^': return NEWNUM(pow(ton(ARG(1)), ton(ARG(2))))
+	case '^': return NEWNUM((int)pow(ton(ARG(1)), ton(ARG(2))));
 
 	case '<':
 		return NEWBOOL(
