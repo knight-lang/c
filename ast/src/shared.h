@@ -30,7 +30,7 @@
  * A macros that's used to halt the execution of the program, writing the
  * given message to stderr before exiting with code 1.
  */
-#define die(...) (fprintf(stderr, __VA_ARGS__), fprintf(stderr, "\n"), exit(1))
+#define die(...) (fprintf(stderr, __VA_ARGS__), fputc('\n', stderr), exit(1))
 
 /*
  * Returns a hash for the first `length` characters of `str`.
