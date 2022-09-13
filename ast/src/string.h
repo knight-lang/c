@@ -4,6 +4,8 @@
 #include <stddef.h>   /* size_t */
 #include <stdbool.h>  /* bool */
 #include <stdalign.h> /* alignas */
+#include "decls.h"
+#include <stdio.h>
 
 /*
  * These flags are used to record information about how the memory of a
@@ -182,10 +184,17 @@ struct kn_string *kn_string_cache_lookup(unsigned long hash, size_t length);
  */
 size_t kn_string_length(const struct kn_string *string);
 
+
 /*
- * Dereferences the string, returning a mutable pointer to its data.
+ * Dereferences the string, returning a mutable/immutable pointer to its data.
  */
-char *kn_string_deref(struct kn_string *string);
+#define kn_string_deref(x) (_Generic(x,              \
+    const struct kn_string *: kn_string_deref_const, \
+          struct kn_string *: kn_string_deref_mut    \
+    )(x))
+
+char *kn_string_deref_mut(struct kn_string *string);
+const char *kn_string_deref_const(const struct kn_string *string);
 
 /*
  * Duplicates this string, returning another copy of it.
@@ -229,5 +238,24 @@ static inline void kn_string_free(struct kn_string *string) {
  * Checks to see if two strings have the same contents.
  */
 bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs);
+
+/*
+ * Convert a string to a number, as per the knight specs.
+ *
+ * This means we strip all leading whitespace, and then an optional `-` or `+`
+ * may appear (`+` is ignored, `-` indicates a negative number). Then as many
+ * digits as possible are read.
+ */
+kn_number kn_string_to_number(const struct kn_string *string);
+
+struct kn_list *kn_string_to_list(const struct kn_string *string);
+
+static inline kn_boolean kn_string_to_boolean(const struct kn_string *string) {
+    return string->length != 0;
+}
+
+static inline void kn_string_dump(const struct kn_string *string, FILE *out) {
+    fprintf(out, "String(%*s)", (int) kn_string_length(string), kn_string_deref(string));
+}
 
 #endif /* !KN_STRING_H */

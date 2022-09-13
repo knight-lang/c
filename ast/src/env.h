@@ -61,4 +61,9 @@ void kn_variable_assign(struct kn_variable *variable, kn_value);
  */
 kn_value kn_variable_run(struct kn_variable *variable);
 
+static inline void kn_variable_dump(const struct kn_variable *variable, FILE *out) {
+   fprintf(out, "Variable(%s)", variable->name);
+}
+
+
 #endif /* !KN_ENV_H */

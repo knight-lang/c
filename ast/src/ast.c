@@ -63,12 +63,6 @@ struct kn_ast *kn_ast_alloc(unsigned argc) {
 	return ast;
 }
 
-struct kn_ast *kn_ast_clone(struct kn_ast *ast) {
-	++ast->refcount;
-
-	return ast;
-}
-
 void kn_ast_deallocate(struct kn_ast *ast) {
 	assert(ast->refcount == 0);
 
@@ -95,6 +89,19 @@ void kn_ast_deallocate(struct kn_ast *ast) {
 	free(ast);
 }
 
-kn_value kn_ast_run(struct kn_ast *ast) {
-	return (ast->func->func)(ast->args);
+
+void kn_ast_dump(const struct kn_ast *ast, FILE *out) {
+	fputs("Function(", out);
+	fputs(ast->func->name, out);
+
+	kn_indentation++;
+	for (unsigned i = 0; i < ast->func->arity; ++i) {
+		fputs(", ", out);
+		kn_indent(out);
+		kn_value_dump(ast->args[i], out);
+	}
+
+	kn_indentation--;
+	kn_indent(out);
+	fputc(')', out);
 }

@@ -3,30 +3,8 @@
 
 #include "decls.h"
 #include <assert.h>
+#include <stdio.h>
 
-/*
- * The false value within Knight.
- */
-#define KN_FALSE 0
-
-/*
- * The null value within Knight.
- */
-#define KN_NULL 8
-
-/*
- * The true value within Knight.
- */
-#define KN_TRUE 16
-
-/*
- * An undefined value, used to indicate "no value."
- *
- * This is used in a few places, such as the default value for variables, and
- * what's returned from `kn_parse` if no values could e parsed. This value is
- * invalid to pass to any function expecting a valid `kn_value`.
- */
-#define KN_UNDEFINED 24
 
 /*
  * The layout of `kn_value`:
@@ -54,8 +32,36 @@ enum kn_value_tag {
 #endif /* KN_CUSTOM */
 };
 
+
 #define KN_SHIFT 3
 #define KN_TAG_MASK ((1 << KN_SHIFT) - 1)
+
+/*
+ * The false value within Knight.
+ */
+#define KN_FALSE ((0 << KN_SHIFT) | KN_TAG_CONSTANT)
+
+/*
+ * The null value within Knight.
+ */
+#define KN_NULL ((1 << KN_SHIFT) | KN_TAG_CONSTANT)
+
+/*
+ * The true value within Knight.
+ */
+#define KN_TRUE ((2 << KN_SHIFT) | KN_TAG_CONSTANT)
+
+/*
+ * An undefined value, used to indicate "no value."
+ *
+ * This is used in a few places, such as the default value for variables, and
+ * what's returned from `kn_parse` if no values could e parsed. This value is
+ * invalid to pass to any function expecting a valid `kn_value`.
+ */
+#define KN_UNDEFINED  ((3 << KN_SHIFT) | KN_TAG_CONSTANT)
+
+#define KN_ONE ((((kn_number) 1) << KN_SHIFT) | KN_TAG_NUMBER)
+#define KN_ZERO ((((kn_number) 0) << KN_SHIFT) | KN_TAG_NUMBER)
 
 static inline enum kn_value_tag kn_tag(kn_value value) {
    return value & KN_TAG_MASK;
@@ -325,7 +331,7 @@ struct kn_list *kn_value_to_list(kn_value value);
  * Dumps the debugging representation of `value` to stdout, without a trailing
  * newline.
  */
-void kn_value_dump(kn_value value);
+void kn_value_dump(kn_value value, FILE *out);
 
 /*
  * Executes the given value.
@@ -349,5 +355,7 @@ kn_value kn_value_clone(kn_value value);
  * will only actually free the resources when the refcount hits zero.
  */
 void kn_value_free(kn_value value);
+
+bool kn_value_equal(kn_value lhs, kn_value rhs);
 
 #endif /* !KN_VALUE_H */

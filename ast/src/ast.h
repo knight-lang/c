@@ -49,7 +49,11 @@ struct kn_ast *kn_ast_alloc(unsigned argc);
  * Duplicates the ast, returning a new value that must be `kn_ast_free`d
  * independently from the passed `ast`.
  */
-struct kn_ast *kn_ast_clone(struct kn_ast *ast);
+static inline struct kn_ast *kn_ast_clone(struct kn_ast *ast) {
+    assert(ast->refcount);
+    ast->refcount++;
+    return ast;
+}
 
 /*
  * Deallocates the memory associated with `ast`; should only be called with
@@ -61,17 +65,18 @@ void kn_ast_deallocate(struct kn_ast *ast);
  * Releases the memory resources associated with this struct.
  */
 static inline void kn_ast_free(struct kn_ast *ast) {
+    assert(ast->refcount);
     if (--ast->refcount == 0)
         kn_ast_deallocate(ast);
 }
-/*
- * Releases the memory resources associated with this struct.
- */
-void kn_ast_free(struct kn_ast *ast);
 
 /*
  * Executes a `kn_ast`, returning the value associated with its execution.
  */
-kn_value kn_ast_run(struct kn_ast *ast);
+static inline kn_value kn_ast_run(struct kn_ast *ast) {
+    return (ast->func->func)(ast->args);
+}
+
+void kn_ast_dump(const struct kn_ast *ast, FILE *out);
 
 #endif /* !KN_AST_H */

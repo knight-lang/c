@@ -72,15 +72,16 @@ static inline kn_number kn_number_power(kn_number lhs, kn_number rhs) {
    return (kn_number) powl(lhs, rhs);
 }
 
-static inline kn_boolean kn_number_to_number(kn_number number) {
-   return number;
-}
-
 static inline kn_boolean kn_number_to_boolean(kn_number number) {
    return number != 0;
 }
 
+static inline void kn_number_dump(kn_number number, FILE *out) {
+   fprintf(out, "Number(%" PRIdkn ")", number);
+}
+
 struct kn_string *kn_number_to_string(kn_number number);
 struct kn_list *kn_number_to_list(kn_number number);
+
 
 #endif /* !KN_NUMBER_H */

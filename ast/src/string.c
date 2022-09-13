@@ -4,6 +4,8 @@
 #include <stdlib.h> /* free, NULL */
 #include <string.h> /* strlen, strcmp, memcpy, strndup, strncmp, memcmp */
 #include <assert.h> /* assert */
+#include <ctype.h>
+#include "list.h"
 
 // The empty string.
 // we need the alignment for embedding.
@@ -44,7 +46,15 @@ size_t kn_string_length(const struct kn_string *string) {
 	return (size_t) string->length;
 }
 
-char *kn_string_deref(struct kn_string *string) {
+char *kn_string_deref_mut(struct kn_string *string) {
+	assert(string != NULL);
+
+	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
+		? string->embed
+		: string->ptr;
+}
+
+const char *kn_string_deref_const(const struct kn_string *string) {
 	assert(string != NULL);
 
 	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
@@ -59,11 +69,7 @@ bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs) {
 	if (kn_string_length(lhs) != kn_string_length(rhs))
 		return false;
 
-	return !memcmp(
-		kn_string_deref((struct kn_string *) lhs),
-		kn_string_deref((struct kn_string *) rhs),
-		kn_string_length(lhs)
-	);
+	return !memcmp(kn_string_deref(lhs), kn_string_deref(rhs), kn_string_length(lhs));
 }
 
 // Allocate a `kn_string` and populate it with the given `str`.
@@ -281,3 +287,46 @@ void kn_string_cleanup() {
 	}
 }
 
+
+/*
+ * Note that we can't use `strtoll`, as we can't be positive that `kn_number`
+ * is actually a `long long`.
+ */
+kn_number kn_string_to_number(const struct kn_string *string) {
+	kn_number ret = 0;
+	const char *ptr = kn_string_deref(string);
+
+	// strip leading whitespace.
+	while (KN_UNLIKELY(isspace(*ptr)))
+		ptr++;
+
+	bool is_neg = *ptr == '-';
+
+	// remove leading `-` or `+`s, if they exist.
+	if (is_neg || *ptr == '+')
+		++ptr;
+
+	// only digits are `<= 9` when a literal `0` char is subtracted from them.
+	unsigned char cur; // be explicit about wraparound.
+	while ((cur = *ptr++ - '0') <= 9)
+		ret = ret * 10 + cur;
+
+	return is_neg ? -ret : ret;
+}
+
+struct kn_list *kn_string_to_list(const struct kn_string *string) {
+	size_t length = kn_string_length(string);
+
+	if (!length)
+		return &kn_list_empty;
+
+	struct kn_list *chars = kn_list_alloc(length);
+	const char *ptr = kn_string_deref(string);
+
+	for (unsigned i = 0; i < length; i++) {
+		char buf[2] = { ptr[i], 0 };
+		chars->elements[i] = kn_value_new_string(kn_string_new_borrowed(buf, 1));
+	}
+
+	return chars;
+}

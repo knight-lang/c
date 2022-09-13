@@ -81,9 +81,10 @@ DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 DECLARE_FUNCTION(random, 0, "RANDOM") {
 	(void) args;
 
-	return kn_value_new_number((kn_number) rand());
+	return kn_value_new((kn_number) rand());
 }
 
+#ifdef KN_EXT_EVAL
 DECLARE_FUNCTION(eval, 1, "EVAL") {
 	struct kn_string *string = kn_value_to_string(args[0]);
 	kn_value ret = kn_run(kn_string_deref(string));
@@ -92,6 +93,7 @@ DECLARE_FUNCTION(eval, 1, "EVAL") {
 
 	return ret;
 }
+#endif /* KN_EXT_EVAL */
 
 DECLARE_FUNCTION(noop, 1, ":") {
 	// literally just run its argument. Used with `BLOCK`.
@@ -178,6 +180,7 @@ DECLARE_FUNCTION(call, 1, "CALL") {
 	return ran;
 }
 
+#ifdef KN_EXT_SYSTEM
 DECLARE_FUNCTION(system, 2, "$") {
 	struct kn_string *command = kn_value_to_string(args[0]);
 	if (kn_value_run(args[1]) != KN_NULL) die("only `NULL` for a second arg is currently supported");
@@ -224,6 +227,7 @@ DECLARE_FUNCTION(system, 2, "$") {
 
 	return kn_value_new_string(kn_string_new_owned(result, length));
 }
+#endif /* KN_EXT_SYSTEM */
 
 DECLARE_FUNCTION(quit, 1, "QUIT") {
 	exit((int) kn_value_to_number(args[0]));
@@ -268,9 +272,8 @@ DECLARE_FUNCTION(length, 1, "LENGTH") {
 DECLARE_FUNCTION(dump, 1, "DUMP") {
 	kn_value ret = kn_value_run(args[0]);
 
-	kn_value_dump(ret);
-
-	putc('\n', stdout);
+	kn_value_dump(ret, stdout);
+	putchar('\n');
 
 	return ret;
 }
@@ -550,9 +553,19 @@ DECLARE_FUNCTION(mod, 2, "%") {
 DECLARE_FUNCTION(pow, 2, "^") {
 	kn_value lhs = kn_value_run(args[0]);
 
+	if (kn_value_is_list(lhs)) {
+		struct kn_string *sep = kn_value_to_string(args[1]);
+		struct kn_string *joined = kn_list_join(kn_value_as_list(lhs), sep);
+
+		kn_list_free(kn_value_as_list(lhs));
+		kn_string_free(sep);
+
+		return kn_value_new_string(joined);
+	}
+
 #ifndef KN_RECKLESS
 	if (!kn_value_is_number(lhs))
-		die("can only exponentiate numbers");
+		die("can only exponentiate numbers and lists");
 #endif /* !KN_RECKLESS */
 
 	kn_number result;

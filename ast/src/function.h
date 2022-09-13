@@ -76,9 +76,10 @@ kn_value kn_fn_random_function(const kn_value *args);
  * associated function.
  **/
 
-/* 4.2.2 EVAL */
+#ifdef KN_EXT_EVAL
 extern const struct kn_function kn_fn_eval;
 kn_value kn_fn_eval_function(const kn_value *args);
+#endif /* KN_EXT_EVAL */
 
 /* 4.2.3 BLOCK */
 extern const struct kn_function kn_fn_block;
@@ -88,9 +89,10 @@ kn_value kn_fn_block_function(const kn_value *args);
 extern const struct kn_function kn_fn_call;
 kn_value kn_fn_call_function(const kn_value *args);
 
-/* 4.2.5 ` */
+#ifdef KN_EXT_SYSTEM
 extern const struct kn_function kn_fn_system;
 kn_value kn_fn_system_function(const kn_value *args);
+#endif /* KN_EXT_SYSTEM */
 
 /* 4.2.6 QUIT */
 extern const struct kn_function kn_fn_quit;

@@ -29,10 +29,8 @@ static int iswordfunc(char c) {
 void kn_parse_strip() {
 	assert(iswhitespace(kn_parse_peek()) || kn_parse_peek() == '#');
 
-	char c;
-
 	while (1) {
-		c = kn_parse_peek();
+		char c = kn_parse_peek();
 
 		if (KN_UNLIKELY(c == '#')) {
 			while ((c = kn_parse_advance_peek()) != '\n' && c != '\0') {
@@ -51,20 +49,18 @@ void kn_parse_strip() {
 
 kn_number kn_parse_number() {
 	char c = kn_parse_peek();
-
 	assert(isdigit(c));
 
-	kn_number number = (c - '0');
+	kn_number number = (kn_number) (c - '0');
 
 	while (isdigit(c = kn_parse_advance_peek()))
-		number = number * 10 + (c - '0');
+		number = number*10 + (kn_number) (c - '0');
 
 	return number;
 }
 
 struct kn_string *kn_parse_string() {
-	char quote = kn_parse_peek_advance();
-	char c;
+	char c, quote = kn_parse_peek_advance();
 	const char *start = kn_parse_stream;
 
 	assert(quote == '\'' || quote == '\"');
@@ -86,7 +82,6 @@ struct kn_variable *kn_parse_variable() {
 	assert(islower(kn_parse_peek()) || kn_parse_peek() == '_');
 
 	char c;
-
 	do {
 		c = kn_parse_advance_peek();
 	} while (islower(c) || isdigit(c) || c == '_');
@@ -98,12 +93,12 @@ struct kn_ast *kn_parse_ast(const struct kn_function *fn) {
 	struct kn_ast *ast = kn_ast_alloc(fn->arity);
 	ast->func = fn;
 
-	for (size_t i = 0; i < fn->arity; ++i) {
+	for (unsigned i = 0; i < fn->arity; ++i) {
 		ast->args[i] = kn_parse_value();
 
 #ifndef KN_RECKLESS
 		if (ast->args[i] == KN_UNDEFINED)
-			die("unable to parse argument %zu for function '%s'", i, fn->name);
+			die("unable to parse argument %u for function '%s'", i, fn->name);
 #endif /* !KN_RECKLESS */
 	}
 
@@ -170,7 +165,11 @@ kn_value kn_parse_value() {
 		['!']  = &&function_not,
 		['"']  = &&string,
 		['#']  = &&strip,
+#ifdef KN_EXT_SYSTEM
 		['$']  = &&function_system,
+#else
+		['$']  = &&invalid,
+#endif /* KN_EXT_SYSTEM */
 		['%']  = &&function_mod,
 		['&']  = &&function_and,
 		['\''] = &&string,
@@ -194,7 +193,11 @@ kn_value kn_parse_value() {
 		['B']  = &&function_block,
 		['C']  = &&function_call,
 		['D']  = &&function_dump,
+#ifdef KN_EXT_EVAL
 		['E']  = &&function_eval,
+#else
+		['E']  = &&invalid,
+#endif /* KN_EXT_EVAL */
 		['F']  = &&literal_false,
 		['G']  = &&function_get,
 		['H']  = &&invalid,
@@ -231,11 +234,11 @@ kn_value kn_parse_value() {
 		[']']  = &&function_tail,
 		['^']  = &&function_pow,
 		['_']  = &&identifier,
-		['`']  = &&_invalid,
+		['`']  = &&invalid,
 		['a' ... 'z'] = &&identifier,
-		['{']  = &&_invalid,
+		['{']  = &&invalid,
 		['|']  = &&function_or,
-		['}']  = &&_invalid,
+		['}']  = &&invalid,
 		['~']  = &&function_negate,
 		[0x7f ... 0xff] = &&invalid
 	};
@@ -311,8 +314,10 @@ SYMBOL_FUNC(and, '&');
 SYMBOL_FUNC(or, '|');
 SYMBOL_FUNC(then, ';');
 SYMBOL_FUNC(assign, '=');
-SYMBOL_FUNC(system, '`');
 SYMBOL_FUNC(negate, '~');
+#ifdef KN_EXT_SYSTEM
+SYMBOL_FUNC(system, '$');
+#endif /* KN_EXT_SYSTEM */
 
 LABEL(function_prompt)
 CASES1('P') {
@@ -331,7 +336,6 @@ CASES1('R') {
 WORD_FUNC(block, 'B');
 WORD_FUNC(call, 'C');
 WORD_FUNC(dump, 'D');
-WORD_FUNC(eval, 'E');
 WORD_FUNC(get, 'G');
 WORD_FUNC(if, 'I');
 WORD_FUNC(length, 'L');
@@ -340,6 +344,10 @@ WORD_FUNC(ascii, 'A');
 WORD_FUNC(quit, 'Q');
 WORD_FUNC(substitute, 'S');
 WORD_FUNC(while, 'W');
+
+#ifdef KN_EXT_EVAL
+WORD_FUNC(eval, 'E');
+#endif /* KN_EXT_EVAL */
 
 #ifdef KN_EXT_VALUE
 WORD_FUNC(value, 'V');
