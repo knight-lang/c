@@ -36,6 +36,7 @@ typedef bool kn_boolean;
 struct kn_ast;
 struct kn_string;
 struct kn_variable;
+struct kn_list;
 
 #ifdef KN_CUSTOM
 struct kn_custom;
@@ -90,6 +91,14 @@ kn_value kn_value_new_boolean(kn_boolean boolean);
 kn_value kn_value_new_string(struct kn_string *string);
 
 /*
+ * Creates a new list value.
+ *
+ * This passes ownership of the list to this function, and any use of the
+ * passed pointer is invalid after this function returns.
+ */
+kn_value kn_value_new_list(struct kn_list *list);
+
+/*
  * Creates a new variable value.
  */
 kn_value kn_value_new_variable(struct kn_variable *variable);
@@ -131,6 +140,11 @@ bool kn_value_is_boolean(kn_value value);
 bool kn_value_is_string(kn_value value);
 
 /*
+ * Checks to see if `value` is a `kn_null`.
+ */
+bool kn_value_is_null(kn_value value);
+
+/*
  * Checks to see if `value` is a `kn_string`.
  */
 bool kn_value_is_variable(kn_value value);
@@ -167,6 +181,13 @@ kn_boolean kn_value_as_boolean(kn_value value);
  * This should only be called on string values.
  */
 struct kn_string *kn_value_as_string(kn_value value);
+
+/*
+ * Retrieves the `kn_list` associated with `value`.
+ *
+ * This should only be called on list values.
+ */
+struct kn_list *kn_value_as_list(kn_value value);
 
 /*
  * Retrieves the `kn_variable` associated with `value`.
@@ -207,6 +228,13 @@ kn_boolean kn_value_to_boolean(kn_value value);
  * Note that the caller must free the returned string via `kn_string_free`.
  */
 struct kn_string *kn_value_to_string(kn_value value);
+
+/*
+ * Converts the `value` to a `kn_list`, coercing it if need be.
+ *
+ * Note that the caller must free the returned list via `kn_list_free`.
+ */
+struct kn_list *kn_value_to_list(kn_value value);
 
 /*
  * Dumps the debugging representation of `value` to stdout, without a trailing

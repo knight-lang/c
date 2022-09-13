@@ -120,6 +120,15 @@ kn_value kn_fn_ascii_function(const kn_value *args);
 extern const struct kn_function kn_fn_negate;
 kn_value kn_fn_negate_function(const kn_value *args);
 
+extern const struct kn_function kn_fn_box;
+kn_value kn_fn_box_function(const kn_value *args);
+
+extern const struct kn_function kn_fn_head;
+kn_value kn_fn_head_function(const kn_value *args);
+
+extern const struct kn_function kn_fn_tail;
+kn_value kn_fn_tail_function(const kn_value *args);
+
 #ifdef KN_EXT_VALUE
 /*
  * An extension function that converts its argument to a string, and then uses

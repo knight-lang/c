@@ -11,16 +11,14 @@
 #include "ast.h"      /* kn_ast, kn_ast_alloc */
 #include "shared.h"   /* die, KN_UNREACHABLE */
 #include "env.h"      /* kn_variable, kn_env_fetch */
+#include "list.h"
 
 // the stream used by all the parsing functions.
 const char *kn_parse_stream;
 
 // Check to see if the character is considered whitespace to Knight.
 static int iswhitespace(char c) {
-	return isspace(c) || c == ':'
-		|| c == '(' || c == ')'
-		|| c == '[' || c == ']'
-		|| c == '{' || c == '}';
+	return isspace(c) || c == ':' || c == '(' || c == ')';
 }
 
 // Checks to see if the character is part of a word function body.
@@ -172,7 +170,7 @@ kn_value kn_parse_value() {
 		['!']  = &&function_not,
 		['"']  = &&string,
 		['#']  = &&strip,
-		['$']  = &&invalid,
+		['$']  = &&function_system,
 		['%']  = &&function_mod,
 		['&']  = &&function_and,
 		['\''] = &&string,
@@ -180,7 +178,7 @@ kn_value kn_parse_value() {
 		[')']  = &&strip,
 		['*']  = &&function_mul,
 		['+']  = &&function_add,
-		[',']  = &&invalid,
+		[',']  = &&function_box,
 		['-']  = &&function_sub,
 		['.']  = &&invalid,
 		['/']  = &&function_div,
@@ -191,7 +189,7 @@ kn_value kn_parse_value() {
 		['=']  = &&function_assign,
 		['>']  = &&function_gth,
 		['?']  = &&function_eql,
-		['@']  = &&invalid,
+		['@']  = &&literal_empty_list,
 		['A']  = &&function_ascii,
 		['B']  = &&function_block,
 		['C']  = &&function_call,
@@ -228,16 +226,16 @@ kn_value kn_parse_value() {
 		['X']  = &&invalid,
 # endif /* KN_CUSTOM */
 		['Z']  = &&invalid,
-		['[']  = &&strip,
+		['[']  = &&function_head,
 		['\\'] = &&invalid,
-		[']']  = &&strip,
+		[']']  = &&function_tail,
 		['^']  = &&function_pow,
 		['_']  = &&identifier,
-		['`']  = &&function_system,
+		['`']  = &&_invalid,
 		['a' ... 'z'] = &&identifier,
-		['{']  = &&strip,
+		['{']  = &&_invalid,
 		['|']  = &&function_or,
-		['}']  = &&strip,
+		['}']  = &&_invalid,
 		['~']  = &&function_negate,
 		[0x7f ... 0xff] = &&invalid
 	};
@@ -258,8 +256,7 @@ start:
 #endif /* KN_COMPUTED_GOTOS */
 
 LABEL(strip)
-CASES6('\t', '\n', '\v', '\f', '\r', ' ')
-CASES8('(', ')', '[', ']', '{', '}', ':', '#')
+CASES10('\t', '\n', '\v', '\f', '\r', ' ', '(', ')', ':', '#')
 	kn_parse_strip();
 	goto start; // go find the next token to return.
 
@@ -292,6 +289,14 @@ CASES1('N')
 	while(iswordfunc(kn_parse_advance_peek()));
 	return KN_NULL;
 
+LABEL(literal_empty_list)
+CASES1('@')
+	kn_parse_advance();
+	return kn_value_new_list(kn_list_clone(&kn_list_empty));
+
+SYMBOL_FUNC(box, ',');
+SYMBOL_FUNC(head, '[');
+SYMBOL_FUNC(tail, ']');
 SYMBOL_FUNC(not, '!');
 SYMBOL_FUNC(add, '+');
 SYMBOL_FUNC(sub, '-');

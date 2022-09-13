@@ -3,6 +3,7 @@
 #include "ast.h"      /* kn_ast_run */
 #include "env.h"      /* kn_env_fetch, kn_variable, kn_variable_run,
                          kn_variable_assign */
+#include "list.h"  
 #include "shared.h"   /* die, xmalloc, xrealloc, kn_hash, kn_hash_acc,
                          KN_LIKELY, KN_UNLIKELY */
 #include "string.h"   /* kn_string, kn_string_new_owned, kn_string_new_borrowed,
@@ -95,6 +96,34 @@ DECLARE_FUNCTION(eval, 1, "EVAL") {
 DECLARE_FUNCTION(noop, 1, ":") {
 	// literally just run its argument. Used with `BLOCK`.
 	return kn_value_run(args[0]);
+}
+
+DECLARE_FUNCTION(box, 1, ",") {
+	kn_value value = kn_value_run(args[0]);
+	struct kn_list *list = kn_list_alloc(1);
+	list->elements[list->length++] = value;
+
+	return kn_value_new_list(list);
+}
+
+DECLARE_FUNCTION(head, 1, "[") {
+	(void) args;
+	die("todo: head");
+	// kn_value value = kn_value_run(args[0]);
+	// struct kn_list *list = kn_list_alloc(1);
+	// list->elements[list->length++] = value;
+
+	// return kn_value_new(list);
+}
+
+DECLARE_FUNCTION(tail, 1, "]") {
+	(void) args;
+	die("todo: tail");
+	// kn_value value = kn_value_run(args[0]);
+	// struct kn_list *list = kn_list_alloc(1);
+	// list->elements[list->length++] = value;
+
+	// return kn_value_new(list);
 }
 
 DECLARE_FUNCTION(block, 1, "BLOCK") {

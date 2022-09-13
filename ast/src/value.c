@@ -7,6 +7,7 @@
                        KN_STRING_NEW_EMBED */
 #include "custom.h" /* kn_custom, kn_custom_free, kn_custom_clone */
 #include "shared.h" /* die */
+#include "list.h"
 
 #include <inttypes.h> /* PRId64 */
 #include <stdlib.h>   /* free, NULL */
@@ -27,16 +28,19 @@
  * X...XX110 - custom (only with `KN_CUSTOM`)
  * note all pointers are 8-bit-aligned.
  */
-#define KN_SHIFT 3
-#define KN_TAG_CONSTANT 0
-#define KN_TAG_NUMBER 1
-#define KN_TAG_VARIABLE 2
-#define KN_TAG_STRING 3
-#define KN_TAG_AST 4
-
+enum kn_tag {
+	KN_TAG_CONSTANT = 0,
+	KN_TAG_NUMBER = 1,
+	KN_TAG_VARIABLE = 2,
+	KN_TAG_STRING = 3,
+	KN_TAG_AST = 4,
+	KN_TAG_LIST = 5,
 #ifdef KN_CUSTOM
-# define KN_TAG_CUSTOM 5
+	KN_TAG_CUSTOM = 6
 #endif /* KN_CUSTOM */
+};
+
+#define KN_SHIFT 3
 
 #define KN_TAG_MASK ((1 << KN_SHIFT) - 1)
 #define KN_TAG(x) ((x) & KN_TAG_MASK)
@@ -60,6 +64,15 @@ kn_value kn_value_new_string(struct kn_string *string) {
 	assert(KN_TAG((uint64_t) string) == 0);
 
 	return ((uint64_t) string) | KN_TAG_STRING;
+}
+
+kn_value kn_value_new_list(struct kn_list *list) {
+	assert(list != NULL);
+
+	// a nonzero tag indicates a misaligned pointer
+	assert(KN_TAG((uint64_t) list) == 0);
+
+	return ((uint64_t) list) | KN_TAG_LIST;
 }
 
 kn_value kn_value_new_variable(struct kn_variable *value) {
@@ -104,6 +117,10 @@ bool kn_value_is_string(kn_value value) {
 	return KN_TAG(value) == KN_TAG_STRING;
 }
 
+bool kn_value_is_list(kn_value value) {
+	return KN_TAG(value) == KN_TAG_LIST;
+}
+
 bool kn_value_is_variable(kn_value value) {
 	return KN_TAG(value) == KN_TAG_VARIABLE;
 }
@@ -134,6 +151,12 @@ struct kn_string *kn_value_as_string(kn_value value) {
 	assert(kn_value_is_string(value));
 
 	return (struct kn_string *) KN_UNMASK(value);
+}
+
+struct kn_list *kn_value_as_list(kn_value value) {
+	assert(kn_value_is_list(value));
+
+	return (struct kn_list *) KN_UNMASK(value);
 }
 
 struct kn_variable *kn_value_as_variable(kn_value value) {
@@ -201,6 +224,9 @@ kn_number kn_value_to_number(kn_value value) {
 	case KN_TAG_STRING:
 		return string_to_number(kn_value_as_string(value));
 
+	case KN_TAG_LIST:
+		return kn_value_as_list(value)->length;
+
 #ifdef KN_CUSTOM
 	case KN_TAG_CUSTOM: {
 		struct kn_custom *custom = kn_value_as_custom(value);
@@ -237,6 +263,9 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 
 	case KN_TAG_STRING:
 		return kn_string_length(kn_value_as_string(value)) != 0;
+
+	case KN_TAG_LIST:
+		return kn_value_as_list(value)->length != 0;
 
 #ifdef KN_CUSTOM
 	case KN_TAG_CUSTOM: {
@@ -317,6 +346,9 @@ struct kn_string *kn_value_to_string(kn_value value) {
 
 		return kn_value_as_string(value);
 
+	case KN_TAG_LIST:
+		return kn_list_join(kn_value_as_list(value), "\n");
+
 #ifdef KN_CUSTOM
 	case KN_TAG_CUSTOM: {
 		struct kn_custom *custom = kn_value_as_custom(value);
@@ -343,15 +375,69 @@ struct kn_string *kn_value_to_string(kn_value value) {
 	}
 }
 
+
+struct kn_list *kn_value_to_list(kn_value value) {
+	(void) value;
+	die("todo: kn value to list");
+// 	// static, embedded strings so we don't have to allocate for known strings.
+// 	static struct kn_string builtin_strings[KN_TRUE + 1] = {
+// 		[KN_FALSE] = KN_STRING_NEW_EMBED("false"),
+// 		[KN_TAG_NUMBER] = KN_STRING_NEW_EMBED("0"),
+// 		[KN_NULL] = KN_STRING_NEW_EMBED("null"),
+// 		[KN_TRUE] = KN_STRING_NEW_EMBED("true"),
+// 		[(((uint64_t) 1) << KN_SHIFT) | KN_TAG_NUMBER] = KN_STRING_NEW_EMBED("1"),
+// 	};
+
+// 	assert(value != KN_UNDEFINED);
+
+// 	if (KN_UNLIKELY(value <= KN_TRUE))
+// 		return &builtin_strings[value];
+
+// 	switch (KN_EXPECT(KN_TAG(value), KN_TAG_STRING)) {
+// 	case KN_TAG_NUMBER:
+// 		return number_to_string(kn_value_as_number(value));
+
+// 	case KN_TAG_STRING:
+// 		++*KN_REFCOUNT(value);
+
+// 		return kn_value_as_string(value);
+
+// #ifdef KN_CUSTOM
+// 	case KN_TAG_CUSTOM: {
+// 		struct kn_custom *custom = kn_value_as_custom(value);
+
+// 		if (custom->vtable->to_string != NULL)
+// 			return custom->vtable->to_string(custom->data);
+// 		// otherwise, fallthrough
+// 	}
+// #endif /* KN_CUSTOM */
+
+// 	case KN_TAG_AST:
+// 	case KN_TAG_VARIABLE: {
+// 		// simply execute the value and call this function again.
+// 		kn_value ran = kn_value_run(value);
+// 		struct kn_string *ret = kn_value_to_string(ran);
+// 		kn_value_free(ran);
+
+// 		return ret;
+// 	}
+
+// 	case KN_TAG_CONSTANT:
+// 	default:
+// 		KN_UNREACHABLE();
+// 	}
+}
+
+
 void kn_value_dump(kn_value value) {
 	switch (KN_TAG(value)) {
 	case KN_TAG_CONSTANT:
 		switch (value) {
-		case KN_TRUE:  printf("Boolean(true)"); return;
-		case KN_FALSE: printf("Boolean(false)"); return;
-		case KN_NULL:  printf("Null()"); return;
+		case KN_TRUE:  fputs("Boolean(true)", stdout); return;
+		case KN_FALSE: fputs("Boolean(false)", stdout); return;
+		case KN_NULL:  fputs("Null()", stdout); return;
 #ifndef NDEBUG // we dump undefined only for debugging.
-		case KN_UNDEFINED: printf("<KN_UNDEFINED>"); return;
+		case KN_UNDEFINED: fputs("<KN_UNDEFINED>", stdout); return;
 #endif /* !NDEBUG */
 
 		default:
@@ -364,6 +450,16 @@ void kn_value_dump(kn_value value) {
 
 	case KN_TAG_STRING:
 		printf("String(%s)", kn_string_deref(kn_value_as_string(value)));
+		return;
+
+	case KN_TAG_LIST:
+		fputs("List(", stdout);
+		struct kn_list *list = kn_value_as_list(value);
+		for (unsigned i = 0; i < list->length; ++i) {
+			if (i) fputs(", ", stdout);
+			kn_value_dump(list->elements[i]);
+		}
+		fputc(')', stdout);
 		return;
 
 	case KN_TAG_VARIABLE:
@@ -416,6 +512,7 @@ kn_value kn_value_run(kn_value value) {
 		return kn_variable_run(kn_value_as_variable(value));
 
 	case KN_TAG_STRING:
+	case KN_TAG_LIST:
 		++*KN_REFCOUNT(value);
 		// fallthrough
 
@@ -462,6 +559,10 @@ void kn_value_free(kn_value value) {
 
 	case KN_TAG_STRING:
 		kn_string_deallocate(kn_value_as_string(value));
+		return;
+
+	case KN_TAG_LIST:
+		kn_list_deallocate(kn_value_as_list(value));
 		return;
 
 	case KN_TAG_AST:
