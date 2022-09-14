@@ -39,6 +39,10 @@
 # define KN_ENV_CAPACITY 256
 #endif /* !KN_ENV_CAPACITY */
 
+#if KN_ENV_CAPACITY == 0
+# error env capacity must be at least 1
+#endif /* KN_ENV_CAPACITY == 0 */
+
 /*
  * The buckets of the environment hashmap.
  *
@@ -58,22 +62,22 @@ static struct kn_env_bucket kn_env_map[KN_ENV_NBUCKETS];
 static bool kn_env_has_been_started = false;
 #endif /* !NDEBUG */
 
-void kn_env_startup() {
+void kn_env_startup(void) {
 	// make sure we haven't started, and then set started to true.
 	assert(!kn_env_has_been_started && (kn_env_has_been_started = true));
-	assert(KN_ENV_CAPACITY != 0);
 
-	for (size_t i = 0; i < KN_ENV_NBUCKETS; ++i) {
+	for (unsigned i = 0; i < KN_ENV_NBUCKETS; ++i) {
 		// since it's static, `length` starts off at `0`, and `kn_env_shutdown`
 		// should reset it back to zero.
 		assert(kn_env_map[i].length == 0);
 		kn_env_map[i].capacity = KN_ENV_CAPACITY;
-		kn_env_map[i].variables =
-			xmalloc(sizeof(struct kn_variable [KN_ENV_CAPACITY]));
+		kn_env_map[i].variables = xmalloc(
+			sizeof(struct kn_variable) * KN_ENV_CAPACITY
+		);
 	}
 }
 
-void kn_env_shutdown() {
+void kn_env_shutdown(void) {
 	// make sure we've started, and then indicate we've shut down.
 	assert(kn_env_has_been_started && !(kn_env_has_been_started = false));
 
@@ -81,7 +85,7 @@ void kn_env_shutdown() {
 		struct kn_env_bucket *bucket = &kn_env_map[i];
 
 		for (size_t len = 0; len < bucket->length; ++len) {
-			// all identifiers are owned, and only marked `const` so that users
+			// All identifiers are owned, and only marked `const` so that users
 			// dont modify them (as it'd break the hash function).
 			free((char *) bucket->variables[len].name);
 
@@ -99,46 +103,31 @@ void kn_env_shutdown() {
 }
 
 struct kn_variable *kn_env_fetch(const char *identifier, size_t length) {
-	struct kn_env_bucket *bucket;
 	struct kn_variable *variable;
 
 	assert(identifier != NULL);
 
-	bucket = &kn_env_map[kn_hash(identifier, length) & (KN_ENV_NBUCKETS - 1)];
+	kn_hash_t hash = kn_hash(identifier, length);
+	struct kn_env_bucket *bucket = &kn_env_map[hash & (KN_ENV_NBUCKETS - 1)];
 
 	for (size_t i = 0; i < bucket->length; ++i) {
 		variable = &bucket->variables[i];
 
 		// if the variable already exists, return it.
-		if (strncmp(variable->name, identifier, length) == 0)
+		if (!strncmp(variable->name, identifier, length))
 			return variable;
 	}
 
 	// if the bucket is full, then we need to reallocate it.
-	if (KN_UNLIKELY(bucket->length == bucket->capacity)) {
-		// NOTE: that this actually causes UB, as all previous variable
-		// references are then invalidated. There's a somewhat easy fix to this
-		// via allocating contiguous kn_env_map, but ive never gotten to th
-		// point where this is actually necessary.
-		die("too many variables encountered!");
-
-/*
-		assert(bucket->capacity != 0);
-
-		bucket->capacity *= 2;
-
-		bucket->variables = xrealloc(
-			bucket->variables,
-			sizeof(struct kn_variable [bucket->capacity])
-		);
-*/
-	}
+	if (KN_UNLIKELY(bucket->length == bucket->capacity))
+		die("too many variables created!");
 
 	variable = &bucket->variables[bucket->length++];
 	variable->name = strndup(identifier, length);
 
-	// Uninitialized variables start with an undefined starting value. the new variable with an undefined starting value, so that any
-	// attempt to access it will be invalid.
+	// Uninitialized variables start with an undefined starting value. The new
+	// variable with an undefined starting value, so that any attempt to access
+	// it will be invalid.
 	variable->value = KN_UNDEFINED;
 
 	return variable;

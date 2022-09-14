@@ -21,14 +21,14 @@ struct kn_string alignas(8) kn_string_empty = KN_STRING_NEW_EMBED("");
 
 static struct kn_string *cache[KN_STRING_CACHE_MAXLEN][KN_STRING_CACHE_LINELEN];
 
-static struct kn_string **cache_lookup(unsigned long hash, size_t length) {
+static struct kn_string **cache_lookup(kn_hash_t hash, size_t length) {
 	assert(length != 0);
 	assert(length <= KN_STRING_CACHE_MAXLEN);
 
 	return &cache[length - 1][hash & (KN_STRING_CACHE_LINELEN - 1)];
 }
 
-struct kn_string *kn_string_cache_lookup(unsigned long hash, size_t length) {
+struct kn_string *kn_string_cache_lookup(kn_hash_t hash, size_t length) {
 	if (length == 0 || KN_STRING_CACHE_MAXLEN < length)
 		return NULL;
 
@@ -345,7 +345,7 @@ struct kn_string *kn_string_concat(struct kn_string *lhs, struct kn_string *rhs)
 		return lhs;
 	}
 
-	unsigned long hash = kn_hash(kn_string_deref(lhs), kn_string_length(lhs));
+	kn_hash_t hash = kn_hash(kn_string_deref(lhs), kn_string_length(lhs));
 	hash = kn_hash_acc(kn_string_deref(rhs), kn_string_length(rhs), hash);
 
 	size_t length = lhslen + rhslen;
@@ -458,7 +458,7 @@ struct kn_string *kn_string_set(
 	char *repl_str = kn_string_deref(replacement);
 
 	unsigned replaced_length = string->length - length + replacement->length;
-	unsigned long hash = kn_hash(string_str, start);
+	kn_hash_t hash = kn_hash(string_str, start);
 	hash = kn_hash_acc(repl_str, replacement->length, hash);
 	hash = kn_hash_acc(string_str + start + length, string->length - start - length, hash);
 

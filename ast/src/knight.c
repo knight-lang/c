@@ -10,18 +10,18 @@
 #include "shared.h"   /* die */
 #endif /* !KN_RECKLESS */
 
-void kn_startup() {
+void kn_startup(void) {
 	kn_function_startup();
 	kn_env_startup();
 }
 
-void kn_shutdown() {
+void kn_shutdown(void) {
 	kn_env_shutdown();
 	kn_ast_cleanup();
 	kn_string_cleanup();
 }
 
-kn_value kn_run(const char *stream) {
+kn_value kn_play(const char *stream) {
 	kn_value parsed = kn_parse(stream);
 
 	if (parsed == KN_UNDEFINED)

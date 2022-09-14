@@ -1,4 +1,4 @@
-#include "knight.h" /* kn_startup, kn_run, kn_value_free, kn_shutdown */
+#include "knight.h" /* kn_startup, kn_play, kn_value_free, kn_shutdown */
 #include "shared.h" /* die, xmalloc, xrealloc */
 
 #include <stdlib.h> /* free, NULL, size_t */
@@ -68,9 +68,9 @@ int main(int argc, char **argv) {
 	kn_startup();
 
 #ifdef KN_RECKLESS
-	kn_run(str);
+	kn_play(str);
 #else
-	kn_value_free(kn_run(str));
+	kn_value_free(kn_play(str));
 	kn_shutdown();
 
 	if (argv[1][1] == 'f')

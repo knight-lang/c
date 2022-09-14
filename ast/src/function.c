@@ -1,5 +1,5 @@
 #include "function.h" /* prototypes */
-#include "knight.h"   /* kn_run */
+#include "knight.h"   /* kn_play */
 #include "ast.h"      /* kn_ast_run */
 #include "env.h"      /* kn_env_fetch, kn_variable, kn_variable_run,
                          kn_variable_assign */
@@ -106,7 +106,7 @@ DECLARE_FUNCTION(random, 0, "RANDOM") {
 #ifdef KN_EXT_EVAL
 DECLARE_FUNCTION(eval, 1, "EVAL") {
 	struct kn_string *string = kn_value_to_string(args[0]);
-	kn_value ret = kn_run(kn_string_deref(string));
+	kn_value ret = kn_play(kn_string_deref(string));
 
 	kn_string_free(string);
 

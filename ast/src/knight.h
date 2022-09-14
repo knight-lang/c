@@ -27,6 +27,6 @@ void kn_shutdown(void);
  * Note that any errors that may be caused during the execution of the code will
  * simply abort the program (like all exceptions in Knight do).
  */
-kn_value kn_run(const char *stream);
+kn_value kn_play(const char *stream);
 
 #endif /* !KN_KNIGHT_H */

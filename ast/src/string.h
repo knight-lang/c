@@ -177,7 +177,7 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length);
  *
  * This function's a bit hacky, and probably could be redesigned a bit better...
  */
-struct kn_string *kn_string_cache_lookup(unsigned long hash, size_t length);
+struct kn_string *kn_string_cache_lookup(kn_hash_t hash, size_t length);
 
 /*
  * Returns the length of the string, in bytes.

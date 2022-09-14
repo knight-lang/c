@@ -21,7 +21,7 @@ struct kn_ast {
 	/*
 	 * Whether or not we're static.
 	 */
-	unsigned is_static;
+	bool is_static;
 
 	/*
 	 * The function associated with this ast.

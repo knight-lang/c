@@ -3,7 +3,12 @@
 #include <assert.h> /* assert */
 #include "shared.h" /* prototypes, size_t, NULL, KN_UNLIKELY */
 
-unsigned long kn_hash_acc(const char *str, size_t length, unsigned long hash) {
+kn_hash_t kn_hash(const char *str, size_t length) {
+	// start a `kn_hash_acc` with the default starting value
+	return kn_hash_acc(str, length, 525201411107845655L);
+}
+
+kn_hash_t kn_hash_acc(const char *str, size_t length, kn_hash_t hash) {
 	assert(str != NULL);
 
 	// This is the MurmurHash.
@@ -16,11 +21,6 @@ unsigned long kn_hash_acc(const char *str, size_t length, unsigned long hash) {
 	}
 
 	return hash;
-}
-
-unsigned long kn_hash(const char *str, size_t length) {
-	// start a `kn_hash_acc` with the default starting value
-	return kn_hash_acc(str, length, 525201411107845655L);
 }
 
 void *xmalloc(size_t size) {

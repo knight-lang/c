@@ -52,12 +52,14 @@
  */
 #define die(...) ((void) KN_UNLIKELY(1), fprintf(stderr, __VA_ARGS__), fputc('\n', stderr), exit(1))
 
+
+typedef unsigned long kn_hash_t;
 /*
  * Returns a hash for the first `length` characters of `str`.
  *
  * `str` must be at least `length` characters long, excluding any trailing `\0`
  */
-unsigned long kn_hash(const char *str, size_t length);
+kn_hash_t kn_hash(const char *str, size_t length);
 
 /*
  * Computes the hash of the first `length` characters of `str`, with the given
@@ -65,7 +67,7 @@ unsigned long kn_hash(const char *str, size_t length);
  *
  * This is useful to compute  hashes of non-sequential strings.
  */
-unsigned long kn_hash_acc(const char *str, size_t length, unsigned long hash);
+kn_hash_t kn_hash_acc(const char *str, size_t length, kn_hash_t hash);
 
 /*
  * Allocates `size` bytes of memory and returns a pointer to them.

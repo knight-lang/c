@@ -2,6 +2,7 @@
 #define KN_ENV_H
 
 #include "value.h"   /* kn_value */
+#include "shared.h"   /* kn_value */
 #include <stdbool.h> /* bool */
 #include <stddef.h>  /* size_t */
 
@@ -32,7 +33,7 @@ struct kn_variable {
  *
  * This _must_ be called before `kn_env_fetch` is called.
  */
-void kn_env_startup(void);
+void kn_env_startup(void) KN_ATTRIBUTE(cold);
 
 /*
  * Frees all resources associated with the global Knight environment.
@@ -40,7 +41,7 @@ void kn_env_startup(void);
  * This will invalidate all `kn_variable` pointers, and `kn_env_startup` must
  * be called again before `kn_env_fetch` can be used.
  */
-void kn_env_shutdown(void);
+void kn_env_shutdown(void) KN_ATTRIBUTE(cold);
 
 /*
  * Fetches the variable associated with the given identifier.
@@ -64,6 +65,5 @@ kn_value kn_variable_run(struct kn_variable *variable);
 static inline void kn_variable_dump(const struct kn_variable *variable, FILE *out) {
 	fprintf(out, "Variable(%s)", variable->name);
 }
-
 
 #endif /* !KN_ENV_H */
