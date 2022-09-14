@@ -76,7 +76,7 @@ struct kn_custom {
 	 *
 	 * This is manipulated via `kn_custom_free` and `kn_custom_clone`.
 	 */
-	unsigned refcount;
+	size_t refcount;
 
 	/*
 	 * The vtable associated with this struct.

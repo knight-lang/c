@@ -34,7 +34,7 @@ void kn_list_deallocate(struct kn_list *list) {
 	if (KN_UNLIKELY(list == &kn_list_empty))
 		return;
 
-	for (unsigned i = 0; i < list->length; ++i)
+	for (size_t i = 0; i < list->length; ++i)
 		kn_value_free(list->elements[i]);
 
 	free(list->elements);
@@ -45,7 +45,7 @@ bool kn_list_equal(const struct kn_list *lhs, const struct kn_list *rhs) {
 	if (lhs->length != rhs->length)
 		return false;
 
-	for (unsigned i = 0; i < lhs->length; ++i)
+	for (size_t i = 0; i < lhs->length; ++i)
 		if (!kn_value_equal(lhs->elements[i], rhs->elements[i]))
 			return false;
 
@@ -53,10 +53,10 @@ bool kn_list_equal(const struct kn_list *lhs, const struct kn_list *rhs) {
 }
 
 kn_number kn_list_compare(const struct kn_list *lhs, const struct kn_list *rhs) {
-	unsigned minlen = lhs->length < rhs->length ? lhs->length : rhs->length;
+	size_t minlen = lhs->length < rhs->length ? lhs->length : rhs->length;
 
 	kn_number cmp;
-	for (unsigned i = 0; i < minlen; ++i)
+	for (size_t i = 0; i < minlen; ++i)
 		if ((cmp = kn_value_compare(lhs->elements[i], rhs->elements[i])))
 			return cmp;
 
@@ -76,10 +76,10 @@ struct kn_list *kn_list_concat(struct kn_list *lhs, struct kn_list *rhs) {
 
 	struct kn_list *concat = kn_list_alloc(lhs->length + rhs->length);
 
-	for (unsigned i = 0; i < lhs->length; ++i)
+	for (size_t i = 0; i < lhs->length; ++i)
 		concat->elements[i] = kn_value_clone(lhs->elements[i]);
 
-	for (unsigned i = 0; i < rhs->length; ++i)
+	for (size_t i = 0; i < rhs->length; ++i)
 		concat->elements[i + lhs->length] = kn_value_clone(rhs->elements[i]);
 
 	kn_list_free(lhs);
@@ -88,7 +88,7 @@ struct kn_list *kn_list_concat(struct kn_list *lhs, struct kn_list *rhs) {
 	return concat;
 }
 
-struct kn_list *kn_list_repeat(struct kn_list *list, unsigned amount) {
+struct kn_list *kn_list_repeat(struct kn_list *list, size_t amount) {
 	if (KN_UNLIKELY(amount == 0)) {
 		kn_list_free(list);
 		return &kn_list_empty;
@@ -99,8 +99,8 @@ struct kn_list *kn_list_repeat(struct kn_list *list, unsigned amount) {
 
 	struct kn_list *repeat = kn_list_alloc(list->length * amount);
 
-	for (unsigned i = 0; i < amount; ++i)
-		for (unsigned j = 0; j < list->length; ++j)
+	for (size_t i = 0; i < amount; ++i)
+		for (size_t j = 0; j < list->length; ++j)
 			repeat->elements[j + i*list->length] = kn_value_clone(list->elements[j]);
 
 	kn_list_free(list);
@@ -117,10 +117,10 @@ struct kn_string *kn_list_join(const struct kn_list *list, const struct kn_strin
 	if (list->length == 1)
 		return kn_value_to_string(list->elements[0]);
 
-	unsigned len = 0, cap = 64;
+	size_t len = 0, cap = 64;
 	char *joined = xmalloc(cap);
 	
-	for (unsigned i = 0; i < list->length; ++i) {
+	for (size_t i = 0; i < list->length; ++i) {
 		if (i) {
 			if (cap <= kn_string_length(sep) + len)
 				joined = xrealloc(joined, cap = cap * 2 + kn_string_length(sep));
@@ -147,7 +147,7 @@ struct kn_string *kn_list_join(const struct kn_list *list, const struct kn_strin
 	return kn_string_new_owned(joined, len);
 }
 
-struct kn_list *kn_list_get(struct kn_list *list, unsigned start, unsigned length) {
+struct kn_list *kn_list_get(struct kn_list *list, size_t start, size_t length) {
 	assert(start + length <= list->length);
 
 	if (!length) {
@@ -160,7 +160,7 @@ struct kn_list *kn_list_get(struct kn_list *list, unsigned start, unsigned lengt
 
 	struct kn_list *sublist = kn_list_alloc(length);
 
-	for (unsigned i = 0; i < length; ++i)
+	for (size_t i = 0; i < length; ++i)
 		sublist->elements[i] = kn_value_clone(list->elements[i + start]);
 
 	kn_list_free(list);
@@ -169,8 +169,8 @@ struct kn_list *kn_list_get(struct kn_list *list, unsigned start, unsigned lengt
 
 struct kn_list *kn_list_set(
 	struct kn_list *list,
-	unsigned start,
-	unsigned length,
+	size_t start,
+	size_t length,
 	struct kn_list *replacement
 ) {
 	assert(start + length <= list->length);
@@ -182,12 +182,12 @@ struct kn_list *kn_list_set(
 
 	struct kn_list *replaced = kn_list_alloc(list->length - length + replacement->length);
 
-	unsigned i = 0;
+	size_t i = 0;
 	for (; i < start; ++i)
 		replaced->elements[i] = kn_value_clone(list->elements[i]);
-	for (unsigned j = 0; j < replacement->length; ++j, ++i)
+	for (size_t j = 0; j < replacement->length; ++j, ++i)
 		replaced->elements[i] = kn_value_clone(replacement->elements[j]);
-	for (unsigned j = start + length; j < list->length; ++j, ++i)
+	for (size_t j = start + length; j < list->length; ++j, ++i)
 		replaced->elements[i] = kn_value_clone(list->elements[i]);
 
 	return replaced;
@@ -200,7 +200,7 @@ void kn_list_dump(const struct kn_list *list, FILE *out) {
 	++kn_indentation;
 #endif
 
-	for (unsigned i = 0; i < list->length; ++i) {
+	for (size_t i = 0; i < list->length; ++i) {
 		if (i)
 			fputs(", ", out);
 

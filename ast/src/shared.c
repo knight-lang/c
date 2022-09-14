@@ -49,11 +49,11 @@ void *xrealloc(void *ptr, size_t size) {
 	return ptr;
 }
 
-unsigned kn_indentation;
+size_t kn_indentation;
 void kn_indent(FILE *out) {
 	fputc('\n', out);
 
-	for (unsigned i = 0; i < kn_indentation; ++i) {
+	for (size_t i = 0; i < kn_indentation; ++i) {
 		fputc("|:*"[i % 3], out);
 		fputc('\t', out);
 	}

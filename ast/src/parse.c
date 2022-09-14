@@ -89,10 +89,10 @@ kn_value kn_parse_ast(const struct kn_function *fn) {
 	struct kn_ast *ast = kn_ast_alloc(fn->arity);
 	ast->func = fn;
 
-	for (unsigned i = 0; i < fn->arity; ++i) {
+	for (size_t i = 0; i < fn->arity; ++i) {
 		ast->args[i] = kn_parse_value();
 		if (ast->args[i] == KN_UNDEFINED)
-			kn_error("unable to parse argument %u for function '%s'", i, fn->name);
+			kn_error("unable to parse argument %zu for function '%s'", i, fn->name);
 	}
 
 	if (KN_UNLIKELY(fn == &kn_fn_block && !kn_value_is_ast(ast->args[0]))) {

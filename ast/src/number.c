@@ -54,7 +54,7 @@ struct kn_list *kn_number_to_list(kn_number number) {
 		number /= 10;
 	}
 
-	for (unsigned i = 0; i < digits->length / 2; ++i) {
+	for (size_t i = 0; i < digits->length / 2; ++i) {
 		kn_value tmp = digits->elements[i];
 		digits->elements[i] = digits->elements[digits->length - i - 1];
 		digits->elements[digits->length - i - 1] = tmp;

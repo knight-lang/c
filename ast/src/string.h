@@ -6,6 +6,7 @@
 #include <stdalign.h> /* alignas */
 #include "decls.h"
 #include <stdio.h>
+#include "shared.h"
 
 /*
  * These flags are used to record information about how the memory of a
@@ -77,12 +78,12 @@ struct kn_string {
 	 * This is increased when `kn_string_clone`d and decreased when
 	 * `kn_string_free`d, and when it reaches zero, the struct will be freed.
 	 */
-	alignas(8) unsigned refcount;
+	alignas(8) size_t refcount;
 
 	/*
 	 * The length of the string.
 	 */
-	unsigned length;
+	size_t length;
 
 	/*
 	 * The flags that dictate how to manage this struct's memory.
@@ -250,12 +251,12 @@ kn_number kn_string_to_number(const struct kn_string *string);
 
 struct kn_list *kn_string_to_list(const struct kn_string *string);
 struct kn_string *kn_string_concat(struct kn_string *lhs, struct kn_string *rhs);
-struct kn_string *kn_string_repeat(struct kn_string *string, unsigned amount);
-struct kn_string *kn_string_get(struct kn_string *string, unsigned start, unsigned length);
+struct kn_string *kn_string_repeat(struct kn_string *string, size_t amount);
+struct kn_string *kn_string_get(struct kn_string *string, size_t start, size_t length);
 struct kn_string *kn_string_set(
 	struct kn_string *string,
-	unsigned start,
-	unsigned length,
+	size_t start,
+	size_t length,
 	struct kn_string *replacement
 );
 

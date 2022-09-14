@@ -115,7 +115,7 @@ static inline kn_value kn_value_new_boolean(kn_boolean boolean) {
  */
 static inline kn_value kn_value_new_string(struct kn_string *string) {
 	// a nonzero tag indicates a misaligned pointer
-	assert(KN_TAG((kn_value) string) == 0);
+	assert(kn_tag((kn_value) string) == 0);
 	assert(string != NULL);
 
 	return ((kn_value) string) | KN_TAG_STRING;
@@ -129,7 +129,7 @@ static inline kn_value kn_value_new_string(struct kn_string *string) {
  */
 static inline kn_value kn_value_new_list(struct kn_list *list) {
 	// a nonzero tag indicates a misaligned pointer
-	assert(KN_TAG((kn_value) list) == 0);
+	assert(kn_tag((kn_value) list) == 0);
 	assert(list != NULL);
 
 	return ((kn_value) list) | KN_TAG_LIST;
@@ -140,7 +140,7 @@ static inline kn_value kn_value_new_list(struct kn_list *list) {
  */
 static inline kn_value kn_value_new_variable(struct kn_variable *variable) {
 	// a nonzero tag indicates a misaligned pointer
-	assert(KN_TAG((kn_value) variable) == 0);
+	assert(kn_tag((kn_value) variable) == 0);
 	assert(variable != NULL);
 
 	return ((kn_value) variable) | KN_TAG_VARIABLE;
@@ -154,7 +154,7 @@ static inline kn_value kn_value_new_variable(struct kn_variable *variable) {
  */
 static inline kn_value kn_value_new_ast(struct kn_ast *ast) {
 	// a nonzero tag indicates a misaligned pointer
-	assert(KN_TAG((kn_value) ast) == 0);
+	assert(kn_tag((kn_value) ast) == 0);
 	assert(ast != NULL);
 
 	return ((kn_value) ast) | KN_TAG_AST;
@@ -168,7 +168,7 @@ static inline kn_value kn_value_new_ast(struct kn_ast *ast) {
  */
 static inline kn_value kn_value_new_custom(struct kn_custom *custom) {
 	// a nonzero tag indicates a misaligned pointer
-	assert(KN_TAG((kn_value) custom) == 0);
+	assert(kn_tag((kn_value) custom) == 0);
 	assert(custom != NULL);
 	assert(custom->vtable != NULL);
 

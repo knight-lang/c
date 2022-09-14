@@ -16,7 +16,7 @@ struct kn_ast {
 	/*
 	 * How many references to this object exist.
 	 */
-	alignas(8) unsigned refcount;
+	alignas(8) size_t refcount;
 
 	/*
 	 * Whether or not we're static.
@@ -44,7 +44,7 @@ void kn_ast_cleanup(void);
  *
  * `argc` musn't be larger than `KN_MAX_ARGC`.
  */
-struct kn_ast *kn_ast_alloc(unsigned argc);
+struct kn_ast *kn_ast_alloc(size_t argc);
 
 /*
  * Duplicates the ast, returning a new value that must be `kn_ast_free`d

@@ -66,7 +66,7 @@ void kn_env_startup(void) {
 	// make sure we haven't started, and then set started to true.
 	assert(!kn_env_has_been_started && (kn_env_has_been_started = true));
 
-	for (unsigned i = 0; i < KN_ENV_NBUCKETS; ++i) {
+	for (size_t i = 0; i < KN_ENV_NBUCKETS; ++i) {
 		// since it's static, `length` starts off at `0`, and `kn_env_shutdown`
 		// should reset it back to zero.
 		assert(kn_env_map[i].length == 0);

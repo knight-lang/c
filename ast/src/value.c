@@ -16,7 +16,7 @@
 #include <stdio.h>    /* printf */
 #include <ctype.h>    /* isspace */
 
-#define KN_REFCOUNT(x) ((unsigned *) KN_UNMASK(x))
+#define KN_REFCOUNT(x) ((size_t *) KN_UNMASK(x))
 
 kn_number kn_value_to_number(kn_value value) {
 	assert(value != KN_UNDEFINED);

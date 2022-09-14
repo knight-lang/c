@@ -47,7 +47,7 @@ void kn_function_startup(void) {
 #define to_number kn_value_to_number
 #define run kn_value_run
 
-static unsigned container_length(kn_value value) {
+static size_t container_length(kn_value value) {
 	assert(kn_value_is_list(value) || kn_value_is_string(value));
 
 	// NOTE: both strings and lists have the the length in the same spot.
@@ -155,8 +155,8 @@ DECLARE_FUNCTION(tail, 1, "]") {
 	if (kn_value_is_list(ran)) {
 		struct kn_list *tail = kn_list_alloc(LIST(ran)->length - 1);
 
-		for (unsigned i = 0; i < tail->length; i++)
-			tail->elements[i] = kn_value_clone(LIST(ran)->elements[i]);
+		for (size_t i = 0; i < tail->length; i++)
+			tail->elements[i] = kn_value_clone(LIST(ran)->elements[i + 1]);
 
 		kn_list_free(LIST(ran));
 		return kn_value_new(tail);
@@ -249,9 +249,9 @@ DECLARE_FUNCTION(length, 1, "LENGTH") {
 	kn_value ran = run(args[0]);
 
 	if (KN_LIKELY(kn_value_is_list(ran) || kn_value_is_string(ran))) {
-		unsigned length = container_length(ran);
+		size_t length = container_length(ran);
 		kn_value_free(ran);
-		return length;
+		return kn_value_new(length);
 	}
 
 	if (kn_value_is_number(ran)) {
@@ -375,7 +375,7 @@ DECLARE_FUNCTION(mul, 2, "*") {
 	if (kn_value_is_number(lhs))
 		return kn_value_new(NUMBER(lhs) * rhs);
 
-	if (rhs < 0 || rhs != (kn_number) (unsigned) rhs)
+	if (rhs < 0 || rhs != (kn_number) (size_t) rhs)
 		kn_error("negative or too large an amount given");
 
 	if (!kn_value_is_list(lhs) && !kn_value_is_string(lhs))
@@ -544,18 +544,18 @@ DECLARE_FUNCTION(get, 3, "GET") {
 	kn_number start = to_number(args[1]);
 	kn_number length = to_number(args[2]);
 
-	if (start < 0 || start != (kn_number) (unsigned) start)
+	if (start < 0 || start != (kn_number) (size_t) start)
 		kn_error("starting index is negative or too large: %"PRIdkn, start);
 
-	if (length < 0 || length != (kn_number) (unsigned) length)
+	if (length < 0 || length != (kn_number) (size_t) length)
 		kn_error("length is negative or too large: %"PRIdkn, length);
 
 	if (!kn_value_is_string(container) && !kn_value_is_list(container))
 		kn_error("can only call GET on lists and strings");
 
 	// NOTE: both strings and lists have the the length in the same spot.
-	if (container_length(container) < start + length) {
-		kn_error("invalid bounds given to GET: container length = %u, start+length=%"PRIdkn,
+	if ((kn_number) container_length(container) < start + length) {
+		kn_error("invalid bounds given to GET: container length = %zu, start+length=%"PRIdkn,
 			container_length(container), start + length);
 	}
 
@@ -570,17 +570,17 @@ DECLARE_FUNCTION(set, 4, "SET") {
 	kn_number start = to_number(args[1]);
 	kn_number length = to_number(args[2]);
 
-	if (start < 0 || start != (kn_number) (unsigned) start)
+	if (start < 0 || start != (kn_number) (size_t) start)
 		kn_error("starting index is negative or too large: %"PRIdkn, start);
 
-	if (length < 0 || length != (kn_number) (unsigned) length)
+	if (length < 0 || length != (kn_number) (size_t) length)
 		kn_error("length is negative or too large: %"PRIdkn, length);
 
 	if (!kn_value_is_string(container) && !kn_value_is_list(container))
 		kn_error("can only call SET on lists and strings");
 
-	if (container_length(container) < start + length) {
-		kn_error("invalid bounds given to SET: container length = %u, start+length=%"PRIdkn,
+	if ((kn_number) container_length(container) < start + length) {
+		kn_error("invalid bounds given to SET: container length = %zu, start+length=%"PRIdkn,
 			container_length(container), start + length);
 	}
 

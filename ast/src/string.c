@@ -271,8 +271,8 @@ struct kn_string *kn_string_clone_static(struct kn_string *string) {
 void kn_string_cleanup() {
 	struct kn_string *string;
 
-	for (unsigned i = 0; i < KN_STRING_CACHE_MAXLEN; ++i) {
-		for (unsigned j = 0; j < KN_STRING_CACHE_LINELEN; ++j) {
+	for (size_t i = 0; i < KN_STRING_CACHE_MAXLEN; ++i) {
+		for (size_t j = 0; j < KN_STRING_CACHE_LINELEN; ++j) {
 			string = cache[i][j];
 
 			if (string != NULL) {
@@ -323,7 +323,7 @@ struct kn_list *kn_string_to_list(const struct kn_string *string) {
 	struct kn_list *chars = kn_list_alloc(length);
 	const char *ptr = kn_string_deref(string);
 
-	for (unsigned i = 0; i < length; i++) {
+	for (size_t i = 0; i < length; i++) {
 		char buf[2] = { ptr[i], 0 };
 		chars->elements[i] = kn_value_new_string(kn_string_new_borrowed(buf, 1));
 	}
@@ -388,7 +388,7 @@ free_and_return:
 }
 
 
-struct kn_string *kn_string_repeat(struct kn_string *string, unsigned amount) {
+struct kn_string *kn_string_repeat(struct kn_string *string, size_t amount) {
 	size_t lhslen = kn_string_length(string);
 
 	if (lhslen == 0 || amount == 0) {
@@ -420,7 +420,7 @@ struct kn_string *kn_string_repeat(struct kn_string *string, unsigned amount) {
 	return repeat;
 }
 
-struct kn_string *kn_string_get(struct kn_string *string, unsigned start, unsigned length) {
+struct kn_string *kn_string_get(struct kn_string *string, size_t start, size_t length) {
 	assert(start + length <= string->length);
 
 	if (!length) {
@@ -438,8 +438,8 @@ struct kn_string *kn_string_get(struct kn_string *string, unsigned start, unsign
 
 struct kn_string *kn_string_set(
 	struct kn_string *string,
-	unsigned start,
-	unsigned length,
+	size_t start,
+	size_t length,
 	struct kn_string *replacement
 ) {
 	assert(start + length <= string->length);
@@ -457,7 +457,7 @@ struct kn_string *kn_string_set(
 	char *string_str = kn_string_deref(string);
 	char *repl_str = kn_string_deref(replacement);
 
-	unsigned replaced_length = string->length - length + replacement->length;
+	size_t replaced_length = string->length - length + replacement->length;
 	kn_hash_t hash = kn_hash(string_str, start);
 	hash = kn_hash_acc(repl_str, replacement->length, hash);
 	hash = kn_hash_acc(string_str + start + length, string->length - start - length, hash);

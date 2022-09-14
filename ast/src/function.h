@@ -22,7 +22,7 @@ struct kn_function {
 	/*
 	 * The number of arguments that `func` should expect.
 	 */
-	unsigned arity;
+	size_t arity;
 
 	/*
 	 * The name of the function; used when debugging.
