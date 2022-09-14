@@ -3,6 +3,7 @@
 
 #include "function.h" /* kn_function, KN_MAX_ARGC */
 #include "value.h"    /* kn_value */
+#include "shared.h"
 #include <stdalign.h> /* alignas */
 
 /*
@@ -50,8 +51,10 @@ struct kn_ast *kn_ast_alloc(unsigned argc);
  * independently from the passed `ast`.
  */
 static inline struct kn_ast *kn_ast_clone(struct kn_ast *ast) {
-	assert(ast->refcount);
-	ast->refcount++;
+	assert(ast->refcount != 0);
+
+	++ast->refcount;
+
 	return ast;
 }
 
@@ -59,13 +62,14 @@ static inline struct kn_ast *kn_ast_clone(struct kn_ast *ast) {
  * Deallocates the memory associated with `ast`; should only be called with
  * an ast with a zero refcount.
  */
-void kn_ast_deallocate(struct kn_ast *ast);
+void kn_ast_deallocate(struct kn_ast *ast) KN_ATTRIBUTE(cold);
 
 /*
  * Releases the memory resources associated with this struct.
  */
 static inline void kn_ast_free(struct kn_ast *ast) {
-	assert(ast->refcount);
+	assert(ast->refcount != 0);
+
 	if (--ast->refcount == 0)
 		kn_ast_deallocate(ast);
 }

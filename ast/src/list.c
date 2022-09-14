@@ -9,7 +9,6 @@ struct kn_list kn_list_empty = {
 	.length = 0,
 };
 
-
 struct kn_list *kn_list_alloc(size_t capacity) {
 	if (KN_UNLIKELY(!capacity))
 		return &kn_list_empty;
@@ -62,29 +61,6 @@ kn_number kn_list_compare(const struct kn_list *lhs, const struct kn_list *rhs) 
 			return cmp;
 
 	return lhs->length - rhs->length;
-}
-
-kn_value kn_list_head(const struct kn_list *list) {
-#ifndef KN_RECKLESS
-	if (!list->length)
-		return KN_UNDEFINED;
-#endif /* !KN_RECKLESS */
-
-	return kn_value_clone(list->elements[0]);
-}
-
-struct kn_list *kn_list_tail(const struct kn_list *list) {
-#ifndef KN_RECKLESS
-	if (!list->length)
-		return NULL;
-#endif /* !KN_RECKLESS */
-
-	struct kn_list *tail = kn_list_alloc(list->length - 1);
-
-	for (unsigned i = 0; i < tail->length; i++)
-		tail->elements[i] = kn_value_clone(list->elements[i]);
-
-	return tail;
 }
 
 struct kn_list *kn_list_concat(struct kn_list *lhs, struct kn_list *rhs) {

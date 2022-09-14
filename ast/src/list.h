@@ -38,8 +38,6 @@ static inline void kn_list_free(struct kn_list *list) {
 void kn_list_dump(const struct kn_list *list, FILE *out);
 
 struct kn_string *kn_list_join(const struct kn_list *list, const struct kn_string *sep);
-kn_value kn_list_head(const struct kn_list *list);
-struct kn_list *kn_list_tail(const struct kn_list *list);
 struct kn_list *kn_list_concat(struct kn_list *lhs, struct kn_list *rhs);
 struct kn_list *kn_list_repeat(struct kn_list *list, unsigned amount);
 bool kn_list_equal(const struct kn_list *lhs, const struct kn_list *rhs);

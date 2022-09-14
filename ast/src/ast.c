@@ -8,17 +8,15 @@
 # ifndef KN_AST_FREE_CACHE_LEN
 #  define KN_AST_FREE_CACHE_LEN 32
 # endif /* !KN_AST_FREE_CACHE_LEN */
-
 struct kn_ast *freed_asts[KN_MAX_ARGC + 1][KN_AST_FREE_CACHE_LEN];
 #endif /* KN_AST_CACHE */
 
 void kn_ast_cleanup(void) {
 #ifdef KN_AST_CACHE
-	struct kn_ast *ast;
 
 	for (unsigned i = 0; i <= KN_MAX_ARGC; ++i) {
 		for (unsigned j = 0; j < KN_AST_FREE_CACHE_LEN; ++j) {
-			ast = freed_asts[i][j];
+			struct kn_ast *ast = freed_asts[i][j];
 
 			if (ast != NULL) {
 				assert(ast->refcount == 0);
@@ -32,9 +30,9 @@ void kn_ast_cleanup(void) {
 struct kn_ast *kn_ast_alloc(unsigned argc) {
 	struct kn_ast *ast;
 
+#ifdef KN_AST_CACHE
 	assert(argc <= KN_MAX_ARGC);
 
-#ifdef KN_AST_CACHE
 	// try to find a freed ast we can repurpose.
 	for (unsigned i = 0; i < KN_AST_FREE_CACHE_LEN; ++i) {
 		ast = freed_asts[argc][i];
@@ -56,17 +54,18 @@ struct kn_ast *kn_ast_alloc(unsigned argc) {
 #endif /* KN_AST_CACHE */
 
 	// there are no cached free asts, so we have to allocate.
-	ast = xmalloc(sizeof(struct kn_ast) + sizeof(kn_value [argc]));
+	ast = xmalloc(sizeof(struct kn_ast) + sizeof(kn_value) * argc);
 	ast->refcount = 1;
 	ast->is_static = 0;
 
 	return ast;
 }
 
-void kn_ast_deallocate(struct kn_ast *ast) {
+void kn_ast_deallocate(struct kn_ast *ast) KN_ATTRIBUTE(cold) {
 	assert(ast->refcount == 0);
 
-	if (ast->is_static) return;
+	if (ast->is_static)
+		return;
 
 	unsigned arity = ast->func->arity;
 

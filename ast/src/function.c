@@ -46,7 +46,6 @@ void kn_function_startup(void) {
 #define to_string kn_value_to_string
 #define to_number kn_value_to_number
 #define run kn_value_run
-#define new_value kn_value_new
 
 static unsigned container_length(kn_value value) {
 	assert(kn_value_is_list(value) || kn_value_is_string(value));
@@ -93,15 +92,15 @@ DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 
 	if (KN_UNLIKELY(!length)) {
 		free(line);
-		return new_value(&kn_string_empty);
+		return kn_value_new(&kn_string_empty);
 	}
 
-	return new_value(kn_string_new_owned(line, length));
+	return kn_value_new(kn_string_new_owned(line, length));
 }
 
 DECLARE_FUNCTION(random, 0, "RANDOM") {
 	(void) args;
-	return new_value((kn_number) rand());
+	return kn_value_new((kn_number) rand());
 }
 
 #ifdef KN_EXT_EVAL
@@ -121,7 +120,7 @@ DECLARE_FUNCTION(noop, 1, ":") {
 }
 
 DECLARE_FUNCTION(box, 1, ",") {
-	return new_value(kn_list_box(run(args[0])));
+	return kn_value_new(kn_list_box(run(args[0])));
 }
 
 DECLARE_FUNCTION(head, 1, "[") {
@@ -141,7 +140,7 @@ DECLARE_FUNCTION(head, 1, "[") {
 
 	struct kn_string *head = kn_string_new_borrowed(kn_string_deref(STRING(ran)), 1);
 	kn_string_free(STRING(ran));
-	return new_value(head);
+	return kn_value_new(head);
 }
 
 DECLARE_FUNCTION(tail, 1, "]") {
@@ -160,7 +159,7 @@ DECLARE_FUNCTION(tail, 1, "]") {
 			tail->elements[i] = kn_value_clone(LIST(ran)->elements[i]);
 
 		kn_list_free(LIST(ran));
-		return new_value(tail);
+		return kn_value_new(tail);
 	}
 
 	struct kn_string *tail = kn_string_new_borrowed(
@@ -168,7 +167,7 @@ DECLARE_FUNCTION(tail, 1, "]") {
 		STRING(ran)->length - 1
 	);
 	kn_string_free(STRING(ran));
-	return new_value(tail);
+	return kn_value_new(tail);
 }
 
 DECLARE_FUNCTION(block, 1, "BLOCK") {
@@ -234,7 +233,7 @@ DECLARE_FUNCTION(system, 2, "$") {
 	if (pclose(stream) == -1)
 		kn_error("unable to close command stream");
 
-	return new_value(kn_string_new_owned(result, length));
+	return kn_value_new(kn_string_new_owned(result, length));
 }
 #endif /* KN_EXT_SYSTEM */
 
@@ -243,7 +242,7 @@ DECLARE_FUNCTION(quit, 1, "QUIT") {
 }
 
 DECLARE_FUNCTION(not, 1, "!") {
-	return new_value((kn_boolean) !to_boolean(args[0]));
+	return kn_value_new((kn_boolean) !to_boolean(args[0]));
 }
 
 DECLARE_FUNCTION(length, 1, "LENGTH") {
@@ -262,14 +261,14 @@ DECLARE_FUNCTION(length, 1, "LENGTH") {
 			length++;
 			num /= 10;
 		} while (num);
-		return new_value(length);
+		return kn_value_new(length);
 	}
 
 	struct kn_list *list = to_list(ran);
 	kn_value_free(ran);
 	kn_number length = (kn_number) list->length;
 	kn_list_free(list);
-	return new_value(length);
+	return kn_value_new(length);
 }
 
 DECLARE_FUNCTION(dump, 1, "DUMP") {
@@ -314,7 +313,7 @@ DECLARE_FUNCTION(ascii, 1, "ASCII") {
 	if (kn_value_is_string(value)) {
 		if (!STRING(value)->length)
 			kn_error("ASCII called with empty string.");
-		return new_value((kn_number) *kn_string_deref(STRING(value)));
+		return kn_value_new((kn_number) *kn_string_deref(STRING(value)));
 	}
 
 	if (!kn_value_is_number(value))
@@ -325,7 +324,7 @@ DECLARE_FUNCTION(ascii, 1, "ASCII") {
 		kn_error("Numeric value %" PRIdkn " is out of range for ascii char.", NUMBER(value));
 
 	char buf[2] = { NUMBER(value), 0 };
-	return new_value(kn_string_new_borrowed(buf, 1));
+	return kn_value_new(kn_string_new_borrowed(buf, 1));
 }
 
 #ifdef KN_EXT_VALUE
@@ -339,21 +338,21 @@ DECLARE_FUNCTION(value, 1, "VALUE") {
 #endif /* KN_EXT_VALUE */
 
 DECLARE_FUNCTION(negate, 1, "~") {
-	return new_value((kn_number) -to_number(args[0]));
+	return kn_value_new((kn_number) -to_number(args[0]));
 }
 
 DECLARE_FUNCTION(add, 2, "+") {
 	kn_value lhs = run(args[0]);
 
-	switch (kn_tag(args[0])) {
+	switch (kn_tag(lhs)) {
 	case KN_TAG_LIST:
-		return new_value(kn_list_concat(LIST(lhs), to_list(args[1])));
+		return kn_value_new(kn_list_concat(LIST(lhs), to_list(args[1])));
 
 	case KN_TAG_STRING:
-		return new_value(kn_string_concat(STRING(lhs), to_string(args[1])));
+		return kn_value_new(kn_string_concat(STRING(lhs), to_string(args[1])));
 
 	case KN_TAG_NUMBER:
-		return new_value(NUMBER(lhs) + to_number(args[1]));
+		return kn_value_new(NUMBER(lhs) + to_number(args[1]));
 
 	default:
 		kn_error("can only add to strings, numbers, and lists");
@@ -366,7 +365,7 @@ DECLARE_FUNCTION(sub, 2, "-") {
 	if (!kn_value_is_number(lhs))
 		kn_error("can only subtract from numbers");
 
-	return new_value(NUMBER(lhs) - to_number(args[1]));
+	return kn_value_new(NUMBER(lhs) - to_number(args[1]));
 }
 
 DECLARE_FUNCTION(mul, 2, "*") {
@@ -374,7 +373,7 @@ DECLARE_FUNCTION(mul, 2, "*") {
 	kn_number rhs = to_number(args[1]);
 
 	if (kn_value_is_number(lhs))
-		return new_value(NUMBER(lhs) * rhs);
+		return kn_value_new(NUMBER(lhs) * rhs);
 
 	if (rhs < 0 || rhs != (kn_number) (unsigned) rhs)
 		kn_error("negative or too large an amount given");
@@ -384,9 +383,9 @@ DECLARE_FUNCTION(mul, 2, "*") {
 
 	// If lhs is a string, convert rhs to a number and multiply.
 	if (kn_value_is_string(lhs))
-		return new_value(kn_string_repeat(STRING(lhs), rhs));
+		return kn_value_new(kn_string_repeat(STRING(lhs), rhs));
 
-	return new_value(kn_list_repeat(LIST(lhs), rhs));
+	return kn_value_new(kn_list_repeat(LIST(lhs), rhs));
 }
 
 DECLARE_FUNCTION(div, 2, "/") {
@@ -400,7 +399,7 @@ DECLARE_FUNCTION(div, 2, "/") {
 	if (!divisor)
 		kn_error("attempted to divide by zero");
 
-	return new_value(NUMBER(lhs) / divisor);
+	return kn_value_new(NUMBER(lhs) / divisor);
 }
 
 DECLARE_FUNCTION(mod, 2, "%") {
@@ -414,26 +413,25 @@ DECLARE_FUNCTION(mod, 2, "%") {
 	if (!base)
 		kn_error("attempted to modulo by zero");
 
-	return new_value(NUMBER(lhs) % base);
+	return kn_value_new(NUMBER(lhs) % base);
 }
 
 DECLARE_FUNCTION(pow, 2, "^") {
 	kn_value lhs = run(args[0]);
 
-	if (kn_value_is_list(lhs)) {
-		struct kn_string *sep = to_string(args[1]);
-		struct kn_string *joined = kn_list_join(LIST(lhs), sep);
+	if (kn_value_is_number(lhs))
+		return kn_value_new((kn_number) powl(NUMBER(lhs), to_number(args[1])));
 
-		kn_list_free(LIST(lhs));
-		kn_string_free(sep);
-
-		return new_value(joined);
-	}
-
-	if (!kn_value_is_number(lhs))
+	if (!kn_value_is_list(lhs))
 		kn_error("can only exponentiate numbers and lists");
 
-	return new_value((kn_number) powl(NUMBER(lhs), to_number(args[1])));
+	struct kn_string *sep = to_string(args[1]);
+	struct kn_string *joined = kn_list_join(LIST(lhs), sep);
+
+	kn_list_free(LIST(lhs));
+	kn_string_free(sep);
+
+	return kn_value_new(joined);
 }
 
 DECLARE_FUNCTION(eql, 2, "?") {
@@ -445,7 +443,7 @@ DECLARE_FUNCTION(eql, 2, "?") {
 	kn_value_free(lhs);
 	kn_value_free(rhs);
 
-	return new_value(eql);
+	return kn_value_new(eql);
 }
 
 DECLARE_FUNCTION(lth, 2, "<") {
@@ -457,7 +455,7 @@ DECLARE_FUNCTION(lth, 2, "<") {
 	kn_value_free(lhs);
 	kn_value_free(rhs);
 
-	return new_value(less);
+	return kn_value_new(less);
 }
 
 DECLARE_FUNCTION(gth, 2, ">") {
@@ -469,13 +467,13 @@ DECLARE_FUNCTION(gth, 2, ">") {
 	kn_value_free(lhs);
 	kn_value_free(rhs);
 
-	return new_value(greater);
+	return kn_value_new(greater);
 }
 
 DECLARE_FUNCTION(and, 2, "&") {
 	kn_value lhs = run(args[0]);
 
-	// return the lhs if its falsey.
+	// return the lhs if it's falsey.
 	if (!to_boolean(lhs))
 		return lhs;
 
@@ -486,7 +484,7 @@ DECLARE_FUNCTION(and, 2, "&") {
 DECLARE_FUNCTION(or, 2, "|") {
 	kn_value lhs = run(args[0]);
 
-	// return the lhs if its truthy.
+	// return the lhs if it's truthy.
 	if (to_boolean(lhs))
 		return lhs;
 
@@ -509,8 +507,8 @@ DECLARE_FUNCTION(assign, 2, "=") {
 	// if it's an identifier, special-case it where we don't evaluate it.
 	if (KN_LIKELY(kn_value_is_variable(args[0]))) {
 #else
-		if (!kn_value_is_variable(args[0]))
-			kn_error("can only assign to variables");
+	if (!kn_value_is_variable(args[0]))
+		kn_error("can only assign to variables");
 #endif /* KN_EXT_EQL_INTERPOLATE */
 
 	variable = kn_value_as_variable(args[0]);
@@ -525,25 +523,15 @@ DECLARE_FUNCTION(assign, 2, "=") {
 	}
 #endif /* KN_EXT_EQL_INTERPOLATE */
 
-
 	kn_value ret = run(args[1]);
 	kn_variable_assign(variable, kn_value_clone(ret));
 	return ret;
 }
 
 DECLARE_FUNCTION(while, 2, "WHILE") {
-	if (KN_UNLIKELY(!kn_value_is_ast(args[0]) || !kn_value_is_ast(args[1])))
-		goto non_ast;
-
-	// vast majority of the time we'll be executing ASTs for both the condition and the body,
-	// so we'll special-case that.
-	while (to_boolean(kn_ast_run(AST(args[0]))))
-		kn_value_free(kn_ast_run(AST(args[1])));
-	return KN_NULL;
-
-non_ast:
 	while (to_boolean(args[0]))
 		kn_value_free(run(args[1]));
+
 	return KN_NULL;
 }
 
@@ -566,17 +554,15 @@ DECLARE_FUNCTION(get, 3, "GET") {
 		kn_error("can only call GET on lists and strings");
 
 	// NOTE: both strings and lists have the the length in the same spot.
-	unsigned container_length = ((struct kn_list *) KN_UNMASK(container))->length;
-
-	if (container_length < start + length) {
+	if (container_length(container) < start + length) {
 		kn_error("invalid bounds given to GET: container length = %u, start+length=%"PRIdkn,
-			container_length, start + length);
+			container_length(container), start + length);
 	}
 
 	if (kn_value_is_list(container))
-		return new_value(kn_list_get(LIST(container), start, length));
+		return kn_value_new(kn_list_get(LIST(container), start, length));
 
-	return new_value(kn_string_get(STRING(container), start, length));
+	return kn_value_new(kn_string_get(STRING(container), start, length));
 }
 
 DECLARE_FUNCTION(set, 4, "SET") {
@@ -593,17 +579,14 @@ DECLARE_FUNCTION(set, 4, "SET") {
 	if (!kn_value_is_string(container) && !kn_value_is_list(container))
 		kn_error("can only call SET on lists and strings");
 
-	// NOTE: both strings and lists have the the length in the same spot.
-	unsigned container_length = ((struct kn_list *) KN_UNMASK(container))->length;
-
-	if (container_length < start + length) {
+	if (container_length(container) < start + length) {
 		kn_error("invalid bounds given to SET: container length = %u, start+length=%"PRIdkn,
-			container_length, start + length);
+			container_length(container), start + length);
 	}
 
 	if (kn_value_is_list(container))
-		return new_value(kn_list_set(LIST(container), start, length, to_list(args[3])));
+		return kn_value_new(kn_list_set(LIST(container), start, length, to_list(args[3])));
 
-	return new_value(kn_string_set(STRING(container), start, length, to_string(args[3])));
+	return kn_value_new(kn_string_set(STRING(container), start, length, to_string(args[3])));
 }
 
