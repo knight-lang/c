@@ -23,6 +23,12 @@ struct kn_list *kn_list_alloc(size_t capacity) {
 	return list;
 }
 
+struct kn_list *kn_list_box(kn_value value) {
+	struct kn_list *list = kn_list_alloc(1);
+	*list->elements = value;
+	return list;
+}
+
 void kn_list_deallocate(struct kn_list *list) {
 	assert(!list->refcount);
 
@@ -47,16 +53,31 @@ bool kn_list_equal(const struct kn_list *lhs, const struct kn_list *rhs) {
 	return true;
 }
 
+kn_number kn_list_compare(const struct kn_list *lhs, const struct kn_list *rhs) {
+	unsigned minlen = lhs->length < rhs->length ? lhs->length : rhs->length;
+
+	kn_number cmp;
+	for (unsigned i = 0; i < minlen; ++i)
+		if ((cmp = kn_value_compare(lhs->elements[i], rhs->elements[i])))
+			return cmp;
+
+	return lhs->length - rhs->length;
+}
+
 kn_value kn_list_head(const struct kn_list *list) {
+#ifndef KN_RECKLESS
 	if (!list->length)
 		return KN_UNDEFINED;
+#endif /* !KN_RECKLESS */
 
 	return kn_value_clone(list->elements[0]);
 }
 
 struct kn_list *kn_list_tail(const struct kn_list *list) {
+#ifndef KN_RECKLESS
 	if (!list->length)
 		return NULL;
+#endif /* !KN_RECKLESS */
 
 	struct kn_list *tail = kn_list_alloc(list->length - 1);
 
@@ -148,6 +169,20 @@ struct kn_string *kn_list_join(const struct kn_list *list, const struct kn_strin
 #endif
 
 	return kn_string_new_owned(joined, len);
+}
+
+struct kn_list *kn_list_sublist(const struct kn_list *list, unsigned start, unsigned length) {
+	assert(start + length <= list->length);
+
+	if (length == 0)
+		return &kn_list_empty;
+
+	struct kn_list *sublist = kn_list_alloc(length);
+
+	for (unsigned i = 0; i < length; ++i)
+		sublist->elements[i] = kn_value_clone(list->elements[i + start]);
+
+	return sublist;
 }
 
 void kn_list_dump(const struct kn_list *list, FILE *out) {

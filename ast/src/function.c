@@ -4,6 +4,7 @@
 #include "env.h"      /* kn_env_fetch, kn_variable, kn_variable_run,
                          kn_variable_assign */
 #include "list.h"  
+#include "number.h"  
 #include "shared.h"   /* die, xmalloc, xrealloc, kn_hash, kn_hash_acc,
                          KN_LIKELY, KN_UNLIKELY */
 #include "string.h"   /* kn_string, kn_string_new_owned, kn_string_new_borrowed,
@@ -26,11 +27,24 @@
 #include <stdio.h>    /* fflush, fputs, putc, puts, feof, ferror, FILE, getline,
                          clearerr, stdout, stdin, popen, fread, pclose */
 #include <time.h>     /* time */
+#ifndef KN_RECKLESS
+#include <sys/errno.h>
+#endif /* !KN_RECKLESS */
 
 void kn_function_startup(void) {
 	// all we have to do on startup is seed the random number.
 	srand(time(NULL));
 }
+
+#define LIST kn_value_as_list
+#define STRING kn_value_as_string
+#define NUMBER kn_value_as_number
+#define AST kn_value_as_ast
+
+#define to_list kn_value_to_list
+#define to_boolean kn_value_to_boolean
+#define to_string kn_value_to_string
+#define to_number kn_value_to_number
 
 #define DECLARE_FUNCTION(func, arity, name) \
 	KN_DECLARE_FUNCTION(kn_fn_##func, arity, name)
@@ -38,49 +52,49 @@ void kn_function_startup(void) {
 DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 	(void) args;
 
-	size_t capacity = 0;
-	ssize_t length; // todo: remove the ssize_t
-	char *line = NULL;
+	if (KN_UNLIKELY(feof(stdin)))
+		return KN_NULL; // avoid the allocation.
 
-	// TODO: use fgets instead
+	size_t length = 0;
+	size_t capacity = 1024;
+	char *line = xmalloc(capacity);
 
-	// try to read a line from stdin.
-	if ((length = getline(&line, &capacity, stdin)) == -1) {
-		assert(line != NULL);
-		free(line);
+	while (1) {
+		if (!fgets(line + length, capacity - length, stdin)) {
 
 #ifndef KN_RECKLESS
-		// if we're not at eof, abort.
-		if (KN_UNLIKELY(!feof(stdin)))
-			die("unable to read line");
+			if (ferror(stdin))
+				die("unable to read line from stdin: %s", strerror(errno));
 #endif /* !KN_RECKLESS */
+			assert(feof(stdin));
+			free(line);
+			return KN_NULL;
+		}
 
-		return kn_value_new_string(&kn_string_empty);
+		length += strlen(line + length);
+		if (length != capacity - 1)
+			break;
+		line = xrealloc(line, capacity *= 2);
 	}
 
-	assert(0 < length);
-	assert(line != NULL);
-
-	if (KN_LIKELY(length-- != 0 && line[length] == '\n')) {
-		if (KN_LIKELY(length != 0) && line[length - 1] == '\r')
-			length--;
-	} else {
-		++length; // as we subtracted it earlier preemptively.
+	assert(length != 0);
+	if (line[length - 1] == '\n') {
+		length--;
+		if (line[length - 1] == '\r')
+			--length;
+		line[length] = '\0';
 	}
 
-	struct kn_string *string =
-		KN_UNLIKELY(length == 0)
-			? &kn_string_empty
-			: kn_string_new_owned(strndup(line, length), length);
+	if (KN_UNLIKELY(!length)) {
+		free(line);
+		return kn_value_new(&kn_string_empty);
+	}
 
-	free(line);
-
-	return kn_value_new_string(string);
+	return kn_value_new(kn_string_new_owned(line, length));
 }
 
 DECLARE_FUNCTION(random, 0, "RANDOM") {
 	(void) args;
-
 	return kn_value_new((kn_number) rand());
 }
 
@@ -95,69 +109,78 @@ DECLARE_FUNCTION(eval, 1, "EVAL") {
 }
 #endif /* KN_EXT_EVAL */
 
+// literally just run its argument. Used with `BLOCK`.
 DECLARE_FUNCTION(noop, 1, ":") {
-	// literally just run its argument. Used with `BLOCK`.
 	return kn_value_run(args[0]);
 }
 
 DECLARE_FUNCTION(box, 1, ",") {
-	kn_value value = kn_value_run(args[0]);
-	struct kn_list *list = kn_list_alloc(1);
-	*list->elements = value;
-
-	return kn_value_new_list(list);
+	return kn_value_new(kn_list_box(kn_value_run(args[0])));
 }
 
 DECLARE_FUNCTION(head, 1, "[") {
 	kn_value ran = kn_value_run(args[0]);
 
 	if (kn_value_is_list(ran)) {
-		kn_value head = kn_list_head(kn_value_as_list(ran));
-
 #ifndef KN_RECKLESS
-		if (head == KN_UNDEFINED) die("called `[` on an empty list");
+		if (!LIST(ran)->length)
+			die("called `[` on an empty list");
 #endif /* !KN_RECKLESS */
 
+		kn_value head = kn_value_clone(LIST(ran)->elements[0]);
+		kn_list_free(LIST(ran));
 		return head;
 	}
 
 #ifndef KN_RECKLESS
-	if (!kn_value_is_string(ran)) die("can only call `[` on strings and lists");
+	if (!kn_value_is_string(ran))
+		die("can only call `[` on strings and lists");
+
+	if (!kn_string_length(STRING(ran)))
+			die("called `[` on an empty string");
 #endif /* !KN_RECKLESS */
 
-	die("todo, `[` on strings (with the cache optimizations)");
+	struct kn_string *head = kn_string_new_borrowed(kn_string_deref(STRING(ran)), 1);
+	kn_string_free(STRING(ran));
+
+	return kn_value_new(head);
 }
 
 DECLARE_FUNCTION(tail, 1, "]") {
 	kn_value ran = kn_value_run(args[0]);
 
 	if (kn_value_is_list(ran)) {
-		struct kn_list *tail = kn_list_tail(kn_value_as_list(ran));
+		struct kn_list *tail = kn_list_tail(LIST(ran));
 
 #ifndef KN_RECKLESS
-		if (!tail) die("called `]` on an empty list");
+		if (!tail)
+			die("called `]` on an empty list");
 #endif /* !KN_RECKLESS */
 
-		return kn_value_new_list(tail);
+		return kn_value_new(tail);
 	}
 
 #ifndef KN_RECKLESS
-	if (!kn_value_is_string(ran)) die("can only call `]` on strings and lists");
+	if (!kn_value_is_string(ran))
+		die("can only call `]` on strings and lists");
+
+	if (!kn_string_length(STRING(ran)))
+			die("called `]` on an empty string");
 #endif /* !KN_RECKLESS */
 
-	die("todo, `]` on strings (with the cache optimizations)");
+	struct kn_string *tail = kn_string_new_borrowed(
+		kn_string_deref(STRING(ran)) + 1,
+		kn_string_length(STRING(ran)) - 1
+	);
+	kn_string_free(STRING(ran));
+
+	return kn_value_new(tail);
 }
 
 DECLARE_FUNCTION(block, 1, "BLOCK") {
-	if (KN_LIKELY(kn_value_is_ast(args[0]))) {
-		kn_ast_clone(kn_value_as_ast(args[0]));
-		return args[0];
-	}
-
-	struct kn_ast *ast = kn_ast_alloc(1);
-	ast->func = &kn_fn_noop;
-	ast->args[0] = args[0];
-	return ((kn_value *)args)[0] = kn_value_new_ast(ast);
+	assert(kn_value_is_ast(args[0]));
+	kn_ast_clone(AST(args[0]));
+	return args[0];
 }
 
 DECLARE_FUNCTION(call, 1, "CALL") {
@@ -165,25 +188,25 @@ DECLARE_FUNCTION(call, 1, "CALL") {
 
 #ifndef KN_RECKLESS
 	if (!kn_value_is_ast(ran))
-		die("can only call args.");
+		die("can only CALL `BLOCK`s.");
 #endif /* !KN_RECKLESS */
 
-	struct kn_ast *ast = kn_value_as_ast(ran);
-
 	// optimize for the case where we are running a non-unique ast.
-	if (KN_LIKELY(--ast->refcount))
-		return kn_ast_run(ast);
+	if (KN_LIKELY(--AST(ran)->refcount))
+		return kn_ast_run(AST(ran));
 
-	ast->refcount++;
-	ran = kn_ast_run(ast);
-	kn_ast_free(ast);
-	return ran;
+	AST(ran)->refcount++;
+	kn_value ret = kn_ast_run(AST(ran));
+	kn_ast_free(AST(ran));
+	return ret;
 }
 
 #ifdef KN_EXT_SYSTEM
 DECLARE_FUNCTION(system, 2, "$") {
 	struct kn_string *command = kn_value_to_string(args[0]);
-	if (kn_value_run(args[1]) != KN_NULL) die("only `NULL` for a second arg is currently supported");
+
+	if (kn_value_run(args[1]) != KN_NULL)
+		die("only `NULL` for a second arg is currently supported");
 
 	const char *str = kn_string_deref(command);
 	FILE *stream = popen(str, "r");
@@ -225,48 +248,48 @@ DECLARE_FUNCTION(system, 2, "$") {
 		die("unable to close command stream");
 #endif /* !KN_RECKLESS */
 
-	return kn_value_new_string(kn_string_new_owned(result, length));
+	return kn_value_new(kn_string_new_owned(result, length));
 }
 #endif /* KN_EXT_SYSTEM */
 
 DECLARE_FUNCTION(quit, 1, "QUIT") {
-	exit((int) kn_value_to_number(args[0]));
+	exit((int) to_number(args[0]));
 }
 
 DECLARE_FUNCTION(not, 1, "!") {
-	return kn_value_new_boolean(!kn_value_to_boolean(args[0]));
+	return kn_value_new((kn_boolean) !to_boolean(args[0]));
 }
 
 DECLARE_FUNCTION(length, 1, "LENGTH") {
 	kn_value ran = kn_value_run(args[0]);
 
-	if (KN_LIKELY(kn_value_is_string(ran))) {
-		kn_number length = (kn_number) kn_string_length(kn_value_as_string(ran));
-		kn_string_free(kn_value_as_string(ran));
-		return kn_value_new_number(length);
+	if (kn_value_is_string(ran)) {
+		kn_number length = (kn_number) kn_string_length(STRING(ran));
+		kn_string_free(STRING(ran));
+		return kn_value_new(length);
 	}
 
-	if (kn_value_is_ast(ran)) {
-		kn_number length = (kn_number) kn_value_as_list(ran)->length;
-		kn_list_free(kn_value_as_list(ran));
-		return kn_value_new_number(length);
+	if (kn_value_is_list(ran)) {
+		kn_number length = (kn_number) LIST(ran)->length;
+		kn_list_free(LIST(ran));
+		return kn_value_new(length);
 	}
 
 	if (kn_value_is_number(ran)) {
-		kn_number num = kn_value_as_number(ran);
+		kn_number num = NUMBER(ran);
 		kn_number length = 0;
 		do {
 			length++;
 			num /= 10;
 		} while (num);
-		return kn_value_new_number(length);
+		return kn_value_new(length);
 	}
 
-	struct kn_list *list = kn_value_to_list(ran);
+	struct kn_list *list = to_list(ran);
 	kn_value_free(ran);
 	kn_number length = (kn_number) list->length;
 	kn_list_free(list);
-	return kn_value_new_number(length);
+	return kn_value_new(length);
 }
 
 DECLARE_FUNCTION(dump, 1, "DUMP") {
@@ -279,7 +302,7 @@ DECLARE_FUNCTION(dump, 1, "DUMP") {
 }
 
 DECLARE_FUNCTION(output, 1, "OUTPUT") {
-	struct kn_string *string = kn_value_to_string(args[0]);
+	struct kn_string *string = to_string(args[0]);
 	size_t length = kn_string_length(string);
 	char *str = kn_string_deref(string);
 	char *penult;
@@ -291,7 +314,7 @@ DECLARE_FUNCTION(output, 1, "OUTPUT") {
 	if (length == 0) {
 		putc('\n', stdout);
 	} else if (KN_UNLIKELY('\\' == *(penult = &str[length - 1]))) {
-		*penult = '\0'; // replace the trailing `\`, so it wont be printed
+		*penult = '\0'; // replace the trailing `\`, so it wont be printed...
 		fputs(str, stdout);
 		*penult = '\\'; // ...and then restore it.
 		fflush(stdout);
@@ -305,7 +328,6 @@ DECLARE_FUNCTION(output, 1, "OUTPUT") {
 #endif /* !KN_RECKLESS */
 
 	kn_string_free(string);
-
 	return KN_NULL;
 }
 
@@ -315,32 +337,28 @@ DECLARE_FUNCTION(ascii, 1, "ASCII") {
 	// If lhs is a string, convert both to a string and concatenate.
 	if (kn_value_is_string(value)) {
 #ifndef KN_RECKLESS
-		if (kn_string_length(kn_value_as_string(value)) == 0)
+		if (!kn_string_length(STRING(value)))
 			die("ASCII called with empty string.");
 #endif /* !KN_RECKLESS */
-		return kn_value_new_number(*kn_string_deref(kn_value_as_string(value)));
+		return kn_value_new((kn_number) *kn_string_deref(STRING(value)));
 	}
 
 #ifndef KN_RECKLESS
 	if (!kn_value_is_number(value))
 		die("can only call ASCII on numbers and strings.");
-#endif /* !KN_RECKLESS */
 
-	kn_number ord = kn_value_as_number(value);
-
-#ifndef KN_RECKLESS
 	// just check for ASCIIness, not actually full-blown knight correctness. 
-	if (ord < 0 || 127 < ord)
-		die("Numeric value is out of range for ascii char.");
+	if (NUMBER(value) < 0 || 127 < NUMBER(value))
+		die("Numeric value %" PRIdkn " is out of range for ascii char.", NUMBER(value));
 #endif
 
-	char buf[2] = { ord, 0 };
-	return kn_value_new_string(kn_string_new_borrowed(buf, 1));
+	char buf[2] = { NUMBER(value), 0 };
+	return kn_value_new(kn_string_new_borrowed(buf, 1));
 }
 
 #ifdef KN_EXT_VALUE
 DECLARE_FUNCTION(value, 1, "VALUE") {
-	struct kn_string *string = kn_value_to_string(args[0]);
+	struct kn_string *string = to_string(args[0]);
 	struct kn_variable *variable = kn_env_fetch(kn_string_deref(string), kn_string_length(string));
 
 	kn_string_free(string);
@@ -349,84 +367,29 @@ DECLARE_FUNCTION(value, 1, "VALUE") {
 #endif /* KN_EXT_VALUE */
 
 DECLARE_FUNCTION(negate, 1, "~") {
-	return kn_value_new_number(-kn_value_to_number(args[0]));
-}
-
-static kn_value add_string(struct kn_string *lhs, struct kn_string *rhs) {
-	size_t lhslen, rhslen;
-
-	// return early if either
-	if ((lhslen = kn_string_length(lhs)) == 0) {
-		assert(lhs == &kn_string_empty);
-		return kn_value_new_string(kn_string_clone_static(rhs));
-	}
-
-	if ((rhslen = kn_string_length(rhs)) == 0) {
-		assert(rhs == &kn_string_empty);
-		return kn_value_new_string(lhs);
-	}
-
-	unsigned long hash = kn_hash(kn_string_deref(lhs), kn_string_length(lhs));
-	hash = kn_hash_acc(kn_string_deref(rhs), kn_string_length(rhs), hash);
-
-	size_t length = lhslen + rhslen;
-
-	struct kn_string *string = kn_string_cache_lookup(hash, length);
-	if (string == NULL)
-		goto allocate_and_cache;
-
-	char *cached = kn_string_deref(string);
-	char *tmp = kn_string_deref(lhs);
-
-	for (size_t i = 0; i < kn_string_length(lhs); i++, cached++)
-		if (*cached != tmp[i])
-			goto allocate_and_cache;
-
-	tmp = kn_string_deref(rhs);
-
-	for (size_t i = 0; i < kn_string_length(rhs); i++, cached++)
-		if (*cached != tmp[i])
-			goto allocate_and_cache;
-
-	string = kn_string_clone(string);
-	goto free_and_return;
-
-allocate_and_cache:
-	string = kn_string_alloc(length);
-	char *str = kn_string_deref(string);
-
-	memcpy(str, kn_string_deref(lhs), lhslen);
-	memcpy(str + lhslen, kn_string_deref(rhs), rhslen);
-	str[length] = '\0';
-
-	kn_string_cache(string);
-free_and_return:
-
-	kn_string_free(lhs);
-	kn_string_free(rhs);
-
-	return kn_value_new_string(string);
+	return kn_value_new((kn_number) -to_number(args[0]));
 }
 
 DECLARE_FUNCTION(add, 2, "+") {
 	kn_value lhs = kn_value_run(args[0]);
 
-	if (kn_value_is_list(lhs))
-		return kn_value_new_list(kn_list_concat(kn_value_as_list(lhs), kn_value_to_list(args[1])));
+	switch (kn_tag(args[0])) {
+	case KN_TAG_LIST:
+		return kn_value_new(kn_list_concat(LIST(lhs), to_list(args[1])));
 
-	// If lhs is a string, convert both to a string and concatenate.
-	if (kn_value_is_string(lhs))
-		return add_string(kn_value_as_string(lhs), kn_value_to_string(args[1]));
+	case KN_TAG_STRING:
+		return kn_value_new(kn_string_concat(STRING(lhs), to_string(args[1])));
 
+	case KN_TAG_NUMBER:
+		return kn_value_new(NUMBER(lhs) + to_number(args[1]));
+
+	default:
 #ifndef KN_RECKLESS
-	if (!kn_value_is_number(lhs))
-		die("can only add to strings and numbers");
+		die("can only add to strings, numbers, and lists");
 #endif /* !KN_RECKLESS */
+		KN_UNREACHABLE();
+	}
 
-	kn_number augend = kn_value_as_number(lhs);
-	kn_number addend = kn_value_to_number(args[1]);
-
-	return kn_value_new_number(augend + addend);
 }
 
 DECLARE_FUNCTION(sub, 2, "-") {
@@ -437,79 +400,29 @@ DECLARE_FUNCTION(sub, 2, "-") {
 		die("can only subtract from numbers");
 #endif /* !KN_RECKLESS */
 
-	kn_number minuend = kn_value_as_number(lhs);
-	kn_number subtrahend = kn_value_to_number(args[1]);
-
-	return kn_value_new_number(minuend - subtrahend);
-}
-
-static kn_value mul_string(struct kn_string *lhs, size_t times) {
-	size_t lhslen = kn_string_length(lhs);
-
-	if (lhslen == 0 || times == 0) {
-
-		// if the string is not empty, free it.
-		if (lhslen != 0) {
-			kn_string_free(lhs);
-		} else {
-			assert(lhs == &kn_string_empty);
-		}
-
-		return kn_value_new_string(&kn_string_empty);
-	}
-
-	// we don't have to clone it, as we were given the cloned copy.
-	if (times == 1)
-		return kn_value_new_string(lhs);
-
-	size_t length = lhslen * times;
-	struct kn_string *string = kn_string_alloc(length);
-	char *str = kn_string_deref(string);
-
-	for (char *ptr = str; times != 0; --times, ptr += lhslen)
-		memcpy(ptr, kn_string_deref(lhs), lhslen);
-
-	str[length] = '\0';
-
-	kn_string_free(lhs);
-
-	return kn_value_new_string(string);
+	return kn_value_new(NUMBER(lhs) - to_number(args[1]));
 }
 
 DECLARE_FUNCTION(mul, 2, "*") {
 	kn_value lhs = kn_value_run(args[0]);
+	kn_number rhs = to_number(args[1]);
+
+	if (kn_value_is_number(lhs))
+		return kn_value_new(NUMBER(lhs) * rhs);
+
+#ifndef KN_RECKLESS
+	if (rhs < 0 || rhs != (kn_number) (unsigned) rhs)
+		die("negative or too large an amount given");
+
+	if (!kn_value_is_list(lhs) && !kn_value_is_string(lhs))
+		die("can only multiply numbers, strings, and lists");
+#endif /* !KN_RECKLESS */
 
 	// If lhs is a string, convert rhs to a number and multiply.
-	if (KN_UNLIKELY(kn_value_is_string(lhs))) {
-		kn_number amnt = kn_value_to_number(args[1]);
+	if (kn_value_is_string(lhs))
+		return kn_value_new(kn_string_repeat(STRING(lhs), rhs));
 
-#ifndef KN_RECKLESS
-		if (amnt < 0 || amnt != (kn_number) (size_t) amnt)
-			die("negative or too large an amount given");
-#endif /* !KN_RECKLESS */
-
-		return mul_string(kn_value_as_string(lhs), amnt);
-	}
-
-	if (KN_UNLIKELY(kn_value_is_list(lhs))) {
-		kn_number amnt = kn_value_to_number(args[1]);
-#ifndef KN_RECKLESS
-		if (amnt < 0 || amnt != (kn_number) (size_t) amnt)
-			die("negative or too large an amount given to repeat");
-#endif /* !KN_RECKLESS */
-
-		return kn_value_new_list(kn_list_repeat(kn_value_as_list(lhs), amnt));
-	}
-
-#ifndef KN_RECKLESS
-	if (!kn_value_is_number(lhs))
-		die("can only multiply with numbers and strings");
-#endif /* !KN_RECKLESS */
-
-	kn_number multiplicand = kn_value_as_number(lhs);
-	kn_number multiplier = kn_value_to_number(args[1]);
-
-	return kn_value_new_number(multiplicand * multiplier);
+	return kn_value_new(kn_list_repeat(LIST(lhs), rhs));
 }
 
 DECLARE_FUNCTION(div, 2, "/") {
@@ -520,15 +433,14 @@ DECLARE_FUNCTION(div, 2, "/") {
 		die("can only divide numbers");
 #endif /* !KN_RECKLESS */
 
-	kn_number dividend = kn_value_as_number(lhs);
-	kn_number divisor = kn_value_to_number(args[1]);
+	kn_number divisor = to_number(args[1]);
 
 #ifndef KN_RECKLESS
-	if (divisor == 0)
-		die("aettempted to divide by zero");
+	if (!divisor)
+		die("attempted to divide by zero");
 #endif /* !KN_RECKLESS */
 
-	return kn_value_new_number(dividend / divisor);
+	return kn_value_new(NUMBER(lhs) / divisor);
 }
 
 DECLARE_FUNCTION(mod, 2, "%") {
@@ -539,28 +451,27 @@ DECLARE_FUNCTION(mod, 2, "%") {
 		die("can only modulo numbers");
 #endif /* !KN_RECKLESS */
 
-	kn_number number = kn_value_as_number(lhs);
-	kn_number base = kn_value_to_number(args[1]);
+	kn_number base = to_number(args[1]);
 
 #ifndef KN_RECKLESS
-	if (base == 0)
+	if (!base)
 		die("attempted to modulo by zero");
 #endif /* !KN_RECKLESS */
 
-	return kn_value_new_number(number % base);
+	return kn_value_new(NUMBER(lhs) % base);
 }
 
 DECLARE_FUNCTION(pow, 2, "^") {
 	kn_value lhs = kn_value_run(args[0]);
 
 	if (kn_value_is_list(lhs)) {
-		struct kn_string *sep = kn_value_to_string(args[1]);
-		struct kn_string *joined = kn_list_join(kn_value_as_list(lhs), sep);
+		struct kn_string *sep = to_string(args[1]);
+		struct kn_string *joined = kn_list_join(LIST(lhs), sep);
 
-		kn_list_free(kn_value_as_list(lhs));
+		kn_list_free(LIST(lhs));
 		kn_string_free(sep);
 
-		return kn_value_new_string(joined);
+		return kn_value_new(joined);
 	}
 
 #ifndef KN_RECKLESS
@@ -568,128 +479,50 @@ DECLARE_FUNCTION(pow, 2, "^") {
 		die("can only exponentiate numbers and lists");
 #endif /* !KN_RECKLESS */
 
-	kn_number result;
-	kn_number base = kn_value_as_number(lhs);
-	kn_number exponent = kn_value_to_number(args[1]);
-
-	// there's no builtin way to do integer exponentiation, so we have to
-	// do it manually.
-	if (base == 1) result = 1;
-	else if (base == -1) result = exponent & 1 ? -1 : 1;
-	else if (exponent == 1) result = base;
-	else if (exponent == 0) result = 1;
-	else if (exponent < 0) {
-
-#ifndef KN_RECKLESS
-		if (base == 0)
-			die("attempted to exponentiate zero to a negative power");
-#endif /* KN_RECKLESS */
-
-		result = 0; // already handled `base == -1`
-	} else {
-		for (result = 1; exponent > 0; --exponent)
-			result *= base;
-	}
-
-	return kn_value_new_number(result);
+	return kn_value_new((kn_number) powl(NUMBER(lhs), to_number(args[1])));
 }
 
 DECLARE_FUNCTION(eql, 2, "?") {
 	kn_value lhs = kn_value_run(args[0]);
 	kn_value rhs = kn_value_run(args[1]);
-	bool eql;
 
-	assert(lhs != KN_UNDEFINED);
-	assert(rhs != KN_UNDEFINED);
+	kn_boolean eql = kn_value_equal(lhs, rhs);
 
-	if (KN_UNLIKELY(!kn_value_is_string(lhs) || !kn_value_is_string(rhs)))
-		goto non_string_cmp;
+	kn_value_free(lhs);
+	kn_value_free(rhs);
 
-	struct kn_string *lstr = kn_value_as_string(lhs);
-	struct kn_string *rstr = kn_value_as_string(rhs);
-
-	eql = lstr->length == rstr->length &&
-		!memcmp(kn_string_deref(lstr), kn_string_deref(rstr), rstr->length);
-
-	kn_string_free(lstr);
-	kn_string_free(rstr);
-
-	return kn_value_new_boolean(eql);
-
-non_string_cmp:
-	eql = lhs == rhs;
-
-	// comparing asts is invalid, so only check when its non-reckless.
-#ifndef KN_RECKLESS
-	if (kn_value_is_ast(lhs))
-		kn_ast_free(kn_value_as_ast(lhs));
-
-	if (kn_value_is_ast(rhs))
-		kn_ast_free(kn_value_as_ast(rhs));
-#endif /* KN_RECKLESS */
-
-	return kn_value_new_boolean(eql);
+	return kn_value_new(eql);
 }
 
 DECLARE_FUNCTION(lth, 2, "<") {
 	kn_value lhs = kn_value_run(args[0]);
-	bool less;
+	kn_value rhs = kn_value_run(args[1]);
 
-	if (kn_value_is_string(lhs)) {
-		struct kn_string *lstr = kn_value_as_string(lhs);
-		struct kn_string *rstr = kn_value_to_string(args[1]);
+	kn_boolean less = kn_value_compare(lhs, rhs) < 0;
 
-		less = strcmp(kn_string_deref(lstr), kn_string_deref(rstr)) < 0;
+	kn_value_free(lhs);
+	kn_value_free(rhs);
 
-		kn_string_free(lstr);
-		kn_string_free(rstr);
-	} else if (kn_value_is_number(lhs)) {
-		less = kn_value_as_number(lhs) < kn_value_to_number(args[1]);
-	} else {
-#ifndef KN_RECKLESS
-		if (!kn_value_is_boolean(lhs))
-			die("can only compare to numbers, strings, and booleans");
-#endif /* KN_RECKLESS */
-
-		// note that `== KN_FALSE` needs to be after, otherwise rhs wont be run.
-		less = kn_value_to_boolean(args[1]) && lhs == KN_FALSE;
-	}
-
-	return kn_value_new_boolean(less);
+	return kn_value_new(less);
 }
 
 DECLARE_FUNCTION(gth, 2, ">") {
 	kn_value lhs = kn_value_run(args[0]);
-	bool more;
+	kn_value rhs = kn_value_run(args[1]);
 
-	if (kn_value_is_string(lhs)) {
-		struct kn_string *lstr = kn_value_as_string(lhs);
-		struct kn_string *rstr = kn_value_to_string(args[1]);
+	kn_boolean greater = kn_value_compare(lhs, rhs) > 0;
 
-		more = strcmp(kn_string_deref(lstr), kn_string_deref(rstr)) > 0;
+	kn_value_free(lhs);
+	kn_value_free(rhs);
 
-		kn_string_free(lstr);
-		kn_string_free(rstr);
-	} else if (kn_value_is_number(lhs)) {
-		more = kn_value_as_number(lhs) > kn_value_to_number(args[1]);
-	} else {
-#ifndef KN_RECKLESS
-		if (!kn_value_is_boolean(lhs))
-			die("can only compare to numbers, strings, and booleans");
-#endif /* KN_RECKLESS */
-
-		// note that `== KN_TRUE` needs to be after, otherwise rhs wont be run.
-		more = !kn_value_to_boolean(args[1]) && lhs == KN_TRUE;
-	}
-
-	return kn_value_new_boolean(more);
+	return kn_value_new(greater);
 }
 
 DECLARE_FUNCTION(and, 2, "&") {
 	kn_value lhs = kn_value_run(args[0]);
 
 	// return the lhs if its falsey.
-	if (!kn_value_to_boolean(lhs))
+	if (!to_boolean(lhs))
 		return lhs;
 
 	kn_value_free(lhs);
@@ -700,7 +533,7 @@ DECLARE_FUNCTION(or, 2, "|") {
 	kn_value lhs = kn_value_run(args[0]);
 
 	// return the lhs if its truthy.
-	if (kn_value_to_boolean(lhs))
+	if (to_boolean(lhs))
 		return lhs;
 
 	kn_value_free(lhs);
@@ -708,18 +541,15 @@ DECLARE_FUNCTION(or, 2, "|") {
 }
 
 DECLARE_FUNCTION(then, 2, ";") {
-	// Since evaluating anything other than an ast is meaningless (evaluating
-	// undefined variables is UB so we choose to just ignore it), we only
-	// evaluate if it's an ast.
-	if (KN_LIKELY(kn_value_is_ast(args[0])))
-		kn_value_free(kn_ast_run(kn_value_as_ast(args[0])));
+	// We ensured the first value was an ast in the parser.
+	assert(kn_value_is_ast(args[0]));
 
+	kn_value_free(kn_ast_run(AST(args[0])));
 	return kn_value_run(args[1]);
 }
 
 DECLARE_FUNCTION(assign, 2, "=") {
 	struct kn_variable *variable;
-	kn_value ret;
 
 #ifdef KN_EXT_EQL_INTERPOLATE
 	// if it's an identifier, special-case it where we don't evaluate it.
@@ -737,22 +567,15 @@ DECLARE_FUNCTION(assign, 2, "=") {
 	} else {
 		// otherwise, evaluate the expression, convert to a string,
 		// and then use that as the variable.
-		struct kn_string *string = kn_value_to_string(args[0]);
+		struct kn_string *string = to_string(args[0]);
 		variable = kn_env_fetch(kn_string_deref(string), kn_string_length(string));
 		kn_string_free(string);
 	}
 #endif /* KN_EXT_EQL_INTERPOLATE */
 
 
-	// vast majority of the time we're going to be assinging to an expr result.
-	if (KN_LIKELY(kn_value_is_ast(args[1]))) {
-		ret = kn_ast_run(kn_value_as_ast(args[1]));
-	} else {
-		ret = kn_value_run(args[1]);
-	}
-
+	kn_value ret = kn_value_run(args[1]);
 	kn_variable_assign(variable, kn_value_clone(ret));
-
 	return ret;
 }
 
@@ -760,85 +583,58 @@ DECLARE_FUNCTION(while, 2, "WHILE") {
 	if (KN_UNLIKELY(!kn_value_is_ast(args[0]) || !kn_value_is_ast(args[1])))
 		goto non_ast;
 
-	while (true) {
-		kn_value cond = kn_ast_run(kn_value_as_ast(args[0]));
-
-		if (cond == KN_FALSE)
-			break;
-
-		if (KN_UNLIKELY(cond != KN_TRUE)) {
-			bool b = kn_value_to_boolean(cond);
-			kn_value_free(cond);
-			if (!b) break;
-		}
-
-		kn_value_free(kn_ast_run(kn_value_as_ast(args[1])));
-	}
-
+	// vast majority of the time we'll be executing ASTs for both the condition and the body,
+	// so we'll special-case that.
+	while (to_boolean(kn_ast_run(AST(args[0]))))
+		kn_value_free(kn_ast_run(AST(args[1])));
 	return KN_NULL;
 
 non_ast:
-	while (kn_value_to_boolean(args[0]))
+	while (to_boolean(args[0]))
 		kn_value_free(kn_value_run(args[1]));
-
 	return KN_NULL;
 }
 
 DECLARE_FUNCTION(if, 3, "IF") {
-	bool idx = kn_value_to_boolean(args[0]);
-
-	return kn_value_run(args[1 + !idx]);
+	return kn_value_run(args[1 + !to_boolean(args[0])]);
 }
 
 DECLARE_FUNCTION(get, 3, "GET") {
-	struct kn_string *string, *substring;
-	size_t start, length, string_length;
+	kn_value container = kn_value_run(args[0]);
+	kn_number start = to_number(args[1]);
+	kn_number length = to_number(args[2]);
 
-	// it's likely to have the first argument as a variable, as most other things
-	// don't make sense to dynamically substring.
-	if (KN_LIKELY(kn_value_is_variable(args[0]))) {
-		kn_value value = kn_variable_run(kn_value_as_variable(args[0]));
-		if (KN_LIKELY(kn_value_is_string(value))) {
-			string = kn_value_as_string(value);
-		} else {
-			string = kn_value_to_string(value);
-			kn_value_free(value);
-		}
-	} else {
-		string = kn_value_to_string(args[0]);
-	}
-
-	start = KN_LIKELY(kn_value_is_number(args[1]))
-			? (size_t) kn_value_as_number(args[1])
-			: (size_t) kn_value_to_number(args[1]);
-
-	length = KN_LIKELY(kn_value_is_number(args[2]))
-			? (size_t) kn_value_as_number(args[2])
-			: (size_t) kn_value_to_number(args[2]);
-
-	string_length = kn_string_length(string);
-
-	// if we're getting past the end of the array, simply return the
-	// empty string.
-	if (KN_UNLIKELY(string_length <= start)) {
-		substring = &kn_string_empty;
-	} else {
-		// if the total length is too much, simply wrap around to the end.
 #ifndef KN_RECKLESS
-		if (string_length < start + length)
-			die("ending position is too large!");
-#endif /* KN_RECKLESS */
+	if (start < 0 || start != (kn_number) (unsigned) start)
+		die("starting index is negative or too large: %"PRIdkn, start);
 
-		substring =
-			kn_string_new_borrowed(kn_string_deref(string) + start, length);
+	if (length < 0 || length != (kn_number) (unsigned) length)
+		die("length is negative or too large: %"PRIdkn, length);
+
+	if (!kn_value_is_string(container) && !kn_value_is_list(container))
+		die("can only call GET on lists and strings");
+
+	// NOTE: both strings and lists have the the length in the same spot.
+	unsigned container_length = ((struct kn_list *) KN_UNMASK(container))->length;
+
+	if (container_length < start + length) {
+		die("invalid bounds given to GET: container length = %u, start+length=%"PRIdkn,
+			container_length, start + length);
+	}
+#endif /* !KN_RECKLESS */
+
+	if (kn_value_is_list(container)) {
+		struct kn_list *sublist = kn_list_sublist(LIST(container), start, length);
+		kn_list_free(LIST(container));
+		return kn_value_new(sublist);
 	}
 
-	kn_string_free(string);
-
-	return kn_value_new_string(substring);
+	struct kn_string *substring = kn_string_substring(STRING(container), start, length);
+	kn_string_free(STRING(container));
+	return kn_value_new(substring);
 }
 
-DECLARE_FUNCTION(substitute, 4, "SUBSTITUTE") {
+DECLARE_FUNCTION(set, 4, "SET") {
 	struct kn_string *string, *replacement, *result;
 	size_t start, amnt, string_length, replacement_length;
 

@@ -14,8 +14,8 @@ struct kn_list {
 
 extern struct kn_list kn_list_empty;
 
-
 struct kn_list *kn_list_alloc(size_t capacity);
+struct kn_list *kn_list_box(kn_value value);
 
 /*
  * Deallocates the memory associated with `string`; should only be called with
@@ -42,6 +42,7 @@ kn_value kn_list_head(const struct kn_list *list);
 struct kn_list *kn_list_tail(const struct kn_list *list);
 struct kn_list *kn_list_concat(struct kn_list *lhs, struct kn_list *rhs);
 struct kn_list *kn_list_repeat(struct kn_list *list, unsigned amount);
+struct kn_list *kn_list_sublist(const struct kn_list *list, unsigned start, unsigned length);
 bool kn_list_equal(const struct kn_list *lhs, const struct kn_list *rhs);
 
 static inline kn_boolean kn_list_to_boolean(const struct kn_list *list) {
@@ -56,5 +57,8 @@ static inline struct kn_string *kn_list_to_string(const struct kn_list *list) {
 	static struct kn_string newline = KN_STRING_NEW_EMBED("\n");
 	return kn_list_join(list, &newline);
 }
+
+kn_number kn_list_compare(const struct kn_list *lhs, const struct kn_list *rhs);
+
 
 #endif /* !KN_LIST_H */

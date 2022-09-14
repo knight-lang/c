@@ -89,7 +89,7 @@ struct kn_variable *kn_parse_variable() {
 	return kn_env_fetch(start, kn_parse_stream - start);
 }
 
-struct kn_ast *kn_parse_ast(const struct kn_function *fn) {
+kn_value kn_parse_ast(const struct kn_function *fn) {
 	struct kn_ast *ast = kn_ast_alloc(fn->arity);
 	ast->func = fn;
 
@@ -102,7 +102,23 @@ struct kn_ast *kn_parse_ast(const struct kn_function *fn) {
 #endif /* !KN_RECKLESS */
 	}
 
-	return ast;
+	if (KN_UNLIKELY(fn == &kn_fn_block && !kn_value_is_ast(ast->args[0]))) {
+		struct kn_ast *block_arg = kn_ast_alloc(1);
+		block_arg->func = &kn_fn_noop;
+		block_arg->args[0] = ast->args[0];
+		ast->args[0] = kn_value_new(block_arg);
+	}
+
+	if (KN_UNLIKELY(fn == &kn_fn_then && !kn_value_is_ast(ast->args[0]))) {
+		// Since evaluating anything other than an ast is meaningless (evaluating
+		// undefined variables is UB so we choose to just ignore it), if the first value
+		// is not an ast, we just return the second function's value.
+		kn_value rhs = ast->args[1];
+		free(ast);
+		return rhs;
+	}
+
+	return kn_value_new(ast);
 }
 
 static void strip_keyword() {
@@ -211,7 +227,7 @@ kn_value kn_parse_value() {
 		['P']  = &&function_prompt,
 		['Q']  = &&function_quit,
 		['R']  = &&function_random,
-		['S']  = &&function_substitute,
+		['S']  = &&function_set,
 		['T']  = &&literal_true,
 		['U']  = &&invalid,
 
@@ -342,7 +358,7 @@ WORD_FUNC(length, 'L');
 WORD_FUNC(output, 'O');
 WORD_FUNC(ascii, 'A');
 WORD_FUNC(quit, 'Q');
-WORD_FUNC(substitute, 'S');
+WORD_FUNC(set, 'S');
 WORD_FUNC(while, 'W');
 
 #ifdef KN_EXT_EVAL
@@ -358,7 +374,7 @@ parse_kw_function:
 	// fallthrough
 
 parse_function:
-	return kn_value_new_ast(kn_parse_ast(function));
+	return kn_parse_ast(function);
 
 LABEL(expected_token)
 CASES1('\0')

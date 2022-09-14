@@ -357,5 +357,6 @@ kn_value kn_value_clone(kn_value value);
 void kn_value_free(kn_value value);
 
 bool kn_value_equal(kn_value lhs, kn_value rhs);
+kn_number kn_value_compare(kn_value lhs, kn_value rhs);
 
 #endif /* !KN_VALUE_H */

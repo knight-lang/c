@@ -57,7 +57,7 @@ struct kn_variable *kn_parse_variable(void);
 /*
  * Parses the function `function` from the `kn_parse_stream`.
  */
-struct kn_ast *kn_parse_ast(const struct kn_function *function);
+kn_value kn_parse_ast(const struct kn_function *function);
 
 /*
  * Peeks at the first character in the `kn_parse_stream`.

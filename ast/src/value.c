@@ -202,6 +202,29 @@ bool kn_value_equal(kn_value lhs, kn_value rhs) {
 	}
 }
 
+kn_number kn_value_compare(kn_value lhs, kn_value rhs) {
+	switch (kn_tag(lhs)) {
+	case KN_TAG_NUMBER:
+	case KN_TAG_CONSTANT:
+		return lhs - rhs;
+	case KN_TAG_STRING: {
+		struct kn_string *rstring = kn_value_to_string(rhs);
+		kn_value cmp = kn_string_compare(kn_value_as_string(lhs), rstring);
+		kn_string_free(rstring);
+		return cmp;
+	}
+	case KN_TAG_LIST: {
+		struct kn_list *rlist = kn_value_to_list(rhs);
+		kn_value cmp = kn_list_compare(kn_value_as_list(lhs), rlist);
+		kn_list_free(rlist);
+		return cmp;
+	}
+	default:
+		die("can only compare boolean, number, list, and string.");
+	}
+}
+
+
 void kn_value_dump(kn_value value, FILE *out) {
 	switch (kn_tag(value)) {
 	case KN_TAG_CONSTANT:

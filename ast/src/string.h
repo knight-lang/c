@@ -79,6 +79,11 @@ struct kn_string {
 	 */
 	alignas(8) unsigned refcount;
 
+    /*
+     * The length of the string.
+     */
+    unsigned length;
+
 	/*
 	 * The flags that dictate how to manage this struct's memory.
 	 *
@@ -86,11 +91,6 @@ struct kn_string {
 	 * `kn_value`'s layout.
 	 */
 	enum kn_string_flags flags;
-
-	/*
-	 * The length of the string.
-	 */
-	size_t length;
 
 	/* All strings are either embedded or allocated. */
 	union {
@@ -249,6 +249,9 @@ bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs);
 kn_number kn_string_to_number(const struct kn_string *string);
 
 struct kn_list *kn_string_to_list(const struct kn_string *string);
+struct kn_string *kn_string_concat(struct kn_string *lhs, struct kn_string *rhs);
+struct kn_string *kn_string_repeat(struct kn_string *string, unsigned amount);
+struct kn_string *kn_string_substring(const struct kn_string *string, size_t start, size_t len);
 
 static inline kn_boolean kn_string_to_boolean(const struct kn_string *string) {
     return string->length != 0;
@@ -256,6 +259,14 @@ static inline kn_boolean kn_string_to_boolean(const struct kn_string *string) {
 
 static inline void kn_string_dump(const struct kn_string *string, FILE *out) {
     fprintf(out, "String(%*s)", (int) kn_string_length(string), kn_string_deref(string));
+}
+
+int strcmp(const char *, const char *);
+static inline kn_number kn_string_compare(
+    const struct kn_string *lhs, 
+    const struct kn_string *rhs
+) {
+    return strcmp(kn_string_deref(lhs), kn_string_deref(rhs));
 }
 
 #endif /* !KN_STRING_H */

@@ -73,7 +73,7 @@ static inline void kn_ast_free(struct kn_ast *ast) {
 /*
  * Executes a `kn_ast`, returning the value associated with its execution.
  */
-static inline kn_value kn_ast_run(struct kn_ast *ast) {
+static inline kn_value kn_ast_run(const struct kn_ast *ast) {
     return (ast->func->func)(ast->args);
 }
 

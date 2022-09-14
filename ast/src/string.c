@@ -330,3 +330,101 @@ struct kn_list *kn_string_to_list(const struct kn_string *string) {
 
 	return chars;
 }
+
+struct kn_string *kn_string_concat(struct kn_string *lhs, struct kn_string *rhs) {
+	size_t lhslen, rhslen;
+
+	// return early if either
+	if ((lhslen = kn_string_length(lhs)) == 0) {
+		assert(lhs == &kn_string_empty);
+		return kn_string_clone_static(rhs);
+	}
+
+	if ((rhslen = kn_string_length(rhs)) == 0) {
+		assert(rhs == &kn_string_empty);
+		return lhs;
+	}
+
+	unsigned long hash = kn_hash(kn_string_deref(lhs), kn_string_length(lhs));
+	hash = kn_hash_acc(kn_string_deref(rhs), kn_string_length(rhs), hash);
+
+	size_t length = lhslen + rhslen;
+
+	struct kn_string *string = kn_string_cache_lookup(hash, length);
+	if (string == NULL)
+		goto allocate_and_cache;
+
+	char *cached = kn_string_deref(string);
+	char *tmp = kn_string_deref(lhs);
+
+	for (size_t i = 0; i < kn_string_length(lhs); i++, cached++)
+		if (*cached != tmp[i])
+			goto allocate_and_cache;
+
+	tmp = kn_string_deref(rhs);
+
+	for (size_t i = 0; i < kn_string_length(rhs); i++, cached++)
+		if (*cached != tmp[i])
+			goto allocate_and_cache;
+
+	string = kn_string_clone(string);
+	goto free_and_return;
+
+allocate_and_cache:
+	string = kn_string_alloc(length);
+	char *str = kn_string_deref(string);
+
+	memcpy(str, kn_string_deref(lhs), lhslen);
+	memcpy(str + lhslen, kn_string_deref(rhs), rhslen);
+	str[length] = '\0';
+
+	kn_string_cache(string);
+free_and_return:
+
+	kn_string_free(lhs);
+	kn_string_free(rhs);
+
+	return string;
+}
+
+
+struct kn_string *kn_string_repeat(struct kn_string *string, unsigned amount) {
+	size_t lhslen = kn_string_length(string);
+
+	if (lhslen == 0 || amount == 0) {
+		// if the string is not empty, free it.
+		if (lhslen != 0) {
+			kn_string_free(string);
+		} else {
+			assert(string == &kn_string_empty);
+		}
+
+		return &kn_string_empty;
+	}
+
+	// we don't have to clone it, as we were given the cloned copy.
+	if (amount == 1)
+		return string;
+
+	size_t length = lhslen * amount;
+	struct kn_string *repeat = kn_string_alloc(length);
+	char *str = kn_string_deref(repeat);
+
+	for (char *ptr = str; amount != 0; --amount, ptr += lhslen)
+		memcpy(ptr, kn_string_deref(string), lhslen);
+
+	str[length] = '\0';
+
+	kn_string_free(string);
+
+	return repeat;
+}
+
+struct kn_string *kn_string_substring(const struct kn_string *string, size_t start, size_t length) {
+	assert(start + length <= string->length);
+
+	if (length == 0)
+		return &kn_string_empty;
+
+	return kn_string_new_borrowed(kn_string_deref(string) + start, length);
+}
