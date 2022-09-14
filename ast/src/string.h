@@ -79,10 +79,10 @@ struct kn_string {
 	 */
 	alignas(8) unsigned refcount;
 
-    /*
-     * The length of the string.
-     */
-    unsigned length;
+	/*
+	 * The length of the string.
+	 */
+	unsigned length;
 
 	/*
 	 * The flags that dictate how to manage this struct's memory.
@@ -189,9 +189,9 @@ size_t kn_string_length(const struct kn_string *string);
  * Dereferences the string, returning a mutable/immutable pointer to its data.
  */
 #define kn_string_deref(x) (_Generic(x,              \
-    const struct kn_string *: kn_string_deref_const, \
-          struct kn_string *: kn_string_deref_mut    \
-    )(x))
+	const struct kn_string *: kn_string_deref_const, \
+		  struct kn_string *: kn_string_deref_mut    \
+	)(x))
 
 char *kn_string_deref_mut(struct kn_string *string);
 const char *kn_string_deref_const(const struct kn_string *string);
@@ -230,8 +230,8 @@ void kn_string_deallocate(struct kn_string *string);
  * we don't end up allocating multiple times for the same string.
  */
 static inline void kn_string_free(struct kn_string *string) {
-    if (--string->refcount == 0)
-        kn_string_deallocate(string);
+	if (--string->refcount == 0)
+		kn_string_deallocate(string);
 }
 
 /*
@@ -251,22 +251,28 @@ kn_number kn_string_to_number(const struct kn_string *string);
 struct kn_list *kn_string_to_list(const struct kn_string *string);
 struct kn_string *kn_string_concat(struct kn_string *lhs, struct kn_string *rhs);
 struct kn_string *kn_string_repeat(struct kn_string *string, unsigned amount);
-struct kn_string *kn_string_substring(const struct kn_string *string, size_t start, size_t len);
+struct kn_string *kn_string_get(struct kn_string *string, unsigned start, unsigned length);
+struct kn_string *kn_string_set(
+	struct kn_string *string,
+	unsigned start,
+	unsigned length,
+	struct kn_string *replacement
+);
 
 static inline kn_boolean kn_string_to_boolean(const struct kn_string *string) {
-    return string->length != 0;
+	return string->length != 0;
 }
 
 static inline void kn_string_dump(const struct kn_string *string, FILE *out) {
-    fprintf(out, "String(%*s)", (int) kn_string_length(string), kn_string_deref(string));
+	fprintf(out, "String(%*s)", (int) kn_string_length(string), kn_string_deref(string));
 }
 
 int strcmp(const char *, const char *);
 static inline kn_number kn_string_compare(
-    const struct kn_string *lhs, 
-    const struct kn_string *rhs
+	const struct kn_string *lhs, 
+	const struct kn_string *rhs
 ) {
-    return strcmp(kn_string_deref(lhs), kn_string_deref(rhs));
+	return strcmp(kn_string_deref(lhs), kn_string_deref(rhs));
 }
 
 #endif /* !KN_STRING_H */

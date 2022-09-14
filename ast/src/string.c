@@ -420,11 +420,75 @@ struct kn_string *kn_string_repeat(struct kn_string *string, unsigned amount) {
 	return repeat;
 }
 
-struct kn_string *kn_string_substring(const struct kn_string *string, size_t start, size_t length) {
+struct kn_string *kn_string_get(struct kn_string *string, unsigned start, unsigned length) {
 	assert(start + length <= string->length);
 
-	if (length == 0)
+	if (!length) {
+		assert(string == &kn_string_empty);
 		return &kn_string_empty;
+	}
 
-	return kn_string_new_borrowed(kn_string_deref(string) + start, length);
+	if (KN_UNLIKELY(!start && length == string->length))
+		return string;
+
+	struct kn_string *substring = kn_string_new_borrowed(kn_string_deref(string) + start, length);
+	kn_string_free(string);
+	return substring;
+}
+
+struct kn_string *kn_string_set(
+	struct kn_string *string,
+	unsigned start,
+	unsigned length,
+	struct kn_string *replacement
+) {
+	assert(start + length <= string->length);
+
+	if (!replacement->length && !start) {
+		assert(replacement == &kn_string_empty);
+		return kn_string_get(string, length, string->length - length);
+	}
+
+	if (KN_UNLIKELY(!string->length)) {
+		kn_string_free(replacement);
+		return string;
+	}
+
+	char *string_str = kn_string_deref(string);
+	char *repl_str = kn_string_deref(replacement);
+
+	unsigned replaced_length = string->length - length + replacement->length;
+	unsigned long hash = kn_hash(string_str, start);
+	hash = kn_hash_acc(repl_str, replacement->length, hash);
+	hash = kn_hash_acc(string_str + start + length, string->length - start - length, hash);
+
+	struct kn_string *cached = kn_string_cache_lookup(hash, replaced_length);
+
+	if (
+		cached
+		&& !strncmp(string_str, kn_string_deref(cached), start)
+		&& !strncmp(repl_str, kn_string_deref(cached) + start, replacement->length)
+		&& !strncmp(
+			string_str + start + length,
+			kn_string_deref(cached) + start + replacement->length,
+			string->length - start - length
+		)
+	) {
+		cached = kn_string_clone(cached);
+	} else {
+		cached = kn_string_alloc(replaced_length);
+		char *str = kn_string_deref(cached);
+
+		memcpy(str, string_str, start);
+		memcpy(str + start, repl_str, replacement->length);
+		memcpy(str + start + replacement->length, string_str + start + length, string->length);
+		str[replaced_length] = '\0';
+
+		kn_string_cache(cached);
+	}
+
+	kn_string_free(string);
+	kn_string_free(replacement);
+
+	return cached;
 }

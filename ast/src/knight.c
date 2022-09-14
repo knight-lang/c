@@ -24,10 +24,8 @@ void kn_shutdown() {
 kn_value kn_run(const char *stream) {
 	kn_value parsed = kn_parse(stream);
 
-#ifndef KN_RECKLESS
 	if (parsed == KN_UNDEFINED)
-		die("unable to parse stream");
-#endif /* !KN_RECKLESS */
+		kn_error("unable to parse stream");
 
 	kn_value ret = kn_value_run(parsed);
 	kn_value_free(parsed);

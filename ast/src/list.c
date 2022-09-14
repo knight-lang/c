@@ -171,18 +171,50 @@ struct kn_string *kn_list_join(const struct kn_list *list, const struct kn_strin
 	return kn_string_new_owned(joined, len);
 }
 
-struct kn_list *kn_list_sublist(const struct kn_list *list, unsigned start, unsigned length) {
+struct kn_list *kn_list_get(struct kn_list *list, unsigned start, unsigned length) {
 	assert(start + length <= list->length);
 
-	if (length == 0)
+	if (!length) {
+		kn_list_free(list);
 		return &kn_list_empty;
+	}
+
+	if (KN_UNLIKELY(!start && length == list->length))
+		return list;
 
 	struct kn_list *sublist = kn_list_alloc(length);
 
 	for (unsigned i = 0; i < length; ++i)
 		sublist->elements[i] = kn_value_clone(list->elements[i + start]);
 
+	kn_list_free(list);
 	return sublist;
+}
+
+struct kn_list *kn_list_set(
+	struct kn_list *list,
+	unsigned start,
+	unsigned length,
+	struct kn_list *replacement
+) {
+	assert(start + length <= list->length);
+
+	if (!length) {
+		kn_list_free(list);
+		return replacement;
+	}
+
+	struct kn_list *replaced = kn_list_alloc(list->length - length + replacement->length);
+
+	unsigned i = 0;
+	for (; i < start; ++i)
+		replaced->elements[i] = kn_value_clone(list->elements[i]);
+	for (unsigned j = 0; j < replacement->length; ++j, ++i)
+		replaced->elements[i] = kn_value_clone(replacement->elements[j]);
+	for (unsigned j = start + length; j < list->length; ++j, ++i)
+		replaced->elements[i] = kn_value_clone(list->elements[i]);
+
+	return replaced;
 }
 
 void kn_list_dump(const struct kn_list *list, FILE *out) {

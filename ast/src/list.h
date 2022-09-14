@@ -42,8 +42,14 @@ kn_value kn_list_head(const struct kn_list *list);
 struct kn_list *kn_list_tail(const struct kn_list *list);
 struct kn_list *kn_list_concat(struct kn_list *lhs, struct kn_list *rhs);
 struct kn_list *kn_list_repeat(struct kn_list *list, unsigned amount);
-struct kn_list *kn_list_sublist(const struct kn_list *list, unsigned start, unsigned length);
 bool kn_list_equal(const struct kn_list *lhs, const struct kn_list *rhs);
+struct kn_list *kn_list_get(struct kn_list *list, unsigned start, unsigned length);
+struct kn_list *kn_list_set(
+	struct kn_list *list,
+	unsigned start,
+	unsigned length,
+	struct kn_list *replacement
+);
 
 static inline kn_boolean kn_list_to_boolean(const struct kn_list *list) {
 	return list->length != 0;

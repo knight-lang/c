@@ -17,10 +17,10 @@ struct kn_ast {
 	 */
 	alignas(8) unsigned refcount;
 
-    /*
-     * Whether or not we're static.
-     */
-    unsigned is_static;
+	/*
+	 * Whether or not we're static.
+	 */
+	unsigned is_static;
 
 	/*
 	 * The function associated with this ast.
@@ -50,9 +50,9 @@ struct kn_ast *kn_ast_alloc(unsigned argc);
  * independently from the passed `ast`.
  */
 static inline struct kn_ast *kn_ast_clone(struct kn_ast *ast) {
-    assert(ast->refcount);
-    ast->refcount++;
-    return ast;
+	assert(ast->refcount);
+	ast->refcount++;
+	return ast;
 }
 
 /*
@@ -65,16 +65,16 @@ void kn_ast_deallocate(struct kn_ast *ast);
  * Releases the memory resources associated with this struct.
  */
 static inline void kn_ast_free(struct kn_ast *ast) {
-    assert(ast->refcount);
-    if (--ast->refcount == 0)
-        kn_ast_deallocate(ast);
+	assert(ast->refcount);
+	if (--ast->refcount == 0)
+		kn_ast_deallocate(ast);
 }
 
 /*
  * Executes a `kn_ast`, returning the value associated with its execution.
  */
 static inline kn_value kn_ast_run(const struct kn_ast *ast) {
-    return (ast->func->func)(ast->args);
+	return (ast->func->func)(ast->args);
 }
 
 void kn_ast_dump(const struct kn_ast *ast, FILE *out);

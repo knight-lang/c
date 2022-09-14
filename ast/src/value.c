@@ -40,7 +40,7 @@ kn_number kn_value_to_number(kn_value value) {
 
 		if (custom->vtable->to_number != NULL)
 			return custom->vtable->to_number(custom->data);
-		// otherwise, fallthrough
+		KN_FALLTHROUGH
 	}
 #endif /* KN_CUSTOM */
 
@@ -52,6 +52,8 @@ kn_number kn_value_to_number(kn_value value) {
 		kn_value_free(value);
 		return ret;
 	}
+
+	KN_UNREACHABLE();
 }
 
 kn_boolean kn_value_to_boolean(kn_value value) {
@@ -76,7 +78,7 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 
 		if (custom->vtable->to_boolean != NULL)
 			return custom->vtable->to_boolean(custom->data);
-		// otherwise, fallthrough
+		KN_FALLTHROUGH
 	}
 #endif /* KN_CUSTOM */
 
@@ -121,7 +123,7 @@ struct kn_string *kn_value_to_string(kn_value value) {
 
 		if (custom->vtable->to_string != NULL)
 			return custom->vtable->to_string(custom->data);
-		// otherwise, fallthrough
+		KN_FALLTHROUGH
 	}
 #endif /* KN_CUSTOM */
 
@@ -136,6 +138,8 @@ struct kn_string *kn_value_to_string(kn_value value) {
 	case KN_TAG_CONSTANT:
 		KN_UNREACHABLE();
 	}
+
+	KN_UNREACHABLE();
 }
 
 
@@ -166,7 +170,7 @@ struct kn_list *kn_value_to_list(kn_value value) {
 
 		if (custom->vtable->to_list != NULL)
 			return custom->vtable->to_list(custom->data);
-		// otherwise, fallthrough
+		KN_FALLTHROUGH
 	}
 #endif /* KN_CUSTOM */
 
@@ -220,7 +224,7 @@ kn_number kn_value_compare(kn_value lhs, kn_value rhs) {
 		return cmp;
 	}
 	default:
-		die("can only compare boolean, number, list, and string.");
+		kn_error("can only compare boolean, number, list, and string.");
 	}
 }
 
@@ -293,18 +297,21 @@ kn_value kn_value_run(kn_value value) {
 
 		if (custom->vtable->run != NULL)
 			return custom->vtable->run(custom->data);
-		// fallthrough
+		KN_FALLTHROUGH
 	}
 #endif /* KN_CUSTOM */
 
 	case KN_TAG_STRING:
 	case KN_TAG_LIST:
 		++*KN_REFCOUNT(value);
-		// fallthrough
+		KN_FALLTHROUGH
 
 	case KN_TAG_NUMBER:
 	case KN_TAG_CONSTANT:
 		return value;
+
+	default:
+		KN_UNREACHABLE();
 	}
 }
 

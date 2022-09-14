@@ -12,10 +12,8 @@
 static char *read_file(const char *filename) {
 	FILE *file = fopen(filename, "r");
 
-#ifndef KN_RECKLESS
 	if (file == NULL)
-		die("unable to read file '%s': %s", filename, strerror(errno));
-#endif /* !KN_RECKLESS */
+		kn_error("unable to read file '%s': %s", filename, strerror(errno));
 
 	size_t length = 0;
 	size_t capacity = 2048;
@@ -25,12 +23,8 @@ static char *read_file(const char *filename) {
 		size_t amntread = fread(&contents[length], 1, capacity - length, file);
 
 		if (amntread == 0) {
-
-#ifndef KN_RECKLESS
 			if (!feof(file))
-				die("unable to read file '%s': %s'", filename, strerror(errno));
-#endif /* !KN_RECKLESS */
-
+				kn_error("unable to read file '%s': %s'", filename, strerror(errno));
 			break;
 		}
 
@@ -42,13 +36,8 @@ static char *read_file(const char *filename) {
 		}
 	}
 
-	if (fclose(file) == EOF) {
-
-#ifndef KN_RECKLESS
-		perror("couldn't close input file");
-#endif /* !KN_RECKLESS */
-
-	}
+	if (fclose(file) == EOF)
+		kn_error("couldn't close input file: %s", strerror(errno));
 
 	contents = xrealloc(contents, length + 1);
 	contents[length] = '\0';

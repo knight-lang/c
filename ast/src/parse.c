@@ -66,12 +66,8 @@ struct kn_string *kn_parse_string() {
 	assert(quote == '\'' || quote == '\"');
 
 	while (quote != (c = kn_parse_peek_advance())) {
-
-#ifndef KN_RECKLESS
 		if (c == '\0')
-			die("unterminated quote encountered: '%s'", start);
-#endif /* !KN_RECKLESS */
-
+			kn_error("unterminated quote encountered: '%s'", start);
 	}
 
 	return kn_string_new_borrowed(start, kn_parse_stream - start - 1);
@@ -95,11 +91,8 @@ kn_value kn_parse_ast(const struct kn_function *fn) {
 
 	for (unsigned i = 0; i < fn->arity; ++i) {
 		ast->args[i] = kn_parse_value();
-
-#ifndef KN_RECKLESS
 		if (ast->args[i] == KN_UNDEFINED)
-			die("unable to parse argument %u for function '%s'", i, fn->name);
-#endif /* !KN_RECKLESS */
+			kn_error("unable to parse argument %u for function '%s'", i, fn->name);
 	}
 
 	if (KN_UNLIKELY(fn == &kn_fn_block && !kn_value_is_ast(ast->args[0]))) {
@@ -371,7 +364,7 @@ WORD_FUNC(value, 'V');
 
 parse_kw_function:
 	strip_keyword();
-	// fallthrough
+	KN_FALLTHROUGH
 
 parse_function:
 	return kn_parse_ast(function);
@@ -393,7 +386,7 @@ default:
 	;
 #endif /* !KN_COMPUTED_GOTOS */
 #ifndef KN_RECKLESS
-	die("unknown token start '%c'", c);
+	kn_error("unknown token start '%c'", c);
 #endif /* KN_RECKLESS */
 
 #ifndef KN_COMPUTED_GOTOS

@@ -152,10 +152,8 @@ void kn_variable_assign(struct kn_variable *variable, kn_value value) {
 }
 
 kn_value kn_variable_run(struct kn_variable *variable) {
-#ifndef KN_RECKLESS
 	if (KN_UNLIKELY(variable->value == KN_UNDEFINED))
-		die("undefined variable '%s'", variable->name);
-#endif /*! KN_RECKLESS */
+		kn_error("undefined variable '%s'", variable->name);
 
 	return kn_value_clone(variable->value);
 }

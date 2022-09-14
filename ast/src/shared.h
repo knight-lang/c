@@ -5,32 +5,52 @@
 #include <stdlib.h> /* exit, abort */
 #include <stdio.h>  /* fprintf, stderr */
 
-#ifdef KN_USE_EXTENSIONS
+#ifndef __has_builtin
+# define __has_builtin(x) 0
+#endif /* !__has_builtin */
+
+#if KN_USE_EXTENSIONS
 # define KN_ATTRIBUTE(x) __attribute__(x)
+#else
+# define KN_ATTRIBUTE(x)
+#endif /* KN_USE_EXTENSIONS */
+
+#if __has_builtin(__builtin_expect)
 # define KN_EXPECT(x, y) (__builtin_expect(x, y))
-# ifdef NDEBUG
-#  define KN_UNREACHABLE() (__builtin_unreachable())
-# else
-#  define KN_UNREACHABLE() die("bug at %s:%d", __FILE__, __LINE__)
-# endif /* NDEBUG */
 #else
 # define KN_EXPECT(x, y) (x)
-# define KN_ATTRIBUTE(x)
-# ifdef NDEBUG
-#  define KN_UNREACHABLE() (abort())
+#endif /* __has_builtin(__builtin_expect) */
+
+#if defined(__has_c_attribute) && __has_c_attribute(fallthrough)
+# define KN_FALLTHROUGH [[fallthrough]]
+#else
+# define KN_FALLTHROUGH
+#endif /* __has_c_attribute(fallthrough) */
+
+#ifdef NDEBUG
+# if __has_builtin(__builtin_unreachable)
+#  define KN_UNREACHABLE() do { (void) KN_UNLIKELY(1); __builtin_unreachable(); } while(0)
 # else
-#  define KN_UNREACHABLE() die("bug at %s:%d", __FILE__, __LINE__)
-# endif /* NDEBUG */
-#endif /* KN_USE_EXTENSIONS */
+#  define KN_UNREACHABLE() do { (void) KN_UNLIKELY(1); abort(); } while(0)
+# endif /* __has_builtin(__builtin_unreachable) */
+#else
+# define KN_UNREACHABLE() do { die("bug at %s:%d", __FILE__, __LINE__); } while(0)
+#endif /* NDEBUG */
 
 #define KN_LIKELY(x) KN_EXPECT(!!(x), 1)
 #define KN_UNLIKELY(x) KN_EXPECT(!!(x), 0)
+
+#ifndef KN_RECKLESS
+#define kn_error(...) die(__VA_ARGS__)
+#else
+#define kn_error(...) KN_UNREACHABLE()
+#endif /* !KN_RECKLESS */
 
 /*
  * A macros that's used to halt the execution of the program, writing the
  * given message to stderr before exiting with code 1.
  */
-#define die(...) (fprintf(stderr, __VA_ARGS__), fputc('\n', stderr), exit(1))
+#define die(...) ((void) KN_UNLIKELY(1), fprintf(stderr, __VA_ARGS__), fputc('\n', stderr), exit(1))
 
 /*
  * Returns a hash for the first `length` characters of `str`.

@@ -21,14 +21,14 @@
  * note all pointers are 8-bit-aligned.
  */
 enum kn_value_tag {
-   KN_TAG_CONSTANT = 0,
-   KN_TAG_NUMBER = 1,
-   KN_TAG_VARIABLE = 2,
-   KN_TAG_STRING = 3,
-   KN_TAG_AST = 4,
-   KN_TAG_LIST = 5,
+	KN_TAG_CONSTANT = 0,
+	KN_TAG_NUMBER = 1,
+	KN_TAG_VARIABLE = 2,
+	KN_TAG_STRING = 3,
+	KN_TAG_AST = 4,
+	KN_TAG_LIST = 5,
 #ifdef KN_CUSTOM
-   KN_TAG_CUSTOM = 6
+	KN_TAG_CUSTOM = 6
 #endif /* KN_CUSTOM */
 };
 
@@ -64,7 +64,7 @@ enum kn_value_tag {
 #define KN_ZERO ((((kn_number) 0) << KN_SHIFT) | KN_TAG_NUMBER)
 
 static inline enum kn_value_tag kn_tag(kn_value value) {
-   return value & KN_TAG_MASK;
+	return value & KN_TAG_MASK;
 }
 
 #ifdef KN_CUSTOM
@@ -74,14 +74,14 @@ static inline enum kn_value_tag kn_tag(kn_value value) {
 #endif
 
 #define kn_value_new(x) (_Generic(x,            \
-   kn_number: kn_value_new_number,              \
-   kn_boolean: kn_value_new_boolean,            \
-   struct kn_string *: kn_value_new_string,     \
-   struct kn_list *: kn_value_new_list,         \
-   struct kn_variable *: kn_value_new_variable, \
-   struct kn_ast *: kn_value_new_ast            \
-   KN_VALUE_NEW_MAYBE_CUSTOM(x)                 \
-   )(x))
+	kn_number: kn_value_new_number,              \
+	kn_boolean: kn_value_new_boolean,            \
+	struct kn_string *: kn_value_new_string,     \
+	struct kn_list *: kn_value_new_list,         \
+	struct kn_variable *: kn_value_new_variable, \
+	struct kn_ast *: kn_value_new_ast            \
+	KN_VALUE_NEW_MAYBE_CUSTOM(x)                 \
+	)(x))
 
 #define KN_UNMASK(x) ((x) & ~KN_TAG_MASK)
 
@@ -92,9 +92,9 @@ static inline enum kn_value_tag kn_tag(kn_value value) {
  * details on what this entails.
  */
 static inline kn_value kn_value_new_number(kn_number number) {
-   assert(number == (((kn_number) ((kn_value) number << KN_SHIFT)) >> KN_SHIFT));
+	assert(number == (((kn_number) ((kn_value) number << KN_SHIFT)) >> KN_SHIFT));
 
-   return (((kn_value) number) << KN_SHIFT) | KN_TAG_NUMBER;
+	return (((kn_value) number) << KN_SHIFT) | KN_TAG_NUMBER;
 }
 
 /*
@@ -104,7 +104,7 @@ static inline kn_value kn_value_new_number(kn_number number) {
  * `KN_TRUE` or `KN_FALSE`.
  */
 static inline kn_value kn_value_new_boolean(kn_boolean boolean) {
-   return ((kn_value) boolean) << 4; // micro-optimizations hooray!
+	return ((kn_value) boolean) << 4; // micro-optimizations hooray!
 }
 
 /*
@@ -114,11 +114,11 @@ static inline kn_value kn_value_new_boolean(kn_boolean boolean) {
  * passed pointer is invalid after this function returns.
  */
 static inline kn_value kn_value_new_string(struct kn_string *string) {
-   // a nonzero tag indicates a misaligned pointer
-   assert(KN_TAG((kn_value) string) == 0);
-   assert(string != NULL);
+	// a nonzero tag indicates a misaligned pointer
+	assert(KN_TAG((kn_value) string) == 0);
+	assert(string != NULL);
 
-   return ((kn_value) string) | KN_TAG_STRING;
+	return ((kn_value) string) | KN_TAG_STRING;
 }
 
 /*
@@ -128,22 +128,22 @@ static inline kn_value kn_value_new_string(struct kn_string *string) {
  * passed pointer is invalid after this function returns.
  */
 static inline kn_value kn_value_new_list(struct kn_list *list) {
-   // a nonzero tag indicates a misaligned pointer
-   assert(KN_TAG((kn_value) list) == 0);
-   assert(list != NULL);
+	// a nonzero tag indicates a misaligned pointer
+	assert(KN_TAG((kn_value) list) == 0);
+	assert(list != NULL);
 
-   return ((kn_value) list) | KN_TAG_LIST;
+	return ((kn_value) list) | KN_TAG_LIST;
 }
 
 /*
  * Creates a new variable value.
  */
 static inline kn_value kn_value_new_variable(struct kn_variable *variable) {
-   // a nonzero tag indicates a misaligned pointer
-   assert(KN_TAG((kn_value) variable) == 0);
-   assert(variable != NULL);
+	// a nonzero tag indicates a misaligned pointer
+	assert(KN_TAG((kn_value) variable) == 0);
+	assert(variable != NULL);
 
-   return ((kn_value) variable) | KN_TAG_VARIABLE;
+	return ((kn_value) variable) | KN_TAG_VARIABLE;
 }
 
 /*
@@ -153,11 +153,11 @@ static inline kn_value kn_value_new_variable(struct kn_variable *variable) {
  * passed pointer is invalid after this function returns.
  */
 static inline kn_value kn_value_new_ast(struct kn_ast *ast) {
-   // a nonzero tag indicates a misaligned pointer
-   assert(KN_TAG((kn_value) ast) == 0);
-   assert(ast != NULL);
+	// a nonzero tag indicates a misaligned pointer
+	assert(KN_TAG((kn_value) ast) == 0);
+	assert(ast != NULL);
 
-   return ((kn_value) ast) | KN_TAG_AST;
+	return ((kn_value) ast) | KN_TAG_AST;
 }
 
 #ifdef KN_CUSTOM
@@ -167,12 +167,12 @@ static inline kn_value kn_value_new_ast(struct kn_ast *ast) {
  * Ownership of the `custom` is passed to this function.
  */
 static inline kn_value kn_value_new_custom(struct kn_custom *custom) {
-   // a nonzero tag indicates a misaligned pointer
-   assert(KN_TAG((kn_value) custom) == 0);
-   assert(custom != NULL);
-   assert(custom->vtable != NULL);
+	// a nonzero tag indicates a misaligned pointer
+	assert(KN_TAG((kn_value) custom) == 0);
+	assert(custom != NULL);
+	assert(custom->vtable != NULL);
 
-   return ((kn_value) custom) | KN_TAG_CUSTOM;
+	return ((kn_value) custom) | KN_TAG_CUSTOM;
 }
 #endif /* KN_CUSTOM */
 
@@ -180,14 +180,14 @@ static inline kn_value kn_value_new_custom(struct kn_custom *custom) {
  * Checks to see if `value` is a `kn_number`.
  */
 static inline bool kn_value_is_number(kn_value value) {
-   return kn_tag(value) == KN_TAG_NUMBER;
+	return kn_tag(value) == KN_TAG_NUMBER;
 }
 
 /*
  * Checks to see if `value` is a `KN_TRUE` or `KN_FALSE`.
  */
 static inline bool kn_value_is_boolean(kn_value value) {
-   return value == KN_FALSE || value == KN_TRUE;
+	return value == KN_FALSE || value == KN_TRUE;
 }
 
 /*
@@ -198,28 +198,28 @@ static inline bool kn_value_is_boolean(kn_value value) {
  * Checks to see if `value` is a `kn_string`.
  */
 static inline bool kn_value_is_string(kn_value value) {
-   return kn_tag(value) == KN_TAG_STRING;
+	return kn_tag(value) == KN_TAG_STRING;
 }
 
 /*
  * Checks to see if `value` is a `kn_list`.
  */
 static inline bool kn_value_is_list(kn_value value) {
-   return kn_tag(value) == KN_TAG_LIST;
+	return kn_tag(value) == KN_TAG_LIST;
 }
 
 /*
  * Checks to see if `value` is a `kn_variable`.
  */
 static inline bool kn_value_is_variable(kn_value value) {
-   return kn_tag(value) == KN_TAG_VARIABLE;
+	return kn_tag(value) == KN_TAG_VARIABLE;
 }
 
 /*
  * Checks to see if `value` is a `kn_ast`.
  */
 static inline bool kn_value_is_ast(kn_value value) {
-   return kn_tag(value) == KN_TAG_AST;
+	return kn_tag(value) == KN_TAG_AST;
 }
 
 #ifdef KN_CUSTOM
@@ -227,7 +227,7 @@ static inline bool kn_value_is_ast(kn_value value) {
  * Checks to see if `value` is a `kn_custom`.
  */
 static inline bool kn_value_is_custom(kn_value value) {
-   return kn_tag(value) == KN_TAG_CUSTOM;
+	return kn_tag(value) == KN_TAG_CUSTOM;
 }
 #endif /* KN_CUSTOM */
 
@@ -237,8 +237,8 @@ static inline bool kn_value_is_custom(kn_value value) {
  * This should only be called on number values.
  */
 static inline kn_number kn_value_as_number(kn_value value) {
-   assert(kn_value_is_number(value));
-   return ((kn_number) value) >> KN_SHIFT;
+	assert(kn_value_is_number(value));
+	return ((kn_number) value) >> KN_SHIFT;
 }
 
 /*
@@ -247,8 +247,8 @@ static inline kn_number kn_value_as_number(kn_value value) {
  * This should only be called on boolean values.
  */
 static inline kn_boolean kn_value_as_boolean(kn_value value) {
-   assert(kn_value_is_boolean(value));
-   return value != KN_FALSE;
+	assert(kn_value_is_boolean(value));
+	return value != KN_FALSE;
 }
 
 /*
@@ -257,8 +257,8 @@ static inline kn_boolean kn_value_as_boolean(kn_value value) {
  * This should only be called on string values.
  */
 static inline struct kn_string *kn_value_as_string(kn_value value) {
-   assert(kn_value_is_string(value));
-   return (struct kn_string *) KN_UNMASK(value);
+	assert(kn_value_is_string(value));
+	return (struct kn_string *) KN_UNMASK(value);
 }
 
 /*
@@ -267,8 +267,8 @@ static inline struct kn_string *kn_value_as_string(kn_value value) {
  * This should only be called on list values.
  */
 static inline struct kn_list *kn_value_as_list(kn_value value) {
-   assert(kn_value_is_list(value));
-   return (struct kn_list *) KN_UNMASK(value);
+	assert(kn_value_is_list(value));
+	return (struct kn_list *) KN_UNMASK(value);
 }
 
 /*
@@ -277,8 +277,8 @@ static inline struct kn_list *kn_value_as_list(kn_value value) {
  * This should only be called on variable values.
  */
 static inline struct kn_variable *kn_value_as_variable(kn_value value) {
-   assert(kn_value_is_variable(value));
-   return (struct kn_variable *) KN_UNMASK(value);
+	assert(kn_value_is_variable(value));
+	return (struct kn_variable *) KN_UNMASK(value);
 }
 
 /*
@@ -287,8 +287,8 @@ static inline struct kn_variable *kn_value_as_variable(kn_value value) {
  * This should only be called on ast values.
  */
 static inline struct kn_ast *kn_value_as_ast(kn_value value) {
-   assert(kn_value_is_ast(value));
-   return (struct kn_ast *) KN_UNMASK(value);
+	assert(kn_value_is_ast(value));
+	return (struct kn_ast *) KN_UNMASK(value);
 }
 
 #ifdef KN_CUSTOM
@@ -298,8 +298,8 @@ static inline struct kn_ast *kn_value_as_ast(kn_value value) {
  * This should only be called on custom values.
  */
 static inline struct kn_custom *kn_value_as_custom(kn_value value) {
-   assert(kn_value_iscustom(value));
-   return (struct kncustom *) KN_UNMASK(value);
+	assert(kn_value_iscustom(value));
+	return (struct kncustom *) KN_UNMASK(value);
 }
 #endif /* KN_CUSTOM */
 
