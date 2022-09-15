@@ -29,7 +29,7 @@ static int iswordfunc(char c) {
 void kn_parse_strip() {
 	assert(iswhitespace(kn_parse_peek()) || kn_parse_peek() == '#');
 
-	while (1) {
+	while (true) {
 		char c = kn_parse_peek();
 
 		if (KN_UNLIKELY(c == '#')) {

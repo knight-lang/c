@@ -23,7 +23,7 @@ static char *read_file(const char *filename) {
 		size_t amntread = fread(&contents[length], 1, capacity - length, file);
 
 		if (amntread == 0) {
-			if (!feof(file))
+			if (ferror(file))
 				kn_error("unable to read file '%s': %s'", filename, strerror(errno));
 			break;
 		}
@@ -58,9 +58,11 @@ int main(int argc, char **argv) {
 	case 'e':
 		str = argv[2];
 		break;
+
 	case 'f':
 		str = read_file(argv[2]);
 		break;
+
 	default:
 		usage(argv[0]);
 	}

@@ -46,7 +46,7 @@ enum kn_string_flags {
  * embedded, but the more memory used.
  */
 #ifndef KN_STRING_PADDING_LENGTH
-# define KN_STRING_PADDING_LENGTH 32
+# define KN_STRING_PADDING_LENGTH 16
 #endif /* !KN_STRING_PADDING_LENGTH */
 
 /*
@@ -181,17 +181,11 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length);
 struct kn_string *kn_string_cache_lookup(kn_hash_t hash, size_t length);
 
 /*
- * Returns the length of the string, in bytes.
- */
-size_t kn_string_length(const struct kn_string *string);
-
-
-/*
  * Dereferences the string, returning a mutable/immutable pointer to its data.
  */
-#define kn_string_deref(x) (_Generic(x,              \
+#define kn_string_deref(x) (_Generic(x,             \
 	const struct kn_string *: kn_string_deref_const, \
-		  struct kn_string *: kn_string_deref_mut    \
+	      struct kn_string *: kn_string_deref_mut    \
 	)(x))
 
 char *kn_string_deref_mut(struct kn_string *string);
@@ -240,6 +234,8 @@ static inline void kn_string_free(struct kn_string *string) {
  */
 bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs);
 
+kn_number kn_string_compare(const struct kn_string *lhs, const struct kn_string *rhs);
+
 /*
  * Convert a string to a number, as per the knight specs.
  *
@@ -252,28 +248,16 @@ kn_number kn_string_to_number(const struct kn_string *string);
 struct kn_list *kn_string_to_list(const struct kn_string *string);
 struct kn_string *kn_string_concat(struct kn_string *lhs, struct kn_string *rhs);
 struct kn_string *kn_string_repeat(struct kn_string *string, size_t amount);
-struct kn_string *kn_string_get(struct kn_string *string, size_t start, size_t length);
-struct kn_string *kn_string_set(
+struct kn_string *kn_string_get_substring(struct kn_string *string, size_t start, size_t length);
+struct kn_string *kn_string_set_substring(
 	struct kn_string *string,
 	size_t start,
 	size_t length,
 	struct kn_string *replacement
 );
 
-static inline kn_boolean kn_string_to_boolean(const struct kn_string *string) {
-	return string->length != 0;
-}
-
 static inline void kn_string_dump(const struct kn_string *string, FILE *out) {
-	fprintf(out, "String(%*s)", (int) kn_string_length(string), kn_string_deref(string));
-}
-
-int strcmp(const char *, const char *);
-static inline kn_number kn_string_compare(
-	const struct kn_string *lhs, 
-	const struct kn_string *rhs
-) {
-	return strcmp(kn_string_deref(lhs), kn_string_deref(rhs));
+	fprintf(out, "String(%*s)", (int) string->length, kn_string_deref(string));
 }
 
 #endif /* !KN_STRING_H */

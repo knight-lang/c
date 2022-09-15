@@ -11,8 +11,11 @@ struct kn_string *kn_number_to_string(kn_number number) {
 	static char buf[22];
 	static struct kn_string number_string = { .flags = KN_STRING_FL_STATIC };
 
-	if (number == 0) return &zero_string;
-	if (number == 1) return &one_string;
+	if (number == 0)
+		return &zero_string;
+
+	if (number == 1)
+		return &one_string;
 
 	// initialize ptr to the end of the buffer minus one, as the last is
 	// the nul terminator.
@@ -36,28 +39,28 @@ struct kn_string *kn_number_to_string(kn_number number) {
 }
 
 struct kn_list *kn_number_to_list(kn_number number) {
-	static kn_value zero_elements = KN_ZERO;
 	static struct kn_list zero_list = {
 		.refcount = 1,
 		.length = 1,
-		.elements = &zero_elements,
+		.embed = { KN_ZERO },
 	};
 
-	if (!number) return &zero_list;
+	if (number == 0) 
+		return &zero_list;
 
 	// FIXME: use base10 to find the required amount.
 	struct kn_list *digits = kn_list_alloc(22);
 	digits->length = 0;
 
-	while (number) {
-		digits->elements[digits->length++] = kn_value_new_number(number % 10);
-		number /= 10;
-	}
+	do {
+		digits->alloc[digits->length++] = kn_value_new(number % 10);
+	} while (number /= 10);
 
+	// swap all the digits at the end
 	for (size_t i = 0; i < digits->length / 2; ++i) {
-		kn_value tmp = digits->elements[i];
-		digits->elements[i] = digits->elements[digits->length - i - 1];
-		digits->elements[digits->length - i - 1] = tmp;
+		kn_value tmp = kn_list_get(digits, i);
+		kn_list_set(digits, i, kn_list_get(digits, digits->length - i - 1));
+		kn_list_set(digits, digits->length - i - 1, tmp);
 	}
 
 	return digits;

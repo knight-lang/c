@@ -29,7 +29,7 @@
 
 #ifdef NDEBUG
 # if __has_builtin(__builtin_unreachable)
-#  define KN_UNREACHABLE() do { (void) KN_UNLIKELY(1); __builtin_unreachable(); } while(0)
+#  define KN_UNREACHABLE() do { __builtin_unreachable(); } while(0)
 # else
 #  define KN_UNREACHABLE() do { (void) KN_UNLIKELY(1); abort(); } while(0)
 # endif /* __has_builtin(__builtin_unreachable) */

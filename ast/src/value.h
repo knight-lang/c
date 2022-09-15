@@ -2,6 +2,7 @@
 #define KN_VALUE_H
 
 #include "decls.h"
+#include "shared.h"
 #include <assert.h>
 #include <stdio.h>
 
@@ -340,13 +341,41 @@ void kn_value_dump(kn_value value, FILE *out);
  */
 kn_value kn_value_run(kn_value value);
 
+
+static inline size_t kn_container_length(kn_value value) {
+	assert(kn_value_is_list(value) || kn_value_is_string(value));
+
+	// NOTE: both strings and lists have the the length in the same spot.
+	return ((size_t *) KN_UNMASK(value))[1];
+}
+
+static inline size_t *kn_container_refcount(kn_value value) {
+	assert(kn_value_is_ast(value) || kn_value_is_string(value) || kn_value_is_list(value));
+
+	return (size_t *) KN_UNMASK(value);
+}
+
+
+static inline bool kn_value_is_allocated(kn_value value) {
+	return KN_TAG_VARIABLE < kn_tag(value);
+}
+
 /*
  * Returns a copy of `value`.
  *
  * Both `value` and the returned value must be passed independently to
  * `kn_value_free` to ensure that all resources are cleaned up after use.
  */
-kn_value kn_value_clone(kn_value value);
+static inline kn_value kn_value_clone(kn_value value) {
+	assert(value != KN_UNDEFINED);
+
+	if (kn_value_is_allocated(value))
+		++*kn_container_refcount(value);
+
+	return value;
+}
+
+void kn_value_deallocate(kn_value value);
 
 /*
  * Frees all resources associated with `value`.
@@ -354,7 +383,17 @@ kn_value kn_value_clone(kn_value value);
  * Note that for the refcounted types (ie `kn_string` and `kn_ast`), this
  * will only actually free the resources when the refcount hits zero.
  */
-void kn_value_free(kn_value value);
+static inline void kn_value_free(kn_value value) {
+	assert(value != KN_UNDEFINED);
+
+	if (!kn_value_is_allocated(value))
+		return;
+
+	if (KN_LIKELY(--*kn_container_refcount(value)))
+		return;
+
+	kn_value_deallocate(value);
+}
 
 bool kn_value_equal(kn_value lhs, kn_value rhs);
 kn_number kn_value_compare(kn_value lhs, kn_value rhs);

@@ -16,8 +16,6 @@
 #include <stdio.h>    /* printf */
 #include <ctype.h>    /* isspace */
 
-#define KN_REFCOUNT(x) ((size_t *) KN_UNMASK(x))
-
 kn_number kn_value_to_number(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
@@ -64,13 +62,11 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 		return value == KN_TRUE;
 
 	case KN_TAG_NUMBER:
-		return kn_number_to_boolean(kn_value_to_number(value));
+		return kn_value_as_number(value) != 0;
 
 	case KN_TAG_STRING:
-		return kn_string_to_boolean(kn_value_as_string(value));
-
 	case KN_TAG_LIST:
-		return kn_list_to_boolean(kn_value_to_list(value));
+		return kn_container_length(value) != 0;
 
 #ifdef KN_CUSTOM
 	case KN_TAG_CUSTOM: {
@@ -97,7 +93,7 @@ struct kn_string *kn_value_to_string(kn_value value) {
 	static struct kn_string builtin_strings[KN_TRUE + 1] = {
 		[KN_FALSE] = KN_STRING_NEW_EMBED("false"),
 		[KN_ZERO]  = KN_STRING_NEW_EMBED("0"),
-		[KN_NULL]  = KN_STRING_NEW_EMBED("null"),
+		[KN_NULL]  = KN_STRING_NEW_EMBED(""), // TODO: b/c its not `kn_string_empty`, will this err?
 		[KN_ONE]   = KN_STRING_NEW_EMBED("1"),
 		[KN_TRUE]  = KN_STRING_NEW_EMBED("true"),
 	};
@@ -144,11 +140,11 @@ struct kn_string *kn_value_to_string(kn_value value) {
 
 
 struct kn_list *kn_value_to_list(kn_value value) {
-	static kn_value true_elements = KN_TRUE;
 	static struct kn_list true_list = {
 		.refcount = 1,
 		.length = 1,
-		.elements = &true_elements,
+		.flags = KN_LIST_FL_STATIC,
+		.embed = { KN_TRUE },
 	};
 
 	switch (kn_tag(value)) {
@@ -211,18 +207,21 @@ kn_number kn_value_compare(kn_value lhs, kn_value rhs) {
 	case KN_TAG_NUMBER:
 	case KN_TAG_CONSTANT:
 		return lhs - rhs;
+
 	case KN_TAG_STRING: {
 		struct kn_string *rstring = kn_value_to_string(rhs);
 		kn_value cmp = kn_string_compare(kn_value_as_string(lhs), rstring);
 		kn_string_free(rstring);
 		return cmp;
 	}
+
 	case KN_TAG_LIST: {
 		struct kn_list *rlist = kn_value_to_list(rhs);
 		kn_value cmp = kn_list_compare(kn_value_as_list(lhs), rlist);
 		kn_list_free(rlist);
 		return cmp;
 	}
+
 	default:
 		kn_error("can only compare boolean, number, list, and string.");
 	}
@@ -233,13 +232,20 @@ void kn_value_dump(kn_value value, FILE *out) {
 	switch (kn_tag(value)) {
 	case KN_TAG_CONSTANT:
 		switch (value) {
-		case KN_TRUE:  fputs("Boolean(true)", out); return;
-		case KN_FALSE: fputs("Boolean(false)", out); return;
-		case KN_NULL:  fputs("Null()", out); return;
-#ifndef NDEBUG // we dump undefined only for debugging.
-		case KN_UNDEFINED: fputs("<KN_UNDEFINED>", out); return;
-#endif /* !NDEBUG */
-		default: KN_UNREACHABLE();
+		case KN_TRUE:
+			fputs("Boolean(true)", out);
+			return;
+
+		case KN_FALSE:
+			fputs("Boolean(false)", out);
+			return;
+
+		case KN_NULL:
+			fputs("Null()", out);
+			return;
+
+		default:
+			KN_UNREACHABLE();
 		}
 
 	case KN_TAG_NUMBER:
@@ -297,47 +303,30 @@ kn_value kn_value_run(kn_value value) {
 
 		if (custom->vtable->run != NULL)
 			return custom->vtable->run(custom->data);
+
 		KN_FALLTHROUGH
 	}
 #endif /* KN_CUSTOM */
 
 	case KN_TAG_STRING:
 	case KN_TAG_LIST:
-		++*KN_REFCOUNT(value);
+		++*kn_container_refcount(value);
+
 		KN_FALLTHROUGH
 
 	case KN_TAG_NUMBER:
 	case KN_TAG_CONSTANT:
 		return value;
-
-	default:
-		KN_UNREACHABLE();
 	}
+
+	KN_UNREACHABLE();
 }
 
-static bool is_allocated(kn_value value) {
-	return KN_TAG_VARIABLE < kn_tag(value);
-}
 
-kn_value kn_value_clone(kn_value value) {
+void kn_value_deallocate(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
-	if (is_allocated(value))
-		++*KN_REFCOUNT(value);
-
-	return value;
-}
-
-void kn_value_free(kn_value value) {
-	assert(value != KN_UNDEFINED);
-
-	if (!is_allocated(value))
-		return;
-
-	if (KN_LIKELY(--*KN_REFCOUNT(value)))
-		return;
-
-	switch (KN_EXPECT(kn_tag(value), KN_TAG_STRING)) {
+	switch (kn_tag(value)) {
 	case KN_TAG_STRING:
 		kn_string_deallocate(kn_value_as_string(value));
 		return;
