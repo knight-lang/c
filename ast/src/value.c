@@ -20,17 +20,18 @@ kn_number kn_value_to_number(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
 	switch (KN_EXPECT(kn_tag(value), KN_TAG_NUMBER)) {
-	case KN_TAG_NUMBER:
-		return kn_value_as_number(value);
-
 	case KN_TAG_CONSTANT:
-		return value == KN_TRUE;
+		value >>= 1; // horray for micro-optimizations
+		KN_FALLTHROUGH
+
+	case KN_TAG_NUMBER:
+		return (kn_number) value >> KN_SHIFT;
 
 	case KN_TAG_STRING:
 		return kn_string_to_number(kn_value_as_string(value));
 
 	case KN_TAG_LIST:
-		return kn_list_to_number(kn_value_as_list(value));
+		return (kn_number) kn_value_as_list(value)->length;
 
 #ifdef KN_CUSTOM
 	case KN_TAG_CUSTOM: {
@@ -58,14 +59,6 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
 	switch (kn_tag(value)) {
-	case KN_TAG_CONSTANT:
-	case KN_TAG_NUMBER:
-		return KN_NULL < value;
-
-	case KN_TAG_STRING:
-	case KN_TAG_LIST:
-		return kn_container_length(value) != 0;
-
 #ifdef KN_CUSTOM
 	case KN_TAG_CUSTOM: {
 		struct kn_custom *custom = kn_value_as_custom(value);
@@ -80,9 +73,20 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 	case KN_TAG_VARIABLE:
 		// simply execute the value and call this function again.
 		value = kn_value_run(value);
-		kn_boolean ret = kn_value_to_boolean(value);
-		kn_value_free(value);
+		if (kn_tag(value) <= KN_TAG_NUMBER) {
+		case KN_TAG_CONSTANT:
+		case KN_TAG_NUMBER:
+			return KN_NULL < value;
+		}
+
+		kn_boolean ret = kn_container_length(value) != 0;
+		if (!--*kn_container_refcount(value))
+			kn_value_deallocate(value);
 		return ret;
+
+	case KN_TAG_STRING:
+	case KN_TAG_LIST:
+		return kn_container_length(value) != 0;
 	}
 }
 
@@ -139,7 +143,6 @@ struct kn_string *kn_value_to_string(kn_value value) {
 
 struct kn_list *kn_value_to_list(kn_value value) {
 	static struct kn_list true_list = {
-		.refcount = 1,
 		.length = 1,
 		.flags = KN_LIST_FL_STATIC | KN_LIST_FL_EMBED,
 		.embed = { KN_TRUE },
@@ -202,9 +205,11 @@ bool kn_value_equal(kn_value lhs, kn_value rhs) {
 
 kn_number kn_value_compare(kn_value lhs, kn_value rhs) {
 	switch (kn_tag(lhs)) {
-	case KN_TAG_NUMBER:
 	case KN_TAG_CONSTANT:
-		return lhs - rhs;
+		return lhs - kn_value_to_boolean(rhs);
+
+	case KN_TAG_NUMBER:
+		return kn_value_as_number(lhs) - kn_value_to_number(rhs);
 
 	case KN_TAG_STRING: {
 		struct kn_string *rstring = kn_value_to_string(rhs);
@@ -288,7 +293,7 @@ void kn_value_dump(kn_value value, FILE *out) {
 kn_value kn_value_run(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
-	switch (KN_EXPECT(kn_tag(value), KN_TAG_AST)) {
+	switch (kn_tag(value)) {
 	case KN_TAG_AST:
 		return kn_ast_run(kn_value_as_ast(value));
 
@@ -316,8 +321,6 @@ kn_value kn_value_run(kn_value value) {
 	case KN_TAG_CONSTANT:
 		return value;
 	}
-
-	KN_UNREACHABLE();
 }
 
 

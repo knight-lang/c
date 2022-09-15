@@ -144,10 +144,7 @@ DECLARE_FUNCTION(tail, 1, "]") {
 
 	if (kn_value_is_list(ran)) {
 		struct kn_list *list = kn_value_as_list(ran);
-		struct kn_list *tail = kn_list_get_sublist(list, 1, list->length - 1);
-
-		kn_list_free(list);
-		return kn_value_new(tail);
+		return kn_value_new(kn_list_get_sublist(list, 1, list->length - 1));
 	}
 
 	struct kn_string *string = kn_value_as_string(ran);

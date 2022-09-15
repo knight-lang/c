@@ -277,32 +277,6 @@ void kn_string_cleanup() {
 	}
 }
 
-
-/*
- * Note that we can't use `strtoll`, because we aren't null terminated
- */
-kn_number kn_string_to_number(const struct kn_string *string) {
-	kn_number ret = 0;
-	const char *ptr = kn_string_deref(string);
-
-	// strip leading whitespace.
-	while (KN_UNLIKELY(isspace(*ptr)))
-		ptr++;
-
-	bool is_neg = *ptr == '-';
-
-	// remove leading `-` or `+`s, if they exist.
-	if (is_neg || *ptr == '+')
-		++ptr;
-
-	// only digits are `<= 9` when a literal `0` char is subtracted from them.
-	unsigned char cur; // be explicit about wraparound.
-	while ((cur = *ptr++ - '0') <= 9)
-		ret = ret * 10 + cur;
-
-	return is_neg ? -ret : ret;
-}
-
 struct kn_list *kn_string_to_list(const struct kn_string *string) {
 	size_t length = string->length;
 

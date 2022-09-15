@@ -25,8 +25,8 @@ enum kn_value_tag {
 	KN_TAG_CONSTANT = 0,
 	KN_TAG_NUMBER = 1,
 	KN_TAG_VARIABLE = 2,
-	KN_TAG_STRING = 3,
-	KN_TAG_AST = 4,
+	KN_TAG_AST = 3,
+	KN_TAG_STRING = 4,
 	KN_TAG_LIST = 5,
 #ifdef KN_CUSTOM
 	KN_TAG_CUSTOM = 6

@@ -254,7 +254,9 @@ kn_number kn_string_compare(const struct kn_string *lhs, const struct kn_string 
  * may appear (`+` is ignored, `-` indicates a negative number). Then as many
  * digits as possible are read.
  */
-kn_number kn_string_to_number(const struct kn_string *string);
+static inline kn_number kn_string_to_number(const struct kn_string *string) {
+	return strtoll(kn_string_deref(string), NULL, 10);
+}
 
 struct kn_list *kn_string_to_list(const struct kn_string *string);
 struct kn_string *kn_string_concat(struct kn_string *lhs, struct kn_string *rhs);
