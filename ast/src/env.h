@@ -53,16 +53,32 @@ struct kn_variable *kn_env_fetch(const char *identifier, size_t length);
 /*
  * Assigns a value to this variable, overwriting whatever was there previously.
  */
-void kn_variable_assign(struct kn_variable *variable, kn_value);
+static inline void kn_variable_assign(
+	struct kn_variable *variable,
+	kn_value value
+) {
+	if (variable->value != KN_UNDEFINED)
+		kn_value_free(variable->value);
+
+	variable->value = value;
+}
 
 /*
  * Runs the given variable, returning the value associated with it.
  *
  * If the variable has not been assigned to yet, this will abort the program.
  */
-kn_value kn_variable_run(struct kn_variable *variable);
+static inline kn_value kn_variable_run(struct kn_variable *variable) {
+	if (KN_UNLIKELY(variable->value == KN_UNDEFINED))
+		kn_error("undefined variable '%s'", variable->name);
 
-static inline void kn_variable_dump(const struct kn_variable *variable, FILE *out) {
+	return kn_value_clone(variable->value);
+}
+
+static inline void kn_variable_dump(
+	const struct kn_variable *variable,
+	FILE *out
+) {
 	fprintf(out, "Variable(%s)", variable->name);
 }
 

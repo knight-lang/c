@@ -67,8 +67,8 @@ void kn_env_startup(void) {
 	assert(!kn_env_has_been_started && (kn_env_has_been_started = true));
 
 	for (size_t i = 0; i < KN_ENV_NBUCKETS; ++i) {
-		// since it's static, `length` starts off at `0`, and `kn_env_shutdown`
-		// should reset it back to zero.
+		// Since it's static, `length` starts off at `0`, and
+		// `kn_env_shutdown` should reset it back to zero.
 		assert(kn_env_map[i].length == 0);
 		kn_env_map[i].capacity = KN_ENV_CAPACITY;
 		kn_env_map[i].variables = xmalloc(
@@ -85,13 +85,13 @@ void kn_env_shutdown(void) {
 		struct kn_env_bucket *bucket = &kn_env_map[i];
 
 		for (size_t len = 0; len < bucket->length; ++len) {
-			// All identifiers are owned, and only marked `const` so that users
-			// dont modify them (as it'd break the hash function).
+			// All identifiers are owned, and only marked `const` so
+			// that users dont modify them (as it'd break the hash
+			// function).
 			free((char *) bucket->variables[len].name);
 
-			// if the variable was defined in the source code, but never
-			// evaluated, it'll have a value of `KN_UNDEFINED`. We shouldn't
-			// free those.
+			// If the variable was defined in the source code, but
+			// never assigned, it'll have a value of `KN_UNDEFINED`.
 			if (bucket->variables[len].value != KN_UNDEFINED)
 				kn_value_free(bucket->variables[len].value);
 		}
@@ -103,46 +103,30 @@ void kn_env_shutdown(void) {
 }
 
 struct kn_variable *kn_env_fetch(const char *identifier, size_t length) {
-	struct kn_variable *variable;
-
-	assert(identifier != NULL);
+	assert(length != 0);
 
 	kn_hash_t hash = kn_hash(identifier, length);
 	struct kn_env_bucket *bucket = &kn_env_map[hash & (KN_ENV_NBUCKETS - 1)];
 
 	for (size_t i = 0; i < bucket->length; ++i) {
-		variable = &bucket->variables[i];
+		struct kn_variable *variable = &bucket->variables[i];
 
-		// if the variable already exists, return it.
+		// If the variable already exists, return it.
 		if (!strncmp(variable->name, identifier, length))
 			return variable;
 	}
 
-	// if the bucket is full, then we need to reallocate it.
+	// If the bucket is full, then too many variables have been defined.
 	if (KN_UNLIKELY(bucket->length == bucket->capacity))
 		die("too many variables created!");
 
-	variable = &bucket->variables[bucket->length++];
+	struct kn_variable *variable = &bucket->variables[bucket->length++];
+
+	// Uninitialized variables start with an undefined starting value. The
+	// new variable with an undefined starting value, so that any attempt to
+	// access it will be invalid.
+	variable->value = KN_UNDEFINED;
 	variable->name = strndup(identifier, length);
 
-	// Uninitialized variables start with an undefined starting value. The new
-	// variable with an undefined starting value, so that any attempt to access
-	// it will be invalid.
-	variable->value = KN_UNDEFINED;
-
 	return variable;
-}
-
-void kn_variable_assign(struct kn_variable *variable, kn_value value) {
-	if (variable->value != KN_UNDEFINED)
-		kn_value_free(variable->value);
-
-	variable->value = value;
-}
-
-kn_value kn_variable_run(struct kn_variable *variable) {
-	if (KN_UNLIKELY(variable->value == KN_UNDEFINED))
-		kn_error("undefined variable '%s'", variable->name);
-
-	return kn_value_clone(variable->value);
 }

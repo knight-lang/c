@@ -65,6 +65,14 @@ struct kn_custom_vtable {
 	 * to a string.
 	 */
 	struct kn_string *(*to_string)(void *data);
+
+	/*
+	 * Converts the `data` to a list.
+	 *
+	 * The default implementation will call `run`, and then convert the result
+	 * to a list.
+	 */
+	struct kn_list *(*to_list)(void *data);
 };
 
 /*

@@ -19,11 +19,6 @@ struct kn_ast {
 	alignas(8) size_t refcount;
 
 	/*
-	 * Whether or not we're static.
-	 */
-	bool is_static;
-
-	/*
 	 * The function associated with this ast.
 	 */
 	const struct kn_function *func;
@@ -54,7 +49,6 @@ static inline struct kn_ast *kn_ast_clone(struct kn_ast *ast) {
 	assert(ast->refcount != 0);
 
 	++ast->refcount;
-
 	return ast;
 }
 

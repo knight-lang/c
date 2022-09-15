@@ -13,7 +13,6 @@ struct kn_ast *freed_asts[KN_MAX_ARGC + 1][KN_AST_FREE_CACHE_LEN];
 
 void kn_ast_cleanup(void) {
 #ifdef KN_AST_CACHE
-
 	for (size_t i = 0; i <= KN_MAX_ARGC; ++i) {
 		for (size_t j = 0; j < KN_AST_FREE_CACHE_LEN; ++j) {
 			struct kn_ast *ast = freed_asts[i][j];
@@ -33,50 +32,46 @@ struct kn_ast *kn_ast_alloc(size_t argc) {
 #ifdef KN_AST_CACHE
 	assert(argc <= KN_MAX_ARGC);
 
-	// try to find a freed ast we can repurpose.
+	// Try to find a freed ast we can repurpose.
 	for (size_t i = 0; i < KN_AST_FREE_CACHE_LEN; ++i) {
 		ast = freed_asts[argc][i];
 
- 		// if it's null, then we can't repurpose it.
+ 		// If it's null, then we can't repurpose it.
 		if (ast == NULL)
 			continue;
 
-		// dont let others use this one.
+		// Don't let others use this one.
 		freed_asts[argc][i] = NULL;
 
-		// sanity check
+		// Sanity check.
 		assert(ast->refcount == 0);
 
-		// increase the refcount as we're now using it.
+		// Increase the refcount as we're now using it.
 		++ast->refcount;
 		return ast;
 	}
 #endif /* KN_AST_CACHE */
 
-	// there are no cached free asts, so we have to allocate.
+	// There are no cached free asts, so we have to allocate.
 	ast = xmalloc(sizeof(struct kn_ast) + sizeof(kn_value) * argc);
 	ast->refcount = 1;
-	ast->is_static = 0;
 
 	return ast;
 }
 
-void kn_ast_deallocate(struct kn_ast *ast) KN_ATTRIBUTE(cold) {
+void kn_ast_deallocate(struct kn_ast *ast) {
 	assert(ast->refcount == 0);
-
-	if (ast->is_static)
-		return;
 
 	size_t arity = ast->func->arity;
 
-	// free all arguments associated with this ast.
+	// Free all arguments associated with this ast.
 	for (size_t i = 0; i < arity; ++i)
 		kn_value_free(ast->args[i]);
 
 #ifdef KN_AST_CACHE
-	// attempt to cache this ast, so another allocation can reuse its space.
+	// Attempt to cache this ast, so another allocation can reuse its space.
 	for (size_t i = 0; i < KN_AST_FREE_CACHE_LEN; ++i) {
-		// if the freed slot is unused, claim it.
+		// If the freed slot is unused, claim it.
 		if (freed_asts[arity][i] == NULL) {
 			freed_asts[arity][i] = ast;
 			return;
@@ -84,10 +79,9 @@ void kn_ast_deallocate(struct kn_ast *ast) KN_ATTRIBUTE(cold) {
 	}
 #endif /* KN_AST_CACHE */
 	
-	// all free slots are used, we cannot repurpose it.
+	// All free slots are used, we cannot repurpose it.
 	free(ast);
 }
-
 
 void kn_ast_dump(const struct kn_ast *ast, FILE *out) {
 	fputs("Function(", out);

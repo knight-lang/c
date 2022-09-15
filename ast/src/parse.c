@@ -330,15 +330,25 @@ SYMBOL_FUNC(system, '$');
 
 LABEL(function_prompt)
 CASES1('P') {
-	static struct kn_ast ast_prompt = { .func = &kn_fn_prompt, .is_static = 1 };
+	static struct kn_ast ast_prompt = {
+		.refcount = 1, // Set it to `1` so nothing will ever deallocate it
+		.func = &kn_fn_prompt
+	};
+
 	strip_keyword();
+	++ast_prompt.refcount;
 	return kn_value_new_ast(&ast_prompt);
 }
 
 LABEL(function_random)
 CASES1('R') {
-	static struct kn_ast ast_random = { .func = &kn_fn_random, .is_static = 1 };
+	static struct kn_ast ast_random = {
+		.refcount = 1, // Set it to `1` so nothing will ever deallocate it
+		.func = &kn_fn_random
+	};
+
 	strip_keyword();
+	++ast_random.refcount;
 	return kn_value_new_ast(&ast_random);
 }
 

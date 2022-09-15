@@ -50,10 +50,15 @@
  * A macros that's used to halt the execution of the program, writing the
  * given message to stderr before exiting with code 1.
  */
-#define die(...) ((void) KN_UNLIKELY(1), fprintf(stderr, __VA_ARGS__), fputc('\n', stderr), exit(1))
+#define die(...) (               \
+   (void) KN_UNLIKELY(1),        \
+   fprintf(stderr, __VA_ARGS__), \
+   fputc('\n', stderr),          \
+   exit(1))
 
 
 typedef unsigned long kn_hash_t;
+
 /*
  * Returns a hash for the first `length` characters of `str`.
  *
