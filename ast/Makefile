@@ -3,6 +3,7 @@ CFLAGS+=-Wall -Wextra -Wpedantic -std=c11
 SRCDIR?=src
 OBJDIR?=obj
 BINDIR?=bin
+CORPUSDIR?=corpus
 
 exe=$(BINDIR)/knight
 dyn=$(BINDIR)/libknight.so
@@ -13,7 +14,9 @@ KN_FLAGS?=-DKN_AST_CACHE -DKN_STRING_CACHE
 
 override CFLAGS+=-F$(SRCDIR)
 
-ifdef DEBUG
+ifeq ($(MAKECMDGOALS),fuzzer) 
+override CFLAGS+=-g -fsanitize=address,undefined,fuzzer -DKN_FUZZING
+else ifeq ($(MAKECMDGOALS),debug)
 override CFLAGS+=-g -fsanitize=address,undefined
 else
 override CFLAGS+=-O2 -flto -DNDEBUG
@@ -25,13 +28,16 @@ endif
 
 override CFLAGS+=$(KN_FLAGS)
 
-.PHONY: all optimized clean shared
+.PHONY: all optimized clean shared fuzzer
+
+fuzzer: $(exe) $(corpus)
+	@echo "0" > $(CORPUSDIR)/initial.txt
 
 all: $(exe)
 shared: $(dyn)
 
 clean:
-	-@rm -r $(OBJDIR) $(BINDIR)
+	-@rm -r $(OBJDIR) $(BINDIR) $(CORPUSDIR)
 
 optimized:
 	$(CC) $(CFLAGS) -o $(exe) $(source_files)
@@ -44,6 +50,9 @@ $(dyn): $(objects) | $(BINDIR)
 
 $(BINDIR):
 	@mkdir -p $(BINDIR)
+
+$(CORPUSDIR):
+	@mkdir -p $(CORPUSDIR)
 
 $(OBJDIR):
 	@mkdir -p $(OBJDIR)

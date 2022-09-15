@@ -5,6 +5,14 @@
 #include "function.h" /* kn_function */
 
 /*
+ * The stream that all the parse functions interact with. 
+ */
+struct kn_stream {
+	const char *source;
+	size_t position, length;
+};
+
+/*
  * Parses out a `kn_value` from the given stream, returning `KN_UNDEFINED` if no
  * value could be parsed.
  *
@@ -12,13 +20,7 @@
  * `kn_parse_value` can be used to fetch the next value and update the parsing
  * stream.
  */
-kn_value kn_parse(const char *stream);
-
-/*
- * The stream that all the parse functions interact with. This is set by the
- * `kn_parse` function.
- */
-extern const char *kn_parse_stream;
+kn_value kn_parse(struct kn_stream stream);
 
 /*
  * Attempts to parse a `kn_value` from the `kn_parse_stream`.
@@ -26,65 +28,68 @@ extern const char *kn_parse_stream;
  * Unlike the other parsing functions, this function _will_ strip leading
  * whitespace and comments.
  */
-kn_value kn_parse_value(void);
+kn_value kn_parse_value(struct kn_stream *stream);
 
 /*
  * Strips all leading whitespace and comments from the `kn_parse_stream`.
  */
-void kn_parse_strip(void);
+void kn_parse_strip(struct kn_stream *stream);
 
 /*
  * Parses a `kn_number` from the `kn_parse_stream`.
  *
  * The stream must start with a valid digit.
  */
-kn_number kn_parse_number(void);
+kn_number kn_parse_number(struct kn_stream *stream);
 
 /*
  * Parses a `kn_string` from the `kn_parse_stream`.
  *
  * The stream must start either a single or double quote (`'` or `"`).
  */
-struct kn_string *kn_parse_string(void);
+struct kn_string *kn_parse_string(struct kn_stream *stream);
 
 /*
  * Parses a `kn_variable` from the `kn_parse_stream`.
  *
  * The stream must start with either a lower case letter or an underscore (`_`).
  */
-struct kn_variable *kn_parse_variable(void);
+struct kn_variable *kn_parse_variable(struct kn_stream *stream);
 
 /*
  * Parses the function `function` from the `kn_parse_stream`.
  */
-kn_value kn_parse_ast(const struct kn_function *function);
+kn_value kn_parse_ast(struct kn_stream *stream, const struct kn_function *function);
 
 /*
  * Peeks at the first character in the `kn_parse_stream`.
  */
-static inline char kn_parse_peek() {
-	return *kn_parse_stream;
+static inline char kn_parse_peek(const struct kn_stream *stream) {
+	return stream->source[stream->position];
 }
 
 /*
  * Advances the stream.
  */
-static inline void kn_parse_advance() {
-	++kn_parse_stream;
+static inline void kn_parse_advance(struct kn_stream *stream) {
+	assert(stream->position < stream->length - 1);
+	++stream->position;
 }
 
 /*
  * Advances the stream, then fetches the first character of the stream.
  */
-static inline char kn_parse_advance_peek() {
-	return *++kn_parse_stream;
+static inline char kn_parse_advance_peek(struct kn_stream *stream) {
+	assert(stream->position < stream->length - 1);
+	return stream->source[++stream->position];
 }
 
 /*
  * Fetches the first character of the stream, then advances it.
  */
-static inline char kn_parse_peek_advance() {
-	return *kn_parse_stream++;
+static inline char kn_parse_peek_advance(struct kn_stream *stream) {
+	assert(stream->position < stream->length - 1);
+	return stream->source[stream->position++];
 }
 
 #ifdef KN_CUSTOM
@@ -95,7 +100,7 @@ static inline char kn_parse_peek_advance() {
  * The passed `stream` will have only the leading `X` removed, and the function
  * should strip the and any other relevant trailing characters before returning.
  */
-extern kn_value kn_parse_extension(void);
+extern kn_value kn_parse_extension(struct kn_stream *stream);
 #endif /* KN_CUSTOM */
 
 #endif /* !KN_PARSE_H */

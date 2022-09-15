@@ -5,6 +5,12 @@
 #include <stdlib.h> /* exit, abort */
 #include <stdio.h>  /* fprintf, stderr */
 
+
+#ifdef KN_FUZZING
+#include <setjmp.h>  /* jmp_buf, setjmp, longjmp */
+extern jmp_buf kn_play_start;
+#endif /* KN_FUZZING */
+
 #ifndef __has_builtin
 # define __has_builtin(x) 0
 #endif /* !__has_builtin */
@@ -50,12 +56,15 @@
  * A macros that's used to halt the execution of the program, writing the
  * given message to stderr before exiting with code 1.
  */
-#define die(...) (               \
+#ifdef KN_FUZZING
+# define die(...) longjmp(kn_play_start, 1)
+#else
+# define die(...) (              \
    (void) KN_UNLIKELY(1),        \
    fprintf(stderr, __VA_ARGS__), \
    fputc('\n', stderr),          \
    exit(1))
-
+#endif /* KN_FUZZING */
 
 typedef unsigned long kn_hash_t;
 
@@ -80,7 +89,7 @@ kn_hash_t kn_hash_acc(const char *str, size_t length, kn_hash_t hash);
  * This is identical to the stdlib's `malloc`, except the program is aborted
  * instead of returning `NULL`.
  */
-void *xmalloc(size_t size) KN_ATTRIBUTE((malloc));
+void KN_ATTRIBUTE((malloc)) *xmalloc(size_t size);
 
 /*
  * Resizes the pointer to a segment of at least `size` bytes of memory and

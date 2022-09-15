@@ -8,7 +8,7 @@
  *
  * This function should be called before any other Knight function.
  */
-void kn_startup(void);
+void KN_ATTRIBUTE(cold) kn_startup(void);
 
 /*
  * Frees all memory related to the current running Knight process.
@@ -19,7 +19,7 @@ void kn_startup(void);
  * After this function is run, `kn_startup` must be called again before calling
  * any other Knight functions.
  */
-void kn_shutdown(void);
+void KN_ATTRIBUTE(cold) kn_shutdown(void);
 
 /*
  * Executes the given stream as knight code.
@@ -27,6 +27,6 @@ void kn_shutdown(void);
  * Note that any errors that may be caused during the execution of the code will
  * simply abort the program (like all exceptions in Knight do).
  */
-kn_value kn_play(const char *stream);
+kn_value kn_play(const char *source, size_t length);
 
 #endif /* !KN_KNIGHT_H */

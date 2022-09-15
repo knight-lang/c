@@ -33,7 +33,7 @@ struct kn_variable {
  *
  * This _must_ be called before `kn_env_fetch` is called.
  */
-void kn_env_startup(void) KN_ATTRIBUTE(cold);
+void KN_ATTRIBUTE(cold) kn_env_startup(void);
 
 /*
  * Frees all resources associated with the global Knight environment.
@@ -41,7 +41,7 @@ void kn_env_startup(void) KN_ATTRIBUTE(cold);
  * This will invalidate all `kn_variable` pointers, and `kn_env_startup` must
  * be called again before `kn_env_fetch` can be used.
  */
-void kn_env_shutdown(void) KN_ATTRIBUTE(cold);
+void KN_ATTRIBUTE(cold) kn_env_shutdown(void);
 
 /*
  * Fetches the variable associated with the given identifier.

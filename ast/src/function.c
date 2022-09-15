@@ -33,7 +33,11 @@
 
 void kn_function_startup(void) {
 	// all we have to do on startup is seed the random number.
+#ifdef KN_FUZZING
+	srand(0); // we want deterministic inputs
+#else
 	srand(time(NULL));
+#endif  /* KN_FUZZING */
 }
 
 #define DECLARE_FUNCTION(func, arity, name) \
@@ -41,6 +45,12 @@ void kn_function_startup(void) {
 
 DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 	(void) args;
+
+#ifdef KN_FUZZING
+	// Don't read from stdin during fuzzing.
+	if (true)
+		return kn_value_new(&kn_string_empty);
+#endif /* KN_FUZZING */
 
 	if (KN_UNLIKELY(feof(stdin)))
 		return KN_NULL; // avoid the allocation.
@@ -83,6 +93,7 @@ DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 
 DECLARE_FUNCTION(random, 0, "RANDOM") {
 	(void) args;
+
 	return kn_value_new((kn_number) rand());
 }
 
@@ -179,7 +190,6 @@ DECLARE_FUNCTION(call, 1, "CALL") {
 
 	++ast->refcount; // We subtracted one, so now we have to add.
 	kn_value ret = kn_ast_run(ast);
-
 	kn_ast_free(ast);
 	return ret;
 }
@@ -230,7 +240,14 @@ DECLARE_FUNCTION(system, 2, "$") {
 #endif /* KN_EXT_SYSTEM */
 
 DECLARE_FUNCTION(quit, 1, "QUIT") {
-	exit((int) kn_value_to_number(args[0]));
+	int status_code = (int) kn_value_to_number(args[0]);
+
+#ifdef KN_FUZZING
+	if (true)
+		longjmp(kn_play_start, 1);
+#endif /* KN_FUZZING */
+
+	exit(status_code);
 }
 
 DECLARE_FUNCTION(not, 1, "!") {

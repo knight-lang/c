@@ -1,3 +1,6 @@
+#ifdef KN_FUZZING
+struct _ignored;
+#else
 #include "knight.h" /* kn_startup, kn_play, kn_value_free, kn_shutdown */
 #include "shared.h" /* die, xmalloc, xrealloc */
 
@@ -70,9 +73,9 @@ int main(int argc, char **argv) {
 	kn_startup();
 
 #ifdef KN_RECKLESS
-	kn_play(str);
+	kn_play(str, strlen(str));
 #else
-	kn_value_free(kn_play(str));
+	kn_value_free(kn_play(str, strlen(str)));
 	kn_shutdown();
 
 	if (argv[1][1] == 'f')
@@ -81,3 +84,4 @@ int main(int argc, char **argv) {
 
 	return 0;
 }
+#endif

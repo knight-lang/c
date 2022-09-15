@@ -103,7 +103,7 @@ static inline kn_value kn_list_get(const struct kn_list *list, size_t index) {
 	}
 
 	if (list->flags & KN_LIST_FL_REPEAT)
-		return kn_list_get(list->repeat.list, index % list->repeat.amount);
+		return kn_list_get(list->repeat.list, index % list->repeat.list->length);
 
 	KN_UNREACHABLE();
 }

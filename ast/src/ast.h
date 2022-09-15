@@ -32,7 +32,7 @@ struct kn_ast {
 /*
  * Frees memory associated with zombie ASTs.
  */
-void kn_ast_cleanup(void);
+void KN_ATTRIBUTE(cold) kn_ast_cleanup(void);
 
 /*
  * Allocates a new `kn_ast` with the given number of arguments.
@@ -56,7 +56,7 @@ static inline struct kn_ast *kn_ast_clone(struct kn_ast *ast) {
  * Deallocates the memory associated with `ast`; should only be called with
  * an ast with a zero refcount.
  */
-void kn_ast_deallocate(struct kn_ast *ast) KN_ATTRIBUTE(cold);
+void KN_ATTRIBUTE(cold) kn_ast_deallocate(struct kn_ast *ast);
 
 /*
  * Releases the memory resources associated with this struct.
