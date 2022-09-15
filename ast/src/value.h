@@ -61,8 +61,8 @@ enum kn_value_tag {
  */
 #define KN_UNDEFINED  ((3 << KN_SHIFT) | KN_TAG_CONSTANT)
 
-#define KN_ONE ((((kn_number) 1) << KN_SHIFT) | KN_TAG_NUMBER)
-#define KN_ZERO ((((kn_number) 0) << KN_SHIFT) | KN_TAG_NUMBER)
+#define KN_ONE  (((kn_number) 1 << KN_SHIFT) | KN_TAG_NUMBER)
+#define KN_ZERO (((kn_number) 0 << KN_SHIFT) | KN_TAG_NUMBER)
 
 static inline enum kn_value_tag kn_tag(kn_value value) {
 	return value & KN_TAG_MASK;

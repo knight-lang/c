@@ -3,6 +3,7 @@
 
 #include "value.h"  /* kn_value, kn_number, kn_boolean, kn_list */
 #include "string.h"
+#include <string.h>
 #include <stddef.h> /* size_t */
 #include <stdalign.h> /* alignas */
 
@@ -27,6 +28,7 @@ struct kn_list {
 		KN_LIST_FL_CONS   = 4,
 		KN_LIST_FL_REPEAT = 8,
 		KN_LIST_FL_STATIC = 16,
+		KN_LIST_FL_NUMBER = 32,
 	} flags;
 
 	union {
@@ -61,6 +63,20 @@ static inline struct kn_list *kn_list_clone(struct kn_list *list) {
 	++list->refcount;
 
 	return list;
+}
+static inline struct kn_list *kn_list_clone_number(struct kn_list *list) {
+	if (!(list->flags & KN_LIST_FL_NUMBER))
+		return list;
+
+	struct kn_list *cloned = kn_list_alloc(list->length);
+	memcpy(
+		(cloned->flags & KN_LIST_FL_EMBED)
+			? cloned->embed
+			: cloned->alloc,
+		list->alloc,
+		sizeof(kn_value) * list->length
+	);
+	return cloned;
 }
 
 static inline void kn_list_free(struct kn_list *list) {

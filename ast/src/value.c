@@ -59,10 +59,8 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 
 	switch (kn_tag(value)) {
 	case KN_TAG_CONSTANT:
-		return value == KN_TRUE;
-
 	case KN_TAG_NUMBER:
-		return kn_value_as_number(value) != 0;
+		return KN_NULL < value;
 
 	case KN_TAG_STRING:
 	case KN_TAG_LIST:
@@ -143,7 +141,7 @@ struct kn_list *kn_value_to_list(kn_value value) {
 	static struct kn_list true_list = {
 		.refcount = 1,
 		.length = 1,
-		.flags = KN_LIST_FL_STATIC,
+		.flags = KN_LIST_FL_STATIC | KN_LIST_FL_EMBED,
 		.embed = { KN_TRUE },
 	};
 

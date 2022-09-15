@@ -65,10 +65,9 @@ struct kn_string *kn_parse_string() {
 
 	assert(quote == '\'' || quote == '\"');
 
-	while (quote != (c = kn_parse_peek_advance())) {
+	while (quote != (c = kn_parse_peek_advance()))
 		if (c == '\0')
 			kn_error("unterminated quote encountered: '%s'", start);
-	}
 
 	return kn_string_new_borrowed(start, kn_parse_stream - start - 1);
 }
@@ -91,10 +90,12 @@ kn_value kn_parse_ast(const struct kn_function *fn) {
 
 	for (size_t i = 0; i < fn->arity; ++i) {
 		ast->args[i] = kn_parse_value();
+
 		if (ast->args[i] == KN_UNDEFINED)
-			kn_error("unable to parse argument %zu for function '%s'", i, fn->name);
+			kn_error("unable to parse arg %zu for function '%s'", i, fn->name);
 	}
 
+	// Efficiency improvements.
 	if (KN_UNLIKELY(fn == &kn_fn_block && !kn_value_is_ast(ast->args[0]))) {
 		struct kn_ast *block_arg = kn_ast_alloc(1);
 		block_arg->func = &kn_fn_noop;
@@ -104,8 +105,8 @@ kn_value kn_parse_ast(const struct kn_function *fn) {
 
 	if (KN_UNLIKELY(fn == &kn_fn_then && !kn_value_is_ast(ast->args[0]))) {
 		// Since evaluating anything other than an ast is meaningless (evaluating
-		// undefined variables is UB so we choose to just ignore it), if the first value
-		// is not an ast, we just return the second function's value.
+		// undefined variables is UB so we choose to just ignore it), if the first
+		// value is not an ast, we just return the second function's value.
 		kn_value rhs = ast->args[1];
 		free(ast);
 		return rhs;

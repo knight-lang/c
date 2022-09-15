@@ -188,8 +188,19 @@ struct kn_string *kn_string_cache_lookup(kn_hash_t hash, size_t length);
 	      struct kn_string *: kn_string_deref_mut    \
 	)(x))
 
-char *kn_string_deref_mut(struct kn_string *string);
-const char *kn_string_deref_const(const struct kn_string *string);
+static inline char *kn_string_deref_mut(struct kn_string *string) {
+	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
+		? string->embed
+		: string->ptr;
+}
+
+static inline const char *kn_string_deref_const(
+	const struct kn_string *string
+) {
+	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
+		? string->embed
+		: string->ptr;
+}
 
 /*
  * Duplicates this string, returning another copy of it.

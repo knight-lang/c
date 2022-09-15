@@ -3,12 +3,13 @@
 #include "list.h"
 
 struct kn_string *kn_number_to_string(kn_number number) {
-	static struct kn_string zero_string = KN_STRING_NEW_EMBED("0");
-	static struct kn_string one_string = KN_STRING_NEW_EMBED("1");
+	static struct kn_string zero_string = KN_STRING_NEW_EMBED("0"),
+		one_string = KN_STRING_NEW_EMBED("1"),
+		uint64_min_string = KN_STRING_NEW_EMBED("-9223372036854775808");
 
-	// note that `22` is the length of `-UINT64_MIN`, which is 21 characters
+	// note that `21` is the length of `INT64_MIN`, which is 20 characters
 	// long + the trailing `\0`.
-	static char buf[22];
+	static char buf[21];
 	static struct kn_string number_string = { .flags = KN_STRING_FL_STATIC };
 
 	if (number == 0)
@@ -16,6 +17,9 @@ struct kn_string *kn_number_to_string(kn_number number) {
 
 	if (number == 1)
 		return &one_string;
+
+	if (KN_UNLIKELY(number == INT64_MIN))
+		return &uint64_min_string; // since inverting the min value doesnt work.
 
 	// initialize ptr to the end of the buffer minus one, as the last is
 	// the nul terminator.
@@ -39,30 +43,20 @@ struct kn_string *kn_number_to_string(kn_number number) {
 }
 
 struct kn_list *kn_number_to_list(kn_number number) {
-	static struct kn_list zero_list = {
+	static kn_value buf[20]; // note that `20` is the length of `INT64_MIN`.
+	static struct kn_list digits_list = {
 		.refcount = 1,
-		.length = 1,
-		.embed = { KN_ZERO },
+		.flags = KN_LIST_FL_ALLOC | KN_LIST_FL_STATIC | KN_LIST_FL_NUMBER,
 	};
 
-	if (number == 0) 
-		return &zero_list;
-
-	// FIXME: use base10 to find the required amount.
-	struct kn_list *digits = kn_list_alloc(22);
-	digits->length = 0;
+	digits_list.alloc = &buf[sizeof(buf) / sizeof(kn_value)];
+	digits_list.length = 0;
 
 	do {
-		digits->alloc[digits->length++] = kn_value_new(number % 10);
+		*--digits_list.alloc = kn_value_new(number % 10);
+		++digits_list.length;
 	} while (number /= 10);
 
-	// swap all the digits at the end
-	for (size_t i = 0; i < digits->length / 2; ++i) {
-		kn_value tmp = kn_list_get(digits, i);
-		kn_list_set(digits, i, kn_list_get(digits, digits->length - i - 1));
-		kn_list_set(digits, digits->length - i - 1, tmp);
-	}
-
-	return digits;
+	return &digits_list;
 }
 

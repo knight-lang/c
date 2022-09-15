@@ -50,6 +50,7 @@ void *xrealloc(void *ptr, size_t size) {
 }
 
 size_t kn_indentation;
+
 void kn_indent(FILE *out) {
 	fputc('\n', out);
 

@@ -9,7 +9,7 @@
 
 // The empty string.
 // we need the alignment for embedding.
-struct kn_string alignas(8) kn_string_empty = KN_STRING_NEW_EMBED("");
+struct kn_string kn_string_empty = KN_STRING_NEW_EMBED("");
 
 #ifdef KN_STRING_CACHE
 # ifndef KN_STRING_CACHE_MAXLEN
@@ -40,22 +40,6 @@ static struct kn_string **get_cache_slot(const char *str, size_t length) {
 }
 #endif /* KN_STRING_CACHE */
 
-char *kn_string_deref_mut(struct kn_string *string) {
-	assert(string != NULL);
-
-	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
-		? string->embed
-		: string->ptr;
-}
-
-const char *kn_string_deref_const(const struct kn_string *string) {
-	assert(string != NULL);
-
-	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
-		? string->embed
-		: string->ptr;
-}
-
 bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs) {
 	if (lhs == rhs) // shortcut if they have the same pointer.
 		return true;
@@ -66,10 +50,14 @@ bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs) {
 	return !memcmp(kn_string_deref(lhs), kn_string_deref(rhs), lhs->length);
 }
 
-kn_number kn_string_compare(const struct kn_string *lhs, const struct kn_string *rhs) {
+kn_number kn_string_compare(
+	const struct kn_string *lhs,
+	const struct kn_string *rhs
+) {
 	if (lhs == rhs)
 		return 0;
 
+	// FIXME: don't use strcmp, use memcmp
    return strcmp(kn_string_deref(lhs), kn_string_deref(rhs));
 }
 
@@ -291,8 +279,7 @@ void kn_string_cleanup() {
 
 
 /*
- * Note that we can't use `strtoll`, as we can't be positive that `kn_number`
- * is actually a `long long`.
+ * Note that we can't use `strtoll`, because we aren't null terminated
  */
 kn_number kn_string_to_number(const struct kn_string *string) {
 	kn_number ret = 0;
@@ -333,7 +320,10 @@ struct kn_list *kn_string_to_list(const struct kn_string *string) {
 	return chars;
 }
 
-struct kn_string *kn_string_concat(struct kn_string *lhs, struct kn_string *rhs) {
+struct kn_string *kn_string_concat(
+	struct kn_string *lhs, 
+	struct kn_string *rhs
+) {
 	size_t lhslen, rhslen;
 
 	// return early if either
@@ -359,6 +349,7 @@ struct kn_string *kn_string_concat(struct kn_string *lhs, struct kn_string *rhs)
 	char *cached = kn_string_deref(string);
 	char *tmp = kn_string_deref(lhs);
 
+	// FIXME: use memcmp instead
 	for (size_t i = 0; i < lhs->length; i++, cached++)
 		if (*cached != tmp[i])
 			goto allocate_and_cache;
@@ -395,10 +386,10 @@ struct kn_string *kn_string_repeat(struct kn_string *string, size_t amount) {
 
 	if (lhslen == 0 || amount == 0) {
 		// if the string is not empty, free it.
-		if (lhslen != 0) {
-			kn_string_free(string);
-		} else {
+		if (lhslen == 0) {
 			assert(string == &kn_string_empty);
+		} else {
+			kn_string_free(string);
 		}
 
 		return &kn_string_empty;
@@ -422,7 +413,11 @@ struct kn_string *kn_string_repeat(struct kn_string *string, size_t amount) {
 	return repeat;
 }
 
-struct kn_string *kn_string_get_substring(struct kn_string *string, size_t start, size_t length) {
+struct kn_string *kn_string_get_substring(
+	struct kn_string *string,
+	size_t start,
+	size_t length
+) {
 	assert(start + length <= string->length);
 
 	if (length == 0) {
@@ -433,7 +428,10 @@ struct kn_string *kn_string_get_substring(struct kn_string *string, size_t start
 	if (KN_UNLIKELY(!start && length == string->length))
 		return kn_string_clone_static(string);
 
-	struct kn_string *substring = kn_string_new_borrowed(kn_string_deref(string) + start, length);
+	struct kn_string *substring = kn_string_new_borrowed(
+		kn_string_deref(string) + start,
+		length
+	);
 	kn_string_free(string);
 	return substring;
 }
@@ -462,15 +460,19 @@ struct kn_string *kn_string_set_substring(
 	size_t replaced_length = string->length - length + replacement->length;
 	kn_hash_t hash = kn_hash(string_str, start);
 	hash = kn_hash_acc(repl_str, replacement->length, hash);
-	hash = kn_hash_acc(string_str + start + length, string->length - start - length, hash);
+	hash = kn_hash_acc(
+		string_str + start + length,
+		string->length - start - length,
+		hash
+	);
 
 	struct kn_string *cached = kn_string_cache_lookup(hash, replaced_length);
 
 	if (
 		cached
-		&& !strncmp(string_str, kn_string_deref(cached), start)
-		&& !strncmp(repl_str, kn_string_deref(cached) + start, replacement->length)
-		&& !strncmp(
+		&& !memcmp(string_str, kn_string_deref(cached), start)
+		&& !memcmp(repl_str, kn_string_deref(cached) + start, replacement->length)
+		&& !memcmp(
 			string_str + start + length,
 			kn_string_deref(cached) + start + replacement->length,
 			string->length - start - length
@@ -483,7 +485,11 @@ struct kn_string *kn_string_set_substring(
 
 		memcpy(str, string_str, start);
 		memcpy(str + start, repl_str, replacement->length);
-		memcpy(str + start + replacement->length, string_str + start + length, string->length);
+		memcpy(
+			str + start + replacement->length,
+			string_str + start + length,
+			string->length
+		);
 		str[replaced_length] = '\0';
 
 		kn_string_cache(cached);
