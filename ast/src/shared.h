@@ -5,7 +5,6 @@
 #include <stdlib.h> /* exit, abort */
 #include <stdio.h>  /* fprintf, stderr */
 
-
 #ifdef KN_FUZZING
 #include <setjmp.h>  /* jmp_buf, setjmp, longjmp */
 extern jmp_buf kn_play_start;
@@ -15,6 +14,8 @@ extern jmp_buf kn_play_start;
 # define __has_builtin(x) 0
 #endif /* !__has_builtin */
 
+// #ifdef(_MSC_VER)
+// #if defined(__GNUC__)
 #if KN_USE_EXTENSIONS
 # define KN_ATTRIBUTE(x) __attribute__(x)
 #else

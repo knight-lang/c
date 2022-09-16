@@ -20,52 +20,32 @@
                         kn_value_free, kn_value_clone */
 #include "shared.h"  /* die, xmalloc, xrealloc, kn_hash, KN_UNLIKELY */
 
-/*
- * The amount of buckets that the `kn_env_map` will have.
- *
- * The greater the number, the fewer cache collisions, but the more memory used.
- */
-#ifndef KN_ENV_NBUCKETS
-# define KN_ENV_NBUCKETS 65536
-#endif /* !KN_ENV_NBUCKETS */
-
-/*
- * The capacity of each bucket.
- *
- * Once this many variables are in a single bucket, the program will have to
- * reallocate those buckets.
- */
-#ifndef KN_ENV_CAPACITY
-# define KN_ENV_CAPACITY 256
-#endif /* !KN_ENV_CAPACITY */
-
-#if KN_ENV_CAPACITY == 0
-# error env capacity must be at least 1
-#endif /* KN_ENV_CAPACITY == 0 */
-
 struct kn_env {
+	size_t capacity_per_bucket, number_of_buckets;
+
 	struct kn_env_bucket {
-		size_t capacity, length;
+		size_t length;
 		struct kn_variable *variables;
-	} buckets[KN_ENV_NBUCKETS];
+	} *buckets;
 };
 
-struct kn_env *kn_env_create(void) {
+struct kn_env *kn_env_create(size_t capacity_per_bucket, size_t number_of_buckets) {
 	struct kn_env *env = xmalloc(sizeof(struct kn_env));
 
-	for (size_t i = 0; i < KN_ENV_NBUCKETS; ++i) {
+	env->capacity_per_bucket = capacity_per_bucket;
+	env->number_of_buckets = number_of_buckets;
+	env->buckets = xmalloc(sizeof(struct kn_env_bucket) * number_of_buckets);
+
+	for (size_t i = 0; i < number_of_buckets; ++i) {
 		env->buckets[i].length = 0;
-		env->buckets[i].capacity = KN_ENV_CAPACITY;
-		env->buckets[i].variables = xmalloc(
-			sizeof(struct kn_variable) * KN_ENV_CAPACITY
-		);
+		env->buckets[i].variables = xmalloc(sizeof(struct kn_variable) * capacity_per_bucket);
 	}
 
 	return env;
 }
 
 void kn_env_destroy(struct kn_env *env) {
-	for (size_t i = 0; i < KN_ENV_NBUCKETS; ++i) {
+	for (size_t i = 0; i < env->number_of_buckets; ++i) {
 		struct kn_env_bucket *bucket = &env->buckets[i];
 
 		for (size_t len = 0; len < bucket->length; ++len) {
@@ -86,15 +66,11 @@ void kn_env_destroy(struct kn_env *env) {
 	free(env);
 }
 
-struct kn_variable *kn_env_fetch(
-	struct kn_env *env,
-	const char *identifier,
-	size_t length
-) {
+struct kn_variable *kn_env_fetch(struct kn_env *env, const char *identifier, size_t length) {
 	assert(length != 0);
 
 	kn_hash_t hash = kn_hash(identifier, length);
-	struct kn_env_bucket *bucket = &env->buckets[hash & (KN_ENV_NBUCKETS - 1)];
+	struct kn_env_bucket *bucket = &env->buckets[hash & (env->number_of_buckets - 1)];
 
 	for (size_t i = 0; i < bucket->length; ++i) {
 		struct kn_variable *variable = &bucket->variables[i];
@@ -105,7 +81,7 @@ struct kn_variable *kn_env_fetch(
 	}
 
 	// If the bucket is full, then too many variables have been defined.
-	if (KN_UNLIKELY(bucket->length == bucket->capacity))
+	if (KN_UNLIKELY(bucket->length == env->capacity_per_bucket))
 		die("too many variables created!");
 
 	struct kn_variable *variable = &bucket->variables[bucket->length++];

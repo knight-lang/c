@@ -45,16 +45,18 @@ struct kn_string *kn_number_to_string(kn_number number) {
 struct kn_list *kn_number_to_list(kn_number number) {
 	static kn_value buf[20]; // note that `20` is the length of `INT64_MIN`.
 	static struct kn_list digits_list = {
-		.refcount = 1,
+		.container = {
+			.refcount = { 1 }
+		},
 		.flags = KN_LIST_FL_ALLOC | KN_LIST_FL_STATIC | KN_LIST_FL_NUMBER,
 	};
 
 	digits_list.alloc = &buf[sizeof(buf) / sizeof(kn_value)];
-	digits_list.length = 0;
+	digits_list.container.length = 0;
 
 	do {
 		*--digits_list.alloc = kn_value_new(number % 10);
-		++digits_list.length;
+		++digits_list.container.length;
 	} while (number /= 10);
 
 	return &digits_list;

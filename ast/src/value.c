@@ -31,7 +31,7 @@ kn_number kn_value_to_number(kn_value value) {
 		return kn_string_to_number(kn_value_as_string(value));
 
 	case KN_TAG_LIST:
-		return (kn_number) kn_value_as_list(value)->length;
+		return (kn_number) kn_length(kn_value_as_list(value));
 
 #ifdef KN_CUSTOM
 	case KN_TAG_CUSTOM: {
@@ -143,7 +143,9 @@ struct kn_string *kn_value_to_string(kn_value value) {
 
 struct kn_list *kn_value_to_list(kn_value value) {
 	static struct kn_list true_list = {
-		.length = 1,
+		.container = {
+			.length = 1
+		},
 		.flags = KN_LIST_FL_STATIC | KN_LIST_FL_EMBED,
 		.embed = { KN_TRUE },
 	};

@@ -1,27 +1,23 @@
 #ifndef KN_AST_H
 #define KN_AST_H
 
-#include "function.h" /* kn_function, KN_MAX_ARGC */
-#include "value.h"    /* kn_value */
+#include "refcount.h"
+#include "function.h"
+#include "value.h"
 #include "shared.h"
-#include <stdalign.h> /* alignas */
 
 /*
  * The type that represents a function and its arguments in Knight.
  *
- * Note that this struct should be passed to `kn_ast_free` to release its
- * resources.
+ * Note that this struct should be created through `kn_ast_alloc` and freed through `kn_ast_free`.
  */
 struct kn_ast {
-	/*
-	 * How many references to this object exist.
-	 */
-	alignas(8) size_t refcount;
+	struct kn_refcount refcount;
 
 	/*
 	 * The function associated with this ast.
 	 */
-	const struct kn_function *func;
+	const struct kn_function *function;
 
 	/*
 	 * The arguments of this ast.
@@ -46,9 +42,9 @@ struct kn_ast *kn_ast_alloc(size_t argc);
  * independently from the passed `ast`.
  */
 static inline struct kn_ast *kn_ast_clone(struct kn_ast *ast) {
-	assert(ast->refcount != 0);
+	assert(*kn_refcount(ast) != 0);
 
-	++ast->refcount;
+	++*kn_refcount(ast);
 	return ast;
 }
 
@@ -62,17 +58,17 @@ void KN_ATTRIBUTE(cold) kn_ast_deallocate(struct kn_ast *ast);
  * Releases the memory resources associated with this struct.
  */
 static inline void kn_ast_free(struct kn_ast *ast) {
-	assert(ast->refcount != 0);
+	assert(*kn_refcount(ast) != 0);
 
-	if (--ast->refcount == 0)
+	if (--*kn_refcount(ast) == 0)
 		kn_ast_deallocate(ast);
 }
 
 /*
- * Executes a `kn_ast`, returning the value associated with its execution.
+ * Executes a `kn_ast`, returning the function's result.
  */
 static inline kn_value kn_ast_run(const struct kn_ast *ast) {
-	return (ast->func->func)(ast->args);
+	return (ast->function->func)(ast->args);
 }
 
 void kn_ast_dump(const struct kn_ast *ast, FILE *out);

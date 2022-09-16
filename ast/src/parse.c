@@ -111,7 +111,7 @@ struct kn_variable *kn_parse_variable(struct kn_stream *stream) {
 
 kn_value kn_parse_ast(struct kn_stream *stream, const struct kn_function *fn) {
 	struct kn_ast *ast = kn_ast_alloc(fn->arity);
-	ast->func = fn;
+	ast->function = fn;
 
 	for (size_t i = 0; i < fn->arity; ++i) {
 		ast->args[i] = kn_parse_value(stream);
@@ -123,7 +123,7 @@ kn_value kn_parse_ast(struct kn_stream *stream, const struct kn_function *fn) {
 	// Efficiency improvements.
 	if (KN_UNLIKELY(fn == &kn_fn_block && !kn_value_is_ast(ast->args[0]))) {
 		struct kn_ast *block_arg = kn_ast_alloc(1);
-		block_arg->func = &kn_fn_noop;
+		block_arg->function = &kn_fn_noop;
 		block_arg->args[0] = ast->args[0];
 		ast->args[0] = kn_value_new(block_arg);
 	}
@@ -357,24 +357,24 @@ SYMBOL_FUNC(system, '$');
 LABEL(function_prompt)
 CASES1('P') {
 	static struct kn_ast ast_prompt = {
-		.refcount = 1, // Set it to `1` so nothing will ever deallocate it
-		.func = &kn_fn_prompt
+		.refcount = { 1 }, // Set it to `1` so nothing will ever deallocate it
+		.function = &kn_fn_prompt
 	};
 
 	strip_keyword(stream);
-	++ast_prompt.refcount;
+	++*kn_refcount(&ast_prompt);
 	return kn_value_new_ast(&ast_prompt);
 }
 
 LABEL(function_random)
 CASES1('R') {
 	static struct kn_ast ast_random = {
-		.refcount = 1, // Set it to `1` so nothing will ever deallocate it
-		.func = &kn_fn_random
+		.refcount = { 1 }, // Set it to `1` so nothing will ever deallocate it
+		.function = &kn_fn_random
 	};
 
 	strip_keyword(stream);
-	++ast_random.refcount;
+	++*kn_refcount(&ast_random);
 	return kn_value_new_ast(&ast_random);
 }
 

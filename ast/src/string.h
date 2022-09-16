@@ -78,7 +78,7 @@ struct kn_string {
 	 * This is increased when `kn_string_clone`d and decreased when
 	 * `kn_string_free`d, and when it reaches zero, the struct will be freed.
 	 */
-	alignas(8) size_t refcount;
+	_Alignas(8) size_t refcount;
 
 	/*
 	 * The length of the string.

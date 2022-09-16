@@ -1,8 +1,6 @@
-#include "ast.h"    /* prototypes, kn_ast, kn_value, kn_value_free,
-                       KN_MAX_ARGC */
-#include "shared.h" /* xmalloc, KN_UNLIKELY */
-#include <stdlib.h> /* free, NULL */
-#include <assert.h> /* assert */
+#include "ast.h"
+#include <stdlib.h>
+#include <assert.h>
 
 #ifdef KN_AST_CACHE
 # ifndef KN_AST_FREE_CACHE_LEN
@@ -18,7 +16,7 @@ void kn_ast_cleanup(void) {
 			struct kn_ast *ast = freed_asts[i][j];
 
 			if (ast != NULL) {
-				assert(ast->refcount == 0);
+				assert(*kn_refcount(ast) == 0);
 				free(ast);
 			}
 		}
@@ -44,25 +42,25 @@ struct kn_ast *kn_ast_alloc(size_t argc) {
 		freed_asts[argc][i] = NULL;
 
 		// Sanity check.
-		assert(ast->refcount == 0);
+		assert(*kn_refcount(ast) == 0);
 
 		// Increase the refcount as we're now using it.
-		++ast->refcount;
+		++*kn_refcount(ast);
 		return ast;
 	}
 #endif /* KN_AST_CACHE */
 
 	// There are no cached free asts, so we have to allocate.
 	ast = xmalloc(sizeof(struct kn_ast) + sizeof(kn_value) * argc);
-	ast->refcount = 1;
+	*kn_refcount(ast) = 1;
 
 	return ast;
 }
 
 void kn_ast_deallocate(struct kn_ast *ast) {
-	assert(ast->refcount == 0);
+	assert(*kn_refcount(ast) == 0);
 
-	size_t arity = ast->func->arity;
+	size_t arity = ast->function->arity;
 
 	// Free all arguments associated with this ast.
 	for (size_t i = 0; i < arity; ++i)
@@ -85,10 +83,10 @@ void kn_ast_deallocate(struct kn_ast *ast) {
 
 void kn_ast_dump(const struct kn_ast *ast, FILE *out) {
 	fputs("Function(", out);
-	fputs(ast->func->name, out);
+	fputs(ast->function->name, out);
 
 	kn_indentation++;
-	for (size_t i = 0; i < ast->func->arity; ++i) {
+	for (size_t i = 0; i < ast->function->arity; ++i) {
 		fputs(", ", out);
 		kn_indent(out);
 		kn_value_dump(ast->args[i], out);

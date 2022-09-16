@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <stdio.h>
 
+#define KN_VALUE_ALIGN _Alignas(8)
 
 /*
  * The layout of `kn_value`:

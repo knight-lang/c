@@ -14,7 +14,7 @@ struct kn_env;
  *
  * This _must_ be called before `kn_env_fetch` is called.
  */
-struct kn_env *KN_ATTRIBUTE(cold) kn_env_create(void);
+struct kn_env *kn_env_create(size_t capacity_per_bucket, size_t number_of_buckets);
 
 /*
  * Frees all resources associated with the global Knight environment.
@@ -22,7 +22,7 @@ struct kn_env *KN_ATTRIBUTE(cold) kn_env_create(void);
  * This will invalidate all `kn_variable` pointers, and `kn_env_startup` must
  * be called again before `kn_env_fetch` can be used.
  */
-void KN_ATTRIBUTE(cold) kn_env_destroy(struct kn_env *env);
+void kn_env_destroy(struct kn_env *env);
 
 /*
  * A variable within Knight.

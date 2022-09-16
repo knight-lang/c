@@ -155,7 +155,7 @@ DECLARE_FUNCTION(tail, 1, "]") {
 
 	if (kn_value_is_list(ran)) {
 		struct kn_list *list = kn_value_as_list(ran);
-		return kn_value_new(kn_list_get_sublist(list, 1, list->length - 1));
+		return kn_value_new(kn_list_get_sublist(list, 1, kn_length(list) - 1));
 	}
 
 	struct kn_string *string = kn_value_as_string(ran);
@@ -185,10 +185,10 @@ DECLARE_FUNCTION(call, 1, "CALL") {
 	struct kn_ast *ast = kn_value_as_ast(ran);
 
 	// Optimize for the case where we are running a non-unique ast.
-	if (KN_LIKELY(--ast->refcount != 0))
+	if (KN_LIKELY(--*kn_refcount(ast) != 0))
 		return kn_ast_run(ast);
 
-	++ast->refcount; // We subtracted one, so now we have to add.
+	++*kn_refcount(ast); // We subtracted one, so now we have to add.
 	kn_value ret = kn_ast_run(ast);
 	kn_ast_free(ast);
 	return ret;
@@ -277,7 +277,7 @@ DECLARE_FUNCTION(length, 1, "LENGTH") {
 	}
 
 	struct kn_list *list = kn_value_to_list(ran);
-	kn_number length = (kn_number) list->length;
+	kn_number length = (kn_number) kn_length(list);
 
 	kn_value_free(ran);
 	kn_list_free(list);

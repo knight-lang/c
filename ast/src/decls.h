@@ -4,6 +4,7 @@
 #include <stdint.h>  /* uint64_t, int64_t */
 #include <stdbool.h> /* bool */
 
+
 /*
  * The type that represents values within Knight.
  *

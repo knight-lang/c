@@ -13,6 +13,30 @@ struct _ignored;
 # include <errno.h> /* errno */
 #endif /* !KN_RECKLESS */
 
+/*
+ * The amount of buckets that the `kn_env_map` will have.
+ *
+ * The greater the number, the fewer cache collisions, but the more memory used.
+ */
+#ifndef KN_ENV_NBUCKETS
+# define KN_ENV_NBUCKETS 65536
+#endif /* !KN_ENV_NBUCKETS */
+
+/*
+ * The capacity of each bucket.
+ *
+ * Once this many variables are in a single bucket, the program will have to
+ * reallocate those buckets.
+ */
+#ifndef KN_ENV_CAPACITY
+# define KN_ENV_CAPACITY 256
+#endif /* !KN_ENV_CAPACITY */
+
+#if KN_ENV_CAPACITY == 0
+# error env capacity must be at least 1
+#endif /* KN_ENV_CAPACITY == 0 */
+
+
 static char *read_file(const char *filename) {
 	FILE *file = fopen(filename, "r");
 
@@ -72,7 +96,7 @@ int main(int argc, char **argv) {
 	}
 
 	kn_startup();
-	struct kn_env *env = kn_env_create();
+	struct kn_env *env = kn_env_create(KN_ENV_CAPACITY, KN_ENV_NBUCKETS);
 
 #ifdef KN_RECKLESS
 	kn_play(env, str, strlen(str));
