@@ -338,7 +338,7 @@ DECLARE_FUNCTION(ascii, 1, "ASCII") {
 	kn_number number = kn_value_as_number(ran);
 
 	// just check for ASCIIness, not actually full-blown knight correctness. 
-	if (number < 0 || 127 < number)
+	if (number <= 0 || 127 < number)
 		kn_error("Number %" PRIdkn " is out of range for ascii char.", number);
 
 	char buf[2] = { number, 0 };

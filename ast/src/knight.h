@@ -27,6 +27,6 @@ void KN_ATTRIBUTE(cold) kn_shutdown(void);
  * Note that any errors that may be caused during the execution of the code will
  * simply abort the program (like all exceptions in Knight do).
  */
-kn_value kn_play(const char *source, size_t length);
+kn_value kn_play(struct kn_env *env, const char *source, size_t length);
 
 #endif /* !KN_KNIGHT_H */

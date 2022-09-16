@@ -3,6 +3,7 @@ struct _ignored;
 #else
 #include "knight.h" /* kn_startup, kn_play, kn_value_free, kn_shutdown */
 #include "shared.h" /* die, xmalloc, xrealloc */
+#include "env.h"
 
 #include <stdlib.h> /* free, NULL, size_t */
 #include <stdio.h>  /* FILE, fopen, feof, fread, fclose, perror, EOF */
@@ -71,11 +72,13 @@ int main(int argc, char **argv) {
 	}
 
 	kn_startup();
+	struct kn_env *env = kn_env_create();
 
 #ifdef KN_RECKLESS
-	kn_play(str, strlen(str));
+	kn_play(env, str, strlen(str));
 #else
-	kn_value_free(kn_play(str, strlen(str)));
+	kn_value_free(kn_play(env, str, strlen(str)));
+	kn_env_destroy(env);
 	kn_shutdown();
 
 	if (argv[1][1] == 'f')

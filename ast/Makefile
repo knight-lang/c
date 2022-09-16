@@ -30,11 +30,12 @@ override CFLAGS+=$(KN_FLAGS)
 
 .PHONY: all optimized clean shared fuzzer
 
-fuzzer: $(exe) $(corpus)
-	@echo "0" > $(CORPUSDIR)/initial.txt
-
 all: $(exe)
+debug: $(exe)
 shared: $(dyn)
+
+fuzzer: $(exe) $(CORPUSDIR)
+	@echo "0" > $(CORPUSDIR)/initial.txt
 
 clean:
 	-@rm -r $(OBJDIR) $(BINDIR) $(CORPUSDIR)

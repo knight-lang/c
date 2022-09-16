@@ -9,6 +9,7 @@
  */
 struct kn_stream {
 	const char *source;
+	struct kn_env *env;
 	size_t position, length;
 };
 
@@ -65,6 +66,7 @@ kn_value kn_parse_ast(struct kn_stream *stream, const struct kn_function *functi
  * Peeks at the first character in the `kn_parse_stream`.
  */
 static inline char kn_parse_peek(const struct kn_stream *stream) {
+	assert(stream->position <= stream->length);
 	return stream->source[stream->position];
 }
 
@@ -72,23 +74,15 @@ static inline char kn_parse_peek(const struct kn_stream *stream) {
  * Advances the stream.
  */
 static inline void kn_parse_advance(struct kn_stream *stream) {
-	assert(stream->position < stream->length - 1);
+	assert(stream->position < stream->length);
 	++stream->position;
-}
-
-/*
- * Advances the stream, then fetches the first character of the stream.
- */
-static inline char kn_parse_advance_peek(struct kn_stream *stream) {
-	assert(stream->position < stream->length - 1);
-	return stream->source[++stream->position];
 }
 
 /*
  * Fetches the first character of the stream, then advances it.
  */
 static inline char kn_parse_peek_advance(struct kn_stream *stream) {
-	assert(stream->position < stream->length - 1);
+	assert(stream->position < stream->length);
 	return stream->source[stream->position++];
 }
 

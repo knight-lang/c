@@ -13,9 +13,10 @@
 #include "env.h"      /* kn_variable, kn_env_fetch */
 #include "list.h"
 
-// the stream used by all the parsing functions.
-const char *kn_parse_stream;
-size_t kn_parse_length;
+static bool is_eof(const struct kn_stream *stream) {
+	return stream->length <= stream->position;
+}
+
 
 // Check to see if the character is considered whitespace to Knight.
 static int iswhitespace(char c) {
@@ -28,61 +29,84 @@ static int iswordfunc(char c) {
 }
 
 void kn_parse_strip(struct kn_stream *stream) {
+	assert(!is_eof(stream));
 	assert(iswhitespace(kn_parse_peek(stream)) || kn_parse_peek(stream) == '#');
 
-	while (true) {
-		char c = kn_parse_peek(stream);
+	while (!is_eof(stream)) {
+		char c = kn_parse_peek_advance(stream);
 
 		if (KN_UNLIKELY(c == '#')) {
-			while ((c = kn_parse_advance_peek(stream)) != '\n' && c != '\0') {
-				/* do nothing */
+			while (!is_eof(stream) && (c = kn_parse_peek_advance(stream)) != '\n'){
+				// do nothing
 			}
 		}
 
-		if (!iswhitespace(c))
+		if (!iswhitespace(c)) {
+			stream->position--;
 			break;
+		}
 
-		while (iswhitespace(kn_parse_advance_peek(stream))) {
-			/* do nothing */
+		while (!is_eof(stream) && iswhitespace(kn_parse_peek_advance(stream))) {
+			// do nothing
 		}
 	}
 }
 
 kn_number kn_parse_number(struct kn_stream *stream) {
-	char c = kn_parse_peek(stream);
+	assert(!is_eof(stream));
+
+	char c = kn_parse_peek_advance(stream);
 	assert(isdigit(c));
 
 	kn_number number = (kn_number) (c - '0');
 
-	while (isdigit(c = kn_parse_advance_peek(stream)))
+	while (!is_eof(stream) && isdigit(c = kn_parse_peek_advance(stream)))
 		number = number*10 + (kn_number) (c - '0');
 
 	return number;
 }
 
 struct kn_string *kn_parse_string(struct kn_stream *stream) {
+	assert(!is_eof(stream));
+
 	char c, quote = kn_parse_peek_advance(stream);
-	const char *start = kn_parse_stream;
+	size_t start = stream->position;
 
 	assert(quote == '\'' || quote == '\"');
 
-	while (quote != (c = kn_parse_peek_advance(stream)))
+	while (!is_eof(stream) && quote != (c = kn_parse_peek_advance(stream))) {
 		if (c == '\0')
-			kn_error("unterminated quote encountered: '%s'", start);
+			kn_error("nul is not allowed in knight strings");
+	}
 
-	return kn_string_new_borrowed(start, kn_parse_stream - start - 1);
+	if (is_eof(stream))
+		kn_error("unterminated quote encountered: '%s'", stream->source + start);
+
+	return kn_string_new_borrowed(
+		stream->source + start,
+		stream->position - start - 1
+	);
 }
 
 struct kn_variable *kn_parse_variable(struct kn_stream *stream) {
-	const char *start = kn_parse_stream;
+	assert(!is_eof(stream));
 	assert(islower(kn_parse_peek(stream)) || kn_parse_peek(stream) == '_');
 
+	size_t start = stream->position;
 	char c;
-	do {
-		c = kn_parse_advance_peek(stream);
-	} while (islower(c) || isdigit(c) || c == '_');
 
-	return kn_env_fetch(start, kn_parse_stream - start);
+	while (
+		!is_eof(stream)
+		&& (islower(c = kn_parse_peek(stream)) || isdigit(c) || c == '_')
+	) {
+		kn_parse_advance(stream);
+	}
+
+	return kn_env_fetch(
+		stream->env,
+		stream->source + start,
+		stream->position - start
+	);
 }
 
 kn_value kn_parse_ast(struct kn_stream *stream, const struct kn_function *fn) {
@@ -117,9 +141,8 @@ kn_value kn_parse_ast(struct kn_stream *stream, const struct kn_function *fn) {
 }
 
 static void strip_keyword(struct kn_stream *stream) {
-	while (iswordfunc(kn_parse_advance_peek(stream))) {
-		/* do nothing */
-	}
+	while (!is_eof(stream) && iswordfunc(kn_parse_peek(stream)))
+		kn_parse_advance(stream);
 }
 
 // Macros used either for computed gotos or switch statements (the switch
@@ -259,6 +282,9 @@ kn_value kn_parse_value(struct kn_stream *stream) {
 	const struct kn_function *function;
 
 start:
+	if (is_eof(stream))
+		return KN_UNDEFINED;
+
 	c = kn_parse_peek(stream);
 
 #ifdef KN_COMPUTED_GOTOS
@@ -288,17 +314,17 @@ CASES2('\'', '\"')
 
 LABEL(literal_true)
 CASES1('T')
-	while(iswordfunc(kn_parse_advance_peek(stream)));
+	while(!is_eof(stream) && iswordfunc(kn_parse_peek_advance(stream)));
 	return KN_TRUE;
 
 LABEL(literal_false)
 CASES1('F')
-	while(iswordfunc(kn_parse_advance_peek(stream)));
+	while(!is_eof(stream) && iswordfunc(kn_parse_peek_advance(stream)));
 	return KN_FALSE;
 
 LABEL(literal_null)
 CASES1('N')
-	while(iswordfunc(kn_parse_advance_peek(stream)));
+	while(!is_eof(stream) && iswordfunc(kn_parse_peek_advance(stream)));
 	return KN_NULL;
 
 LABEL(literal_empty_list)

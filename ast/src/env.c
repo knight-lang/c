@@ -43,46 +43,30 @@
 # error env capacity must be at least 1
 #endif /* KN_ENV_CAPACITY == 0 */
 
-/*
- * The buckets of the environment hashmap.
- *
- * Each bucket keeps track of its own individual capacity and length, so they
- * can be resized separately.
- */
-struct kn_env_bucket {
-	size_t capacity, length;
-	struct kn_variable *variables;
+struct kn_env {
+	struct kn_env_bucket {
+		size_t capacity, length;
+		struct kn_variable *variables;
+	} buckets[KN_ENV_NBUCKETS];
 };
 
-/* The mapping of all variables within Knight. */
-static struct kn_env_bucket kn_env_map[KN_ENV_NBUCKETS];
-
-#ifndef NDEBUG
-/* A sanity check to ensure the environment has been setup. */
-static bool kn_env_has_been_started = false;
-#endif /* !NDEBUG */
-
-void kn_env_startup(void) {
-	// make sure we haven't started, and then set started to true.
-	assert(!kn_env_has_been_started && (kn_env_has_been_started = true));
+struct kn_env *kn_env_create(void) {
+	struct kn_env *env = xmalloc(sizeof(struct kn_env));
 
 	for (size_t i = 0; i < KN_ENV_NBUCKETS; ++i) {
-		// Since it's static, `length` starts off at `0`, and
-		// `kn_env_shutdown` should reset it back to zero.
-		assert(kn_env_map[i].length == 0);
-		kn_env_map[i].capacity = KN_ENV_CAPACITY;
-		kn_env_map[i].variables = xmalloc(
+		env->buckets[i].length = 0;
+		env->buckets[i].capacity = KN_ENV_CAPACITY;
+		env->buckets[i].variables = xmalloc(
 			sizeof(struct kn_variable) * KN_ENV_CAPACITY
 		);
 	}
+
+	return env;
 }
 
-void kn_env_shutdown(void) {
-	// make sure we've started, and then indicate we've shut down.
-	assert(kn_env_has_been_started && !(kn_env_has_been_started = false));
-
+void kn_env_destroy(struct kn_env *env) {
 	for (size_t i = 0; i < KN_ENV_NBUCKETS; ++i) {
-		struct kn_env_bucket *bucket = &kn_env_map[i];
+		struct kn_env_bucket *bucket = &env->buckets[i];
 
 		for (size_t len = 0; len < bucket->length; ++len) {
 			// All identifiers are owned, and only marked `const` so
@@ -97,16 +81,20 @@ void kn_env_shutdown(void) {
 		}
 
 		free(bucket->variables);
-		bucket->length = 0;
-		bucket->capacity = 0;
 	}
+
+	free(env);
 }
 
-struct kn_variable *kn_env_fetch(const char *identifier, size_t length) {
+struct kn_variable *kn_env_fetch(
+	struct kn_env *env,
+	const char *identifier,
+	size_t length
+) {
 	assert(length != 0);
 
 	kn_hash_t hash = kn_hash(identifier, length);
-	struct kn_env_bucket *bucket = &kn_env_map[hash & (KN_ENV_NBUCKETS - 1)];
+	struct kn_env_bucket *bucket = &env->buckets[hash & (KN_ENV_NBUCKETS - 1)];
 
 	for (size_t i = 0; i < bucket->length; ++i) {
 		struct kn_variable *variable = &bucket->variables[i];

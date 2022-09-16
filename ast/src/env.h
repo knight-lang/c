@@ -6,6 +6,24 @@
 #include <stdbool.h> /* bool */
 #include <stddef.h>  /* size_t */
 
+// it's declared within `env.c
+struct kn_env;
+
+/*
+ * Initializes the global Knight environment.
+ *
+ * This _must_ be called before `kn_env_fetch` is called.
+ */
+struct kn_env *KN_ATTRIBUTE(cold) kn_env_create(void);
+
+/*
+ * Frees all resources associated with the global Knight environment.
+ *
+ * This will invalidate all `kn_variable` pointers, and `kn_env_startup` must
+ * be called again before `kn_env_fetch` can be used.
+ */
+void KN_ATTRIBUTE(cold) kn_env_destroy(struct kn_env *env);
+
 /*
  * A variable within Knight.
  *
@@ -29,26 +47,15 @@ struct kn_variable {
 };
 
 /*
- * Initializes the global Knight environment.
- *
- * This _must_ be called before `kn_env_fetch` is called.
- */
-void KN_ATTRIBUTE(cold) kn_env_startup(void);
-
-/*
- * Frees all resources associated with the global Knight environment.
- *
- * This will invalidate all `kn_variable` pointers, and `kn_env_startup` must
- * be called again before `kn_env_fetch` can be used.
- */
-void KN_ATTRIBUTE(cold) kn_env_shutdown(void);
-
-/*
  * Fetches the variable associated with the given identifier.
  *
  * This will always return a `kn_variable`, which may have been newly created.
  */
-struct kn_variable *kn_env_fetch(const char *identifier, size_t length);
+struct kn_variable *kn_env_fetch(
+	struct kn_env *env,
+	const char *identifier,
+	size_t length
+);
 
 /*
  * Assigns a value to this variable, overwriting whatever was there previously.
