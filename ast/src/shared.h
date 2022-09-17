@@ -14,9 +14,9 @@ extern jmp_buf kn_play_start;
 # define __has_builtin(x) 0
 #endif /* !__has_builtin */
 
-#ifdef(_MSC_VER)
+#ifdef _MSC_VER
 # define KN_ATTRIBUTE __declspec(x)
-#if defined(__GNUC__) || defined(__llvm__)
+#elif defined(__GNUC__) || defined(__llvm__)
 # define KN_ATTRIBUTE(x) __attribute__((x))
 #else
 # define KN_ATTRIBUTE(x)

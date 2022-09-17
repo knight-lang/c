@@ -13,11 +13,6 @@
 #include "env.h"      /* kn_variable, kn_env_fetch */
 #include "list.h"
 
-static bool is_eof(const struct kn_stream *stream) {
-	return stream->length <= stream->position;
-}
-
-
 // Check to see if the character is considered whitespace to Knight.
 static int iswhitespace(char c) {
 	return isspace(c) || c == ':' || c == '(' || c == ')';
@@ -29,84 +24,78 @@ static int iswordfunc(char c) {
 }
 
 void kn_parse_strip(struct kn_stream *stream) {
-	assert(!is_eof(stream));
 	assert(iswhitespace(kn_parse_peek(stream)) || kn_parse_peek(stream) == '#');
 
-	while (!is_eof(stream)) {
-		char c = kn_parse_peek_advance(stream);
+	while (!kn_stream_is_eof(stream)) {
+		char c = kn_parse_peek(stream);
 
 		if (KN_UNLIKELY(c == '#')) {
-			while (!is_eof(stream) && (c = kn_parse_peek_advance(stream)) != '\n'){
-				// do nothing
-			}
+			while (!kn_stream_is_eof(stream) && (c = kn_parse_peek(stream)) != '\n')
+				kn_parse_advance(stream);
 		}
 
-		if (!iswhitespace(c)) {
-			stream->position--;
+		if (!iswhitespace(c))
 			break;
-		}
 
-		while (!is_eof(stream) && iswhitespace(kn_parse_peek_advance(stream))) {
-			// do nothing
-		}
+		while (!kn_stream_is_eof(stream) && iswhitespace(kn_parse_peek(stream)))
+			kn_parse_advance(stream);
 	}
 }
 
 kn_number kn_parse_number(struct kn_stream *stream) {
-	assert(!is_eof(stream));
+	assert(isdigit(kn_parse_peek(stream)));
 
-	char c = kn_parse_peek_advance(stream);
-	assert(isdigit(c));
+	kn_number number = 0;
 
-	kn_number number = (kn_number) (c - '0');
-
-	while (!is_eof(stream) && isdigit(c = kn_parse_peek_advance(stream)))
+	char c;
+	while (!kn_stream_is_eof(stream) && isdigit(c = kn_parse_peek(stream))) {
 		number = number*10 + (kn_number) (c - '0');
+		kn_parse_advance(stream);
+	}
 
 	return number;
 }
 
 struct kn_string *kn_parse_string(struct kn_stream *stream) {
-	assert(!is_eof(stream));
+	assert(!kn_stream_is_eof(stream));
 
-	char c, quote = kn_parse_peek_advance(stream);
-	size_t start = stream->position;
-
+	char quote = kn_parse_peek(stream);
+	kn_parse_advance(stream);
 	assert(quote == '\'' || quote == '\"');
 
-	while (!is_eof(stream) && quote != (c = kn_parse_peek_advance(stream))) {
+	size_t start = stream->position;
+	char c;
+
+	while (!kn_stream_is_eof(stream) && quote != (c = kn_parse_peek(stream))) {
 		if (c == '\0')
 			kn_error("nul is not allowed in knight strings");
+		kn_parse_advance(stream);
 	}
 
-	if (is_eof(stream))
+	if (kn_stream_is_eof(stream))
 		kn_error("unterminated quote encountered: '%s'", stream->source + start);
 
-	return kn_string_new_borrowed(
-		stream->source + start,
-		stream->position - start - 1
-	);
+	assert(kn_parse_peek(stream) == quote);
+	kn_parse_advance(stream);
+
+	return kn_string_new_borrowed(stream->source + start, stream->position - start - 1);
 }
 
 struct kn_variable *kn_parse_variable(struct kn_stream *stream) {
-	assert(!is_eof(stream));
+	assert(!kn_stream_is_eof(stream));
 	assert(islower(kn_parse_peek(stream)) || kn_parse_peek(stream) == '_');
 
 	size_t start = stream->position;
 	char c;
 
 	while (
-		!is_eof(stream)
+		!kn_stream_is_eof(stream)
 		&& (islower(c = kn_parse_peek(stream)) || isdigit(c) || c == '_')
 	) {
 		kn_parse_advance(stream);
 	}
 
-	return kn_env_fetch(
-		stream->env,
-		stream->source + start,
-		stream->position - start
-	);
+	return kn_env_fetch(stream->env, stream->source + start, stream->position - start);
 }
 
 kn_value kn_parse_ast(struct kn_stream *stream, const struct kn_function *fn) {
@@ -141,7 +130,7 @@ kn_value kn_parse_ast(struct kn_stream *stream, const struct kn_function *fn) {
 }
 
 static void strip_keyword(struct kn_stream *stream) {
-	while (!is_eof(stream) && iswordfunc(kn_parse_peek(stream)))
+	while (!kn_stream_is_eof(stream) && iswordfunc(kn_parse_peek(stream)))
 		kn_parse_advance(stream);
 }
 
@@ -282,7 +271,7 @@ kn_value kn_parse_value(struct kn_stream *stream) {
 	const struct kn_function *function;
 
 start:
-	if (is_eof(stream))
+	if (kn_stream_is_eof(stream))
 		return KN_UNDEFINED;
 
 	c = kn_parse_peek(stream);
@@ -314,17 +303,17 @@ CASES2('\'', '\"')
 
 LABEL(literal_true)
 CASES1('T')
-	while(!is_eof(stream) && iswordfunc(kn_parse_peek_advance(stream)));
+	strip_keyword(stream);
 	return KN_TRUE;
 
 LABEL(literal_false)
 CASES1('F')
-	while(!is_eof(stream) && iswordfunc(kn_parse_peek_advance(stream)));
+	strip_keyword(stream);
 	return KN_FALSE;
 
 LABEL(literal_null)
 CASES1('N')
-	while(!is_eof(stream) && iswordfunc(kn_parse_peek_advance(stream)));
+	strip_keyword(stream);
 	return KN_NULL;
 
 LABEL(literal_empty_list)
