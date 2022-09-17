@@ -114,10 +114,8 @@ struct kn_list *kn_list_concat(struct kn_list *lhs, struct kn_list *rhs) {
 
 	struct kn_list *concat = xmalloc(sizeof(struct kn_list));
 
-	concat->container = (struct kn_container) {
-		.refcount = { 1 },
-		.length = kn_length(lhs) + kn_length(rhs)
-	};
+	*kn_refcount(concat) = 1;
+	kn_length_set(concat, kn_length(lhs) + kn_length(rhs));
 	concat->flags = KN_LIST_FL_CONS;
 	concat->cons.lhs = lhs;
 	concat->cons.rhs = rhs;
@@ -142,10 +140,8 @@ struct kn_list *kn_list_repeat(struct kn_list *list, size_t amount) {
 
 	struct kn_list *repetition = xmalloc(sizeof(struct kn_list));
 
-	repetition->container = (struct kn_container) {
-		.refcount = { 1 },
-		.length = kn_length(list) * amount
-	};
+	*kn_refcount(repetition) = 1;
+	kn_length_set(repetition, kn_length(list) * amount);
 	repetition->flags = KN_LIST_FL_REPEAT;
 	repetition->repeat.list = list;
 	repetition->repeat.amount = amount;
@@ -170,19 +166,19 @@ struct kn_string *kn_list_join(
 	
 	for (size_t i = 0; i < kn_length(list); ++i) {
 		if (i != 0) {
-			if (cap <= sep->length + len)
-				joined = xrealloc(joined, cap = cap * 2 + sep->length);
+			if (cap <= kn_length(sep) + len)
+				joined = xrealloc(joined, cap = cap * 2 + kn_length(sep));
 
-			memcpy(joined + len, kn_string_deref(sep), sep->length);
-			len += sep->length;
+			memcpy(joined + len, kn_string_deref(sep), kn_length(sep));
+			len += kn_length(sep);
 		}
 
 		struct kn_string *string = kn_value_to_string(kn_list_get(list, i));
-		if (cap <= string->length + len)
-			joined = xrealloc(joined, cap = cap * 2 + string->length);
+		if (cap <= kn_length(string) + len)
+			joined = xrealloc(joined, cap = cap * 2 + kn_length(string));
 
-		memcpy(joined + len, kn_string_deref(string), string->length);
-		len += string->length;
+		memcpy(joined + len, kn_string_deref(string), kn_length(string));
+		len += kn_length(string);
 
 		kn_string_free(string);
 	}

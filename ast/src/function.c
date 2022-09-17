@@ -159,11 +159,7 @@ DECLARE_FUNCTION(tail, 1, "]") {
 	}
 
 	struct kn_string *string = kn_value_as_string(ran);
-	struct kn_string *tail = kn_string_get_substring(
-		string,
-		1,
-		string->length - 1
-	);
+	struct kn_string *tail = kn_string_get_substring(string, 1, kn_length(string) - 1);
 	kn_string_free(string);
 	return kn_value_new(tail);
 }
@@ -301,10 +297,11 @@ DECLARE_FUNCTION(output, 1, "OUTPUT") {
 	clearerr(stdout);
 #endif /* !KN_RECKLESS */
 
-	if (string->length != 0 && str[string->length - 1] == '\\') {
-		fwrite(str, sizeof(char), string->length - 1, stdout);
+	size_t length = kn_length(string);
+	if (length != 0 && str[length - 1] == '\\') {
+		fwrite(str, sizeof(char), length - 1, stdout);
 	} else {
-		fwrite(str, sizeof(char), string->length, stdout);
+		fwrite(str, sizeof(char), length, stdout);
 		putchar('\n');
 	}
 
@@ -326,7 +323,7 @@ DECLARE_FUNCTION(ascii, 1, "ASCII") {
 	if (kn_value_is_string(ran)) {
 		struct kn_string *string = kn_value_as_string(ran);
 
-		if (string->length == 0)
+		if (kn_length(string) == 0)
 			kn_error("ASCII called with empty string.");
 
 		char head = kn_string_deref(string)[0];
@@ -348,10 +345,7 @@ DECLARE_FUNCTION(ascii, 1, "ASCII") {
 #ifdef KN_EXT_VALUE
 DECLARE_FUNCTION(value, 1, "VALUE") {
 	struct kn_string *string = kn_value_to_string(args[0]);
-	struct kn_variable *variable = kn_env_fetch(
-		kn_string_deref(string),
-		string->length
-	);
+	struct kn_variable *variable = kn_env_fetch(kn_string_deref(string), kn_length(string));
 
 	kn_string_free(string);
 	return kn_variable_run(variable);
@@ -552,7 +546,7 @@ DECLARE_FUNCTION(assign, 2, "=") {
 		// otherwise, evaluate the expression, convert to a string,
 		// and then use that as the variable.
 		struct kn_string *string = kn_value_to_string(args[0]);
-		variable = kn_env_fetch(kn_string_deref(string), string->length);
+		variable = kn_env_fetch(kn_string_deref(string), kn_length(string));
 		kn_string_free(string);
 	}
 #endif /* KN_EXT_EQL_INTERPOLATE */

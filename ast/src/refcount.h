@@ -8,6 +8,6 @@ struct kn_refcount {
 	alignas(8) size_t count;
 };
 
-#define kn_refcount(ptr) ((size_t *) (ptr))
+#define kn_refcount(ptr) (&((struct kn_refcount *) (ptr))->count)
 
 #endif /* !KN_REFCOUNT_H */

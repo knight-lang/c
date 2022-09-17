@@ -37,7 +37,7 @@ struct kn_string *kn_number_to_string(kn_number number) {
 		*--ptr = '-';
 
 	number_string.ptr = ptr;
-	number_string.length = &buf[sizeof(buf) - 1] - ptr;
+	kn_length_set(&number_string, &buf[sizeof(buf) - 1] - ptr);
 
 	return &number_string;
 }
@@ -52,7 +52,7 @@ struct kn_list *kn_number_to_list(kn_number number) {
 	};
 
 	digits_list.alloc = &buf[sizeof(buf) / sizeof(kn_value)];
-	digits_list.container.length = 0;
+	kn_length_set(&digits_list, 0);
 
 	do {
 		*--digits_list.alloc = kn_value_new(number % 10);

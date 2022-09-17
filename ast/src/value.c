@@ -326,7 +326,7 @@ kn_value kn_value_run(kn_value value) {
 }
 
 
-void KN_ATTRIBUTE((noinline)) kn_value_deallocate(kn_value value) {
+void KN_ATTRIBUTE(noinline) kn_value_deallocate(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
 	switch (kn_tag(value)) {

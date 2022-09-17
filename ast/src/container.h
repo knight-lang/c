@@ -9,6 +9,7 @@ struct kn_container {
 	size_t length;
 };
 
-#define kn_length(ptr) (((size_t *) (ptr))[1])
+#define kn_length(ptr) (((struct kn_container *) (ptr))->length)
+#define kn_length_set(ptr, value) (((struct kn_container *) (ptr))->length = (value))
 
 #endif /* !KN_CONTAINER_H */

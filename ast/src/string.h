@@ -7,6 +7,8 @@
 #include "decls.h"
 #include <stdio.h>
 #include "shared.h"
+#include "container.h"
+#include <assert.h>
 
 /*
  * These flags are used to record information about how the memory of a
@@ -72,18 +74,7 @@ enum kn_string_flags {
  * properly dispose of its resources when you're finished with it.
  */
 struct kn_string {
-	/*
-	 * The amount of references to this string.
-	 *
-	 * This is increased when `kn_string_clone`d and decreased when
-	 * `kn_string_free`d, and when it reaches zero, the struct will be freed.
-	 */
-	_Alignas(8) size_t refcount;
-
-	/*
-	 * The length of the string.
-	 */
-	size_t length;
+	struct kn_container container;
 
 	/*
 	 * The flags that dictate how to manage this struct's memory.
@@ -118,11 +109,11 @@ extern struct kn_string kn_string_empty;
  * It's up to the caller to ensure that `data` can fit within an embedded
  * string.
  */
-#define KN_STRING_NEW_EMBED(data) \
-	{ \
-		.flags = KN_STRING_FL_EMBED, \
-		.length = sizeof(data) - 1, \
-		.embed = data \
+#define KN_STRING_NEW_EMBED(data)                  \
+	{                                               \
+		.flags = KN_STRING_FL_EMBED,                 \
+		.container = { .length = sizeof(data) - 1 }, \
+		.embed = data                                \
 	}
 
 /*
@@ -208,7 +199,14 @@ static inline const char *kn_string_deref_const(
  * Each copy must be `kn_string_free`d separately after use to ensure that no
  * memory errors occur.
  */
-struct kn_string *kn_string_clone(struct kn_string *string);
+static inline struct kn_string *kn_string_clone(struct kn_string *string) {
+	assert(!(string->flags & KN_STRING_FL_STATIC));
+
+	++*kn_refcount(string); // this is irrelevant for non-allocated structs.
+
+	return string;
+}
+
 
 /*
  * Duplicates `KN_STRING_FL_STATIC` strings, simply returns all others.
@@ -236,7 +234,7 @@ void kn_string_deallocate(struct kn_string *string);
  * we don't end up allocating multiple times for the same string.
  */
 static inline void kn_string_free(struct kn_string *string) {
-	if (--string->refcount == 0)
+	if (--*kn_refcount(string) == 0)
 		kn_string_deallocate(string);
 }
 
@@ -270,7 +268,7 @@ struct kn_string *kn_string_set_substring(
 );
 
 static inline void kn_string_dump(const struct kn_string *string, FILE *out) {
-	fprintf(out, "String(%*s)", (int) string->length, kn_string_deref(string));
+	fprintf(out, "String(%*s)", (int) kn_length(string), kn_string_deref(string));
 }
 
 #endif /* !KN_STRING_H */

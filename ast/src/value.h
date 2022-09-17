@@ -5,6 +5,7 @@
 #include "shared.h"
 #include <assert.h>
 #include <stdio.h>
+#include "container.h"
 
 #define KN_VALUE_ALIGN _Alignas(8)
 
@@ -347,13 +348,13 @@ static inline size_t kn_container_length(kn_value value) {
 	assert(kn_value_is_list(value) || kn_value_is_string(value));
 
 	// NOTE: both strings and lists have the the length in the same spot.
-	return ((size_t *) KN_UNMASK(value))[1];
+	return kn_length(KN_UNMASK(value));
 }
 
 static inline size_t *kn_container_refcount(kn_value value) {
 	assert(kn_value_is_ast(value) || kn_value_is_string(value) || kn_value_is_list(value));
 
-	return (size_t *) KN_UNMASK(value);
+	return kn_refcount(KN_UNMASK(value));
 }
 
 

@@ -14,10 +14,10 @@ extern jmp_buf kn_play_start;
 # define __has_builtin(x) 0
 #endif /* !__has_builtin */
 
-// #ifdef(_MSC_VER)
-// #if defined(__GNUC__)
-#if KN_USE_EXTENSIONS
-# define KN_ATTRIBUTE(x) __attribute__(x)
+#ifdef(_MSC_VER)
+# define KN_ATTRIBUTE __declspec(x)
+#if defined(__GNUC__) || defined(__llvm__)
+# define KN_ATTRIBUTE(x) __attribute__((x))
 #else
 # define KN_ATTRIBUTE(x)
 #endif /* KN_USE_EXTENSIONS */
@@ -90,7 +90,7 @@ kn_hash_t kn_hash_acc(const char *str, size_t length, kn_hash_t hash);
  * This is identical to the stdlib's `malloc`, except the program is aborted
  * instead of returning `NULL`.
  */
-void KN_ATTRIBUTE((malloc)) *xmalloc(size_t size);
+void KN_ATTRIBUTE(malloc) *xmalloc(size_t size);
 
 /*
  * Resizes the pointer to a segment of at least `size` bytes of memory and

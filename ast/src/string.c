@@ -44,10 +44,10 @@ bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs) {
 	if (lhs == rhs) // shortcut if they have the same pointer.
 		return true;
 
-	if (lhs->length != rhs->length)
+	if (kn_length(lhs) != kn_length(rhs))
 		return false;
 
-	return !memcmp(kn_string_deref(lhs), kn_string_deref(rhs), lhs->length);
+	return !memcmp(kn_string_deref(lhs), kn_string_deref(rhs), kn_length(lhs));
 }
 
 kn_number kn_string_compare(
@@ -70,8 +70,10 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 	struct kn_string *string = xmalloc(sizeof(struct kn_string));
 
 	string->flags = KN_STRING_FL_STRUCT_ALLOC;
-	string->refcount = 1;
-	string->length = length;
+	string->container = (struct kn_container) {
+		.refcount = { 1 },
+		.length = length
+	};
 	string->ptr = str;
 
 	return string;
@@ -83,8 +85,10 @@ static struct kn_string *allocate_embed_string(size_t length) {
 	struct kn_string *string = xmalloc(sizeof(struct kn_string));
 
 	string->flags = KN_STRING_FL_STRUCT_ALLOC | KN_STRING_FL_EMBED;
-	string->refcount = 1;
-	string->length = length;
+	string->container = (struct kn_container) {
+		.refcount = { 1 },
+		.length = length
+	};
 
 	return string;
 }
@@ -92,7 +96,7 @@ static struct kn_string *allocate_embed_string(size_t length) {
 // Actually deallocates the data associated with `string`.
 static void deallocate_string(struct kn_string *string) {
 	assert(string != NULL);
-	assert(string->refcount == 0); // don't dealloc live strings...
+	assert(*kn_refcount(string) == 0); // don't dealloc live strings...
 
 	// If the struct isn't actually allocated, then return.
 	if (!(string->flags & KN_STRING_FL_STRUCT_ALLOC)) {
@@ -110,7 +114,7 @@ static void deallocate_string(struct kn_string *string) {
 }
 
 static void evict_string_active(struct kn_string *string) {
-	assert(string->refcount != 0);
+	assert(*kn_refcount(string) != 0);
 	assert(string->flags & KN_STRING_FL_CACHED);
 
 	string->flags -= KN_STRING_FL_CACHED;
@@ -120,7 +124,7 @@ static void evict_string(struct kn_string *string) {
 	// we only cache allocated strings.
 	assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
 
-	if (string->refcount == 0) {
+	if (*kn_refcount(string) == 0) {
 		// If there are no more references to it, deallocate the string.
 		deallocate_string(string);
 	} else {
@@ -145,15 +149,15 @@ struct kn_string *kn_string_alloc(size_t length) {
 // Cache a string. note that it could have previously een cached.
 void kn_string_cache(struct kn_string *string) {
 	// empty strings should never be cached.
-	assert(string->length != 0);
+	assert(kn_length(string) != 0);
 
 	// If it's too large for the cache, then just ignore it.
-	if (KN_STRING_CACHE_MAXLEN < string->length)
+	if (KN_STRING_CACHE_MAXLEN < kn_length(string))
 		return;
 
 	struct kn_string **cacheline = get_cache_slot(
 		kn_string_deref(string),
-		string->length
+		kn_length(string)
 	);
 
 	// If there was something there and has no live references left, free it.
@@ -212,7 +216,7 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 	if (KN_LIKELY(string != NULL)) {
 		// cached strings must be allocated.
 		assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
-		assert(string->length == length);
+		assert(kn_length(string) == length);
 
 		// if the string is the same, then that means we want the cached one.
 		if (KN_LIKELY(strncmp(kn_string_deref(string), str, length) == 0))
@@ -232,30 +236,18 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 }
 
 void kn_string_deallocate(struct kn_string *string) {
-	assert(string->refcount == 0);
+	assert(*kn_refcount(string) == 0);
 
 	// If we're not cached, deallocate the string.
 	if (!(string->flags & KN_STRING_FL_CACHED))
 		deallocate_string(string);
 }
 
-struct kn_string *kn_string_clone(struct kn_string *string) {
-	assert(string != NULL);
-	assert(!(string->flags & KN_STRING_FL_STATIC));
-
-	++string->refcount; // this is irrelevant for non-allocated structs.
-
-	return string;
-}
-
 struct kn_string *kn_string_clone_static(struct kn_string *string) {
 	if (!(string->flags & KN_STRING_FL_STATIC))
 		return string;
 
-	return kn_string_new_borrowed(
-		kn_string_deref(string),
-		string->length
-	);
+	return kn_string_new_borrowed(kn_string_deref(string), kn_length(string));
 }
 
 void kn_string_cleanup() {
@@ -270,7 +262,7 @@ void kn_string_cleanup() {
 				assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
 
 				// If there are no more references to it, deallocate the string.
-				if (string->refcount == 0)
+				if (*kn_refcount(string) == 0)
 					deallocate_string(string);
 			}
 		}
@@ -278,7 +270,7 @@ void kn_string_cleanup() {
 }
 
 struct kn_list *kn_string_to_list(const struct kn_string *string) {
-	size_t length = string->length;
+	size_t length = kn_length(string);
 
 	if (length == 0)
 		return &kn_list_empty;
@@ -301,18 +293,18 @@ struct kn_string *kn_string_concat(
 	size_t lhslen, rhslen;
 
 	// return early if either
-	if ((lhslen = lhs->length) == 0) {
+	if ((lhslen = kn_length(lhs)) == 0) {
 		assert(lhs == &kn_string_empty);
 		return kn_string_clone_static(rhs);
 	}
 
-	if ((rhslen = rhs->length) == 0) {
+	if ((rhslen = kn_length(rhs)) == 0) {
 		assert(rhs == &kn_string_empty);
 		return lhs;
 	}
 
-	kn_hash_t hash = kn_hash(kn_string_deref(lhs), lhs->length);
-	hash = kn_hash_acc(kn_string_deref(rhs), rhs->length, hash);
+	kn_hash_t hash = kn_hash(kn_string_deref(lhs), lhslen);
+	hash = kn_hash_acc(kn_string_deref(rhs), rhslen, hash);
 
 	size_t length = lhslen + rhslen;
 
@@ -324,13 +316,13 @@ struct kn_string *kn_string_concat(
 	char *tmp = kn_string_deref(lhs);
 
 	// FIXME: use memcmp instead
-	for (size_t i = 0; i < lhs->length; i++, cached++)
+	for (size_t i = 0; i < lhslen; i++, cached++)
 		if (*cached != tmp[i])
 			goto allocate_and_cache;
 
 	tmp = kn_string_deref(rhs);
 
-	for (size_t i = 0; i < rhs->length; i++, cached++)
+	for (size_t i = 0; i < rhslen; i++, cached++)
 		if (*cached != tmp[i])
 			goto allocate_and_cache;
 
@@ -356,7 +348,7 @@ free_and_return:
 
 
 struct kn_string *kn_string_repeat(struct kn_string *string, size_t amount) {
-	size_t lhslen = string->length;
+	size_t lhslen = kn_length(string);
 
 	if (lhslen == 0 || amount == 0) {
 		// if the string is not empty, free it.
@@ -392,14 +384,14 @@ struct kn_string *kn_string_get_substring(
 	size_t start,
 	size_t length
 ) {
-	assert(start + length <= string->length);
+	assert(start + length <= kn_length(string));
 
 	if (length == 0) {
 		assert(string == &kn_string_empty);
 		return &kn_string_empty;
 	}
 
-	if (KN_UNLIKELY(!start && length == string->length))
+	if (KN_UNLIKELY(!start && length == kn_length(string)))
 		return kn_string_clone_static(string);
 
 	struct kn_string *substring = kn_string_new_borrowed(
@@ -416,14 +408,14 @@ struct kn_string *kn_string_set_substring(
 	size_t length,
 	struct kn_string *replacement
 ) {
-	assert(start + length <= string->length);
+	assert(start + length <= kn_length(string));
 
-	if (!replacement->length && !start) {
+	if (!kn_length(replacement) && !start) {
 		assert(replacement == &kn_string_empty);
-		return kn_string_get_substring(string, length, string->length - length);
+		return kn_string_get_substring(string, length, kn_length(string) - length);
 	}
 
-	if (KN_UNLIKELY(!string->length)) {
+	if (KN_UNLIKELY(kn_length(string) == 0	)) {
 		kn_string_free(replacement);
 		return kn_string_clone_static(string);
 	}
@@ -431,25 +423,21 @@ struct kn_string *kn_string_set_substring(
 	char *string_str = kn_string_deref(string);
 	char *repl_str = kn_string_deref(replacement);
 
-	size_t replaced_length = string->length - length + replacement->length;
+	size_t replaced_length = kn_length(string) - length + kn_length(replacement);
 	kn_hash_t hash = kn_hash(string_str, start);
-	hash = kn_hash_acc(repl_str, replacement->length, hash);
-	hash = kn_hash_acc(
-		string_str + start + length,
-		string->length - start - length,
-		hash
-	);
+	hash = kn_hash_acc(repl_str, kn_length(replacement), hash);
+	hash = kn_hash_acc(string_str + start + length, kn_length(string) - start - length, hash);
 
 	struct kn_string *cached = kn_string_cache_lookup(hash, replaced_length);
 
 	if (
 		cached
 		&& !memcmp(string_str, kn_string_deref(cached), start)
-		&& !memcmp(repl_str, kn_string_deref(cached) + start, replacement->length)
+		&& !memcmp(repl_str, kn_string_deref(cached) + start, kn_length(replacement))
 		&& !memcmp(
 			string_str + start + length,
-			kn_string_deref(cached) + start + replacement->length,
-			string->length - start - length
+			kn_string_deref(cached) + start + kn_length(replacement),
+			kn_length(string) - start - length
 		)
 	) {
 		cached = kn_string_clone(cached);
@@ -458,12 +446,8 @@ struct kn_string *kn_string_set_substring(
 		char *str = kn_string_deref(cached);
 
 		memcpy(str, string_str, start);
-		memcpy(str + start, repl_str, replacement->length);
-		memcpy(
-			str + start + replacement->length,
-			string_str + start + length,
-			string->length
-		);
+		memcpy(str + start, repl_str, kn_length(replacement));
+		memcpy(str + start + kn_length(replacement), string_str + start + length, kn_length(string));
 		str[replaced_length] = '\0';
 
 		kn_string_cache(cached);
