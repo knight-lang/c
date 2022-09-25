@@ -284,7 +284,6 @@ DECLARE_FUNCTION(dump, 1, "DUMP") {
 	kn_value ran = kn_value_run(args[0]);
 
 	kn_value_dump(ran, stdout);
-	putchar('\n');
 
 	return ran;
 }

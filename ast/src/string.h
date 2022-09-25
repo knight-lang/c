@@ -267,8 +267,6 @@ struct kn_string *kn_string_set_substring(
 	struct kn_string *replacement
 );
 
-static inline void kn_string_dump(const struct kn_string *string, FILE *out) {
-	fprintf(out, "String(%*s)", (int) kn_length(string), kn_string_deref(string));
-}
+void kn_string_dump(const struct kn_string *string, FILE *out);
 
 #endif /* !KN_STRING_H */

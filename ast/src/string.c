@@ -346,7 +346,6 @@ free_and_return:
 	return string;
 }
 
-
 struct kn_string *kn_string_repeat(struct kn_string *string, size_t amount) {
 	size_t lhslen = kn_length(string);
 
@@ -410,14 +409,14 @@ struct kn_string *kn_string_set_substring(
 ) {
 	assert(start + length <= kn_length(string));
 
-	if (!kn_length(replacement) && !start) {
+	if (kn_length(replacement) == 0 && start == 0) {
 		assert(replacement == &kn_string_empty);
 		return kn_string_get_substring(string, length, kn_length(string) - length);
 	}
 
-	if (KN_UNLIKELY(kn_length(string) == 0	)) {
-		kn_string_free(replacement);
-		return kn_string_clone_static(string);
+	if (KN_UNLIKELY(kn_length(string) == 0)) {
+		assert(string == &kn_string_empty);
+		return kn_string_clone_static(replacement);
 	}
 
 	char *string_str = kn_string_deref(string);
@@ -457,4 +456,35 @@ struct kn_string *kn_string_set_substring(
 	kn_string_free(replacement);
 
 	return cached;
+}
+
+void kn_string_dump(const struct kn_string *string, FILE *out) {
+	fputc('"', out);
+
+	const char *ptr = kn_string_deref(string);
+	for (size_t i = 0; i < kn_length(string); i++) {
+		switch (ptr[i]) {
+		case '\r':
+			fputs("\\r", out);
+			break;
+
+		case '\n':
+			fputs("\\n", out);
+			break;
+
+		case '\t':
+			fputs("\\t", out);
+			break;
+
+		case '\\':
+		case '\"':
+			fputc('\\', out);
+			KN_FALLTHROUGH
+
+		default:
+			fputc(ptr[i], out);
+		}
+	}
+
+	fputc('"', out);
 }

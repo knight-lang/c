@@ -70,7 +70,7 @@ static inline bool kn_stream_is_eof(const struct kn_stream *stream) {
 /*
  * Peeks at the first character in the `kn_parse_stream`.
  */
-static inline char kn_parse_peek(const struct kn_stream *stream) {
+static inline char kn_stream_peek(const struct kn_stream *stream) {
 	assert(!kn_stream_is_eof(stream));
 	return stream->source[stream->position];
 }
@@ -78,7 +78,7 @@ static inline char kn_parse_peek(const struct kn_stream *stream) {
 /*
  * Advances the stream.
  */
-static inline void kn_parse_advance(struct kn_stream *stream) {
+static inline void kn_stream_advance(struct kn_stream *stream) {
 	assert(!kn_stream_is_eof(stream));
 	++stream->position;
 }

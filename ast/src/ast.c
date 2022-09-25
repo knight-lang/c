@@ -82,17 +82,13 @@ void kn_ast_deallocate(struct kn_ast *ast) {
 }
 
 void kn_ast_dump(const struct kn_ast *ast, FILE *out) {
-	fputs("Function(", out);
+	fputs("AST(", out);
 	fputs(ast->function->name, out);
 
-	kn_indentation++;
 	for (size_t i = 0; i < ast->function->arity; ++i) {
 		fputs(", ", out);
-		kn_indent(out);
 		kn_value_dump(ast->args[i], out);
 	}
 
-	kn_indentation--;
-	kn_indent(out);
 	fputc(')', out);
 }

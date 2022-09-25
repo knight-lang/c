@@ -101,7 +101,4 @@ void KN_ATTRIBUTE(malloc) *xmalloc(size_t size);
  */
 void *xrealloc(void *ptr, size_t size);
 
-extern size_t kn_indentation;
-void kn_indent(FILE *out);
-
 #endif /* !KN_SHARED_H */

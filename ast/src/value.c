@@ -208,7 +208,7 @@ bool kn_value_equal(kn_value lhs, kn_value rhs) {
 kn_number kn_value_compare(kn_value lhs, kn_value rhs) {
 	switch (kn_tag(lhs)) {
 	case KN_TAG_CONSTANT:
-		return lhs - kn_value_to_boolean(rhs);
+		return kn_value_as_boolean(lhs) - kn_value_to_boolean(rhs);
 
 	case KN_TAG_NUMBER:
 		return kn_value_as_number(lhs) - kn_value_to_number(rhs);
@@ -238,15 +238,15 @@ void kn_value_dump(kn_value value, FILE *out) {
 	case KN_TAG_CONSTANT:
 		switch (value) {
 		case KN_TRUE:
-			fputs("Boolean(true)", out);
+			fputs("true", out);
 			return;
 
 		case KN_FALSE:
-			fputs("Boolean(false)", out);
+			fputs("false", out);
 			return;
 
 		case KN_NULL:
-			fputs("Null()", out);
+			fputs("null", out);
 			return;
 
 		default:
@@ -254,7 +254,7 @@ void kn_value_dump(kn_value value, FILE *out) {
 		}
 
 	case KN_TAG_NUMBER:
-		kn_number_dump(kn_value_as_number(value), out);
+		fprintf(out, "%" PRIdkn, kn_value_as_number(value));
 		return;
 
 	case KN_TAG_STRING:

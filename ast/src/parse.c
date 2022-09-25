@@ -24,33 +24,33 @@ static int iswordfunc(char c) {
 }
 
 void kn_parse_strip(struct kn_stream *stream) {
-	assert(iswhitespace(kn_parse_peek(stream)) || kn_parse_peek(stream) == '#');
+	assert(iswhitespace(kn_stream_peek(stream)) || kn_stream_peek(stream) == '#');
 
 	while (!kn_stream_is_eof(stream)) {
-		char c = kn_parse_peek(stream);
+		char c = kn_stream_peek(stream);
 
 		if (KN_UNLIKELY(c == '#')) {
-			while (!kn_stream_is_eof(stream) && (c = kn_parse_peek(stream)) != '\n')
-				kn_parse_advance(stream);
+			while (!kn_stream_is_eof(stream) && (c = kn_stream_peek(stream)) != '\n')
+				kn_stream_advance(stream);
 		}
 
 		if (!iswhitespace(c))
 			break;
 
-		while (!kn_stream_is_eof(stream) && iswhitespace(kn_parse_peek(stream)))
-			kn_parse_advance(stream);
+		while (!kn_stream_is_eof(stream) && iswhitespace(kn_stream_peek(stream)))
+			kn_stream_advance(stream);
 	}
 }
 
 kn_number kn_parse_number(struct kn_stream *stream) {
-	assert(isdigit(kn_parse_peek(stream)));
+	assert(isdigit(kn_stream_peek(stream)));
 
 	kn_number number = 0;
 
 	char c;
-	while (!kn_stream_is_eof(stream) && isdigit(c = kn_parse_peek(stream))) {
+	while (!kn_stream_is_eof(stream) && isdigit(c = kn_stream_peek(stream))) {
 		number = number*10 + (kn_number) (c - '0');
-		kn_parse_advance(stream);
+		kn_stream_advance(stream);
 	}
 
 	return number;
@@ -59,40 +59,40 @@ kn_number kn_parse_number(struct kn_stream *stream) {
 struct kn_string *kn_parse_string(struct kn_stream *stream) {
 	assert(!kn_stream_is_eof(stream));
 
-	char quote = kn_parse_peek(stream);
-	kn_parse_advance(stream);
+	char quote = kn_stream_peek(stream);
+	kn_stream_advance(stream);
 	assert(quote == '\'' || quote == '\"');
 
 	size_t start = stream->position;
 	char c;
 
-	while (!kn_stream_is_eof(stream) && quote != (c = kn_parse_peek(stream))) {
+	while (!kn_stream_is_eof(stream) && quote != (c = kn_stream_peek(stream))) {
 		if (c == '\0')
 			kn_error("nul is not allowed in knight strings");
-		kn_parse_advance(stream);
+		kn_stream_advance(stream);
 	}
 
 	if (kn_stream_is_eof(stream))
 		kn_error("unterminated quote encountered: '%s'", stream->source + start);
 
-	assert(kn_parse_peek(stream) == quote);
-	kn_parse_advance(stream);
+	assert(kn_stream_peek(stream) == quote);
+	kn_stream_advance(stream);
 
 	return kn_string_new_borrowed(stream->source + start, stream->position - start - 1);
 }
 
 struct kn_variable *kn_parse_variable(struct kn_stream *stream) {
 	assert(!kn_stream_is_eof(stream));
-	assert(islower(kn_parse_peek(stream)) || kn_parse_peek(stream) == '_');
+	assert(islower(kn_stream_peek(stream)) || kn_stream_peek(stream) == '_');
 
 	size_t start = stream->position;
 	char c;
 
 	while (
 		!kn_stream_is_eof(stream)
-		&& (islower(c = kn_parse_peek(stream)) || isdigit(c) || c == '_')
+		&& (islower(c = kn_stream_peek(stream)) || isdigit(c) || c == '_')
 	) {
-		kn_parse_advance(stream);
+		kn_stream_advance(stream);
 	}
 
 	return kn_env_fetch(stream->env, stream->source + start, stream->position - start);
@@ -130,8 +130,8 @@ kn_value kn_parse_ast(struct kn_stream *stream, const struct kn_function *fn) {
 }
 
 static void strip_keyword(struct kn_stream *stream) {
-	while (!kn_stream_is_eof(stream) && iswordfunc(kn_parse_peek(stream)))
-		kn_parse_advance(stream);
+	while (!kn_stream_is_eof(stream) && iswordfunc(kn_stream_peek(stream)))
+		kn_stream_advance(stream);
 }
 
 // Macros used either for computed gotos or switch statements (the switch
@@ -166,7 +166,7 @@ static void strip_keyword(struct kn_stream *stream) {
 #define SYMBOL_FUNC(name, sym) \
 	LABEL(function_##name) CASES1(sym) \
 	function = &kn_fn_##name; \
-	kn_parse_advance(stream); \
+	kn_stream_advance(stream); \
 	goto parse_function
 
 // Used for functions which are word functions (and can be multiple characters).
@@ -274,7 +274,7 @@ start:
 	if (kn_stream_is_eof(stream))
 		return KN_UNDEFINED;
 
-	c = kn_parse_peek(stream);
+	c = kn_stream_peek(stream);
 
 #ifdef KN_COMPUTED_GOTOS
 	goto *labels[(size_t) c];
@@ -318,7 +318,7 @@ CASES1('N')
 
 LABEL(literal_empty_list)
 CASES1('@')
-	kn_parse_advance(stream);
+	kn_stream_advance(stream);
 	return kn_value_new_list(kn_list_clone(&kn_list_empty));
 
 SYMBOL_FUNC(box, ',');
@@ -401,7 +401,7 @@ CASES1('\0')
 #ifdef KN_CUSTOM
 LABEL(extension)
 CASES1('X')
-	kn_parse_advance(stream); // delete the `X`
+	kn_stream_advance(stream); // delete the `X`
 	return kn_parse_extension(stream);
 #endif /* KN_CUSTOM */
 

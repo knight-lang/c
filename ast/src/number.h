@@ -16,10 +16,6 @@ static inline kn_boolean kn_number_to_boolean(kn_number number) {
 	return number != 0;
 }
 
-static inline void kn_number_dump(kn_number number, FILE *out) {
-	fprintf(out, "Number(%" PRIdkn ")", number);
-}
-
 struct kn_string *kn_number_to_string(kn_number number);
 struct kn_list *kn_number_to_list(kn_number number);
 

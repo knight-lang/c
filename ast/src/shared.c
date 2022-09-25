@@ -48,14 +48,3 @@ void *xrealloc(void *ptr, size_t size) {
 
 	return ptr;
 }
-
-size_t kn_indentation;
-
-void kn_indent(FILE *out) {
-	fputc('\n', out);
-
-	for (size_t i = 0; i < kn_indentation; ++i) {
-		fputc("|:*"[i % 3], out);
-		fputc('\t', out);
-	}
-}

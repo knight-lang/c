@@ -242,28 +242,14 @@ struct kn_list *kn_list_set_sublist(
 }
 
 void kn_list_dump(const struct kn_list *list, FILE *out) {
-	fputs("List(", out);
-
-#ifndef KN_NPRETTY_PRINT_LISTS
-	++kn_indentation;
-#endif
+	fputc('[', out);
 
 	for (size_t i = 0; i < kn_length(list); ++i) {
 		if (i != 0)
 			fputs(", ", out);
 
-#ifndef KN_NPRETTY_PRINT_LISTS
-		kn_indent(out);
-#endif
-
 		kn_value_dump(kn_list_get(list, i), out);
 	}
 
-#ifndef KN_NPRETTY_PRINT_LISTS
-	--kn_indentation;
-	if (kn_length(list) != 0)
-		kn_indent(out);
-#endif
-
-	fputc(')', out);
+	fputc(']', out);
 }
