@@ -1,26 +1,24 @@
 #ifndef KN_ENV_H
 #define KN_ENV_H
 
-#include "value.h"   /* kn_value */
-#include "shared.h"   /* kn_value */
-#include <stdbool.h> /* bool */
-#include <stddef.h>  /* size_t */
+#include "value.h"
+#include "shared.h"
+#include <stddef.h>
 
 // it's declared within `env.c
 struct kn_env;
 
 /**
- * Initializes the global Knight environment.
+ * Initializes a Knight environment.
  *
  * This _must_ be called before `kn_env_fetch` is called.
  **/
 struct kn_env *kn_env_create(size_t capacity_per_bucket, size_t number_of_buckets);
 
 /**
- * Frees all resources associated with the global Knight environment.
+ * Frees all resources associated with given Knight environment.
  *
- * This will invalidate all `kn_variable` pointers, and `kn_env_startup` must
- * be called again before `kn_env_fetch` can be used.
+ * This will invalidate all `kn_variable` pointers derived from this environment.
  **/
 void kn_env_destroy(struct kn_env *env);
 

@@ -1,18 +1,25 @@
 #ifndef KN_INTEGER_H
 #define KN_INTEGER_H
 
-#include "decls.h"
 #include <stdint.h>  /* uint64_t, int64_t */
 #include <inttypes.h> /* PRId64 */
 #include "shared.h" /* die */
 #include <math.h> /* powl */
 
-#define KN_CHECKED_OVERFLOWS
+/**
+ * The integer type within Knight.
+ *
+ * Technically, this implementation only supports `int63_t` (as the extra bit
+ * is used to indicate whether a `kn_value`'s an integer or something else).
+ **/
+typedef int64_t kn_integer;
 
-typedef uint64_t kn_uinteger;
 #define PRIdkn PRId64
 
-static inline kn_boolean kn_integer_to_boolean(kn_integer integer) {
+struct kn_string;
+struct kn_list;
+
+static inline _Bool kn_integer_to_boolean(kn_integer integer) {
 	return integer != 0;
 }
 

@@ -3,13 +3,15 @@
 #include "list.h"
 
 struct kn_string *kn_integer_to_string(kn_integer integer) {
-	static struct kn_string zero_string = KN_STRING_NEW_EMBED("0"),
+	// pre-known strings.
+	static struct kn_string
+		zero_string = KN_STRING_NEW_EMBED("0"),
 		one_string = KN_STRING_NEW_EMBED("1"),
 		uint64_min_string = KN_STRING_NEW_EMBED("-9223372036854775808");
 
-	// note that `21` is the length of `INT64_MIN`, which is 20 characters
-	// long + the trailing `\0`.
-	static char buf[21];
+	// Note that `21` is the length of `INT64_MIN`, which is 20 characters long + the trailing `\0`.
+	// But to be safe, let's just allocate 100.
+	static char buf[100];
 	static struct kn_string integer_string = { .flags = KN_STRING_FL_STATIC };
 
 	if (integer == 0)
@@ -18,6 +20,7 @@ struct kn_string *kn_integer_to_string(kn_integer integer) {
 	if (integer == 1)
 		return &one_string;
 
+	// We have to predeclare this string because the `integer *= -1` below will be UB.
 	if (KN_UNLIKELY(integer == INT64_MIN))
 		return &uint64_min_string; // since inverting the min value doesnt work.
 
@@ -31,7 +34,8 @@ struct kn_string *kn_integer_to_string(kn_integer integer) {
 
 	do {
 		*--ptr = '0' + (integer % 10);
-	} while (integer /= 10);
+		integer /= 10;
+	} while (integer != 0);
 
 	if (is_neg)
 		*--ptr = '-';
@@ -43,7 +47,9 @@ struct kn_string *kn_integer_to_string(kn_integer integer) {
 }
 
 struct kn_list *kn_integer_to_list(kn_integer integer) {
-	static kn_value buf[20]; // note that `20` is the length of `INT64_MIN`.
+	// Note that `19` is the length of `INT64_MIN`, which is 19 digits and a `-`. So, to be safe,
+	// let's go with 100.
+	static kn_value buf[100];
 	static struct kn_list digits_list = {
 		.container = {
 			.refcount = { 1 }
