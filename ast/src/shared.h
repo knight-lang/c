@@ -47,10 +47,10 @@ extern jmp_buf kn_play_start;
 #define KN_LIKELY(x) KN_EXPECT(!!(x), 1)
 #define KN_UNLIKELY(x) KN_EXPECT(!!(x), 0)
 
-#ifndef KN_RECKLESS
-#define kn_error(...) die(__VA_ARGS__)
+#ifdef KN_RECKLESS
+# define kn_error(...) KN_UNREACHABLE()
 #else
-#define kn_error(...) KN_UNREACHABLE()
+# define kn_error(...) die(__VA_ARGS__)
 #endif /* !KN_RECKLESS */
 
 /*

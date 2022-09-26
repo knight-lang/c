@@ -78,7 +78,7 @@ DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 	assert(length != 0);
 	if (line[length - 1] == '\n') {
 		length--;
-		if (line[length - 1] == '\r')
+		if (length && line[length - 1] == '\r')
 			--length;
 		line[length] = '\0';
 	}
@@ -133,15 +133,16 @@ DECLARE_FUNCTION(head, 1, "[") {
 	if (kn_value_is_list(ran)) {
 		struct kn_list *list = kn_value_as_list(ran);
 		kn_value head = kn_value_clone(kn_list_get(list, 0));
+
 		kn_list_free(list);
 		return head;
+	} else {
+		struct kn_string *string = kn_value_as_string(ran);
+		struct kn_string *head = kn_string_new_borrowed(kn_string_deref(string), 1);
+
+		kn_string_free(string);
+		return kn_value_new(head);
 	}
-
-	struct kn_string *string = kn_value_as_string(ran);
-	struct kn_string *head = kn_string_new_borrowed(kn_string_deref(string), 1);
-
-	kn_string_free(string);
-	return kn_value_new(head);
 }
 
 DECLARE_FUNCTION(tail, 1, "]") {
@@ -156,16 +157,14 @@ DECLARE_FUNCTION(tail, 1, "]") {
 	if (kn_value_is_list(ran)) {
 		struct kn_list *list = kn_value_as_list(ran);
 		return kn_value_new(kn_list_get_sublist(list, 1, kn_length(list) - 1));
+	} else {
+		struct kn_string *string = kn_value_as_string(ran);
+		return kn_value_new(kn_string_get_substring(string, 1, kn_length(string) - 1));
 	}
-
-	struct kn_string *string = kn_value_as_string(ran);
-	struct kn_string *tail = kn_string_get_substring(string, 1, kn_length(string) - 1);
-	kn_string_free(string);
-	return kn_value_new(tail);
 }
 
 DECLARE_FUNCTION(block, 1, "BLOCK") {
-	assert(kn_value_is_ast(args[0]));
+	assert(kn_value_is_ast(args[0])); // should have been taken care of during parsing.
 
 	kn_ast_clone(kn_value_as_ast(args[0]));
 
