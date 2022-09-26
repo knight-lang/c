@@ -3,7 +3,7 @@
 #include <ctype.h>  /* isspace, isdigit, islower, isupper */
 #include <string.h> /* strndup, memcpy */
 
-#include "parse.h"    /* prototypes, kn_value, kn_number, kn_value_new_number,
+#include "parse.h"    /* prototypes, kn_value, kn_integer, kn_value_new_integer,
                          kn_value_new_variable, kn_value_new_string,
                          kn_value_new_ast, KN_UNDEFINED, KN_TRUE, KN_FALSE,
                          KN_NULL, kn_function, <all the function definitions> */
@@ -42,18 +42,18 @@ void kn_parse_strip(struct kn_stream *stream) {
 	}
 }
 
-kn_number kn_parse_number(struct kn_stream *stream) {
+kn_integer kn_parse_integer(struct kn_stream *stream) {
 	assert(isdigit(kn_stream_peek(stream)));
 
-	kn_number number = 0;
+	kn_integer integer = 0;
 
 	char c;
 	while (!kn_stream_is_eof(stream) && isdigit(c = kn_stream_peek(stream))) {
-		number = number*10 + (kn_number) (c - '0');
+		integer = integer*10 + (kn_integer) (c - '0');
 		kn_stream_advance(stream);
 	}
 
-	return number;
+	return integer;
 }
 
 struct kn_string *kn_parse_string(struct kn_stream *stream) {
@@ -204,7 +204,7 @@ kn_value kn_parse_value(struct kn_stream *stream) {
 		['-']  = &&function_sub,
 		['.']  = &&invalid,
 		['/']  = &&function_div,
-		['0' ... '9']  = &&number,
+		['0' ... '9']  = &&integer,
 		[':']  = &&strip,
 		[';']  = &&function_then,
 		['<']  = &&function_lth,
@@ -287,9 +287,9 @@ CASES10('\t', '\n', '\v', '\f', '\r', ' ', '(', ')', ':', '#')
 	kn_parse_strip(stream);
 	goto start; // go find the next token to return.
 
-LABEL(number)
+LABEL(integer)
 CASES10('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
-	return kn_value_new_number(kn_parse_number(stream));
+	return kn_value_new_integer(kn_parse_integer(stream));
 
 LABEL(identifier)
 CASES10('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j')

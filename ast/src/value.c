@@ -1,13 +1,13 @@
 #include "env.h"    /* kn_variable, kn_variable_run */
 #include "ast.h"    /* kn_ast, kn_ast_deallocate, kn_ast_clone, kn_ast_run */
-#include "value.h"  /* prototypes, bool, uint64_t, int64_t, kn_value, kn_number,
+#include "value.h"  /* prototypes, bool, uint64_t, int64_t, kn_value, kn_integer,
                        kn_boolean, KN_UNDEFINED, KN_NULL, KN_TRUE, KN_FALSE */
 #include "string.h" /* kn_string, kn_string_clone, kn_string_deallocate,
                        kn_string_deref, kn_string_length, KN_STRING_FL_STATIC,
                        KN_STRING_NEW_EMBED */
 #include "custom.h" /* kn_custom, kn_custom_free, kn_custom_clone */
 #include "shared.h" /* die */
-#include "number.h" /* kn_number_to_string */
+#include "integer.h" /* kn_integer_to_string */
 #include "list.h"
 
 #include <inttypes.h> /* PRId64 */
@@ -16,29 +16,29 @@
 #include <stdio.h>    /* printf */
 #include <ctype.h>    /* isspace */
 
-kn_number kn_value_to_number(kn_value value) {
+kn_integer kn_value_to_integer(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
-	switch (KN_EXPECT(kn_tag(value), KN_TAG_NUMBER)) {
+	switch (KN_EXPECT(kn_tag(value), KN_TAG_INTEGER)) {
 	case KN_TAG_CONSTANT:
 		value >>= 1; // horray for micro-optimizations
 		KN_FALLTHROUGH
 
-	case KN_TAG_NUMBER:
-		return (kn_number) value >> KN_SHIFT;
+	case KN_TAG_INTEGER:
+		return (kn_integer) value >> KN_SHIFT;
 
 	case KN_TAG_STRING:
-		return kn_string_to_number(kn_value_as_string(value));
+		return kn_string_to_integer(kn_value_as_string(value));
 
 	case KN_TAG_LIST:
-		return (kn_number) kn_length(kn_value_as_list(value));
+		return (kn_integer) kn_length(kn_value_as_list(value));
 
 #ifdef KN_CUSTOM
 	case KN_TAG_CUSTOM: {
 		struct kn_custom *custom = kn_value_as_custom(value);
 
-		if (custom->vtable->to_number != NULL)
-			return custom->vtable->to_number(custom->data);
+		if (custom->vtable->to_integer != NULL)
+			return custom->vtable->to_integer(custom->data);
 		KN_FALLTHROUGH
 	}
 #endif /* KN_CUSTOM */
@@ -47,7 +47,7 @@ kn_number kn_value_to_number(kn_value value) {
 	case KN_TAG_AST:
 		// simply execute the value and call this function again.
 		value = kn_value_run(value);
-		kn_number ret = kn_value_to_number(value);
+		kn_integer ret = kn_value_to_integer(value);
 		kn_value_free(value);
 		return ret;
 	}
@@ -73,9 +73,9 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 	case KN_TAG_VARIABLE:
 		// simply execute the value and call this function again.
 		value = kn_value_run(value);
-		if (kn_tag(value) <= KN_TAG_NUMBER) {
+		if (kn_tag(value) <= KN_TAG_INTEGER) {
 		case KN_TAG_CONSTANT:
-		case KN_TAG_NUMBER:
+		case KN_TAG_INTEGER:
 			return KN_NULL < value;
 		}
 
@@ -109,8 +109,8 @@ struct kn_string *kn_value_to_string(kn_value value) {
 	case KN_TAG_STRING:
 		return kn_string_clone(kn_value_as_string(value));
 
-	case KN_TAG_NUMBER:
-		return kn_number_to_string(kn_value_as_number(value));
+	case KN_TAG_INTEGER:
+		return kn_integer_to_string(kn_value_as_integer(value));
 
  	case KN_TAG_LIST:
  		return kn_list_to_string(kn_value_as_list(value));
@@ -154,8 +154,8 @@ struct kn_list *kn_value_to_list(kn_value value) {
 	case KN_TAG_CONSTANT:
 		return value == KN_TRUE ? &true_list : &kn_list_empty;
 
-	case KN_TAG_NUMBER:
-		return kn_number_to_list(kn_value_as_number(value));
+	case KN_TAG_INTEGER:
+		return kn_integer_to_list(kn_value_as_integer(value));
 
 	case KN_TAG_STRING:
 		return kn_string_to_list(kn_value_as_string(value));
@@ -205,13 +205,13 @@ bool kn_value_equal(kn_value lhs, kn_value rhs) {
 	}
 }
 
-kn_number kn_value_compare(kn_value lhs, kn_value rhs) {
+kn_integer kn_value_compare(kn_value lhs, kn_value rhs) {
 	switch (kn_tag(lhs)) {
 	case KN_TAG_CONSTANT:
 		return kn_value_as_boolean(lhs) - kn_value_to_boolean(rhs);
 
-	case KN_TAG_NUMBER:
-		return kn_value_as_number(lhs) - kn_value_to_number(rhs);
+	case KN_TAG_INTEGER:
+		return kn_value_as_integer(lhs) - kn_value_to_integer(rhs);
 
 	case KN_TAG_STRING: {
 		struct kn_string *rstring = kn_value_to_string(rhs);
@@ -228,7 +228,7 @@ kn_number kn_value_compare(kn_value lhs, kn_value rhs) {
 	}
 
 	default:
-		kn_error("can only compare boolean, number, list, and string.");
+		kn_error("can only compare boolean, integer, list, and string.");
 	}
 }
 
@@ -253,8 +253,8 @@ void kn_value_dump(kn_value value, FILE *out) {
 			KN_UNREACHABLE();
 		}
 
-	case KN_TAG_NUMBER:
-		fprintf(out, "%" PRIdkn, kn_value_as_number(value));
+	case KN_TAG_INTEGER:
+		fprintf(out, "%" PRIdkn, kn_value_as_integer(value));
 		return;
 
 	case KN_TAG_STRING:
@@ -319,7 +319,7 @@ kn_value kn_value_run(kn_value value) {
 
 		KN_FALLTHROUGH
 
-	case KN_TAG_NUMBER:
+	case KN_TAG_INTEGER:
 	case KN_TAG_CONSTANT:
 		return value;
 	}
@@ -349,7 +349,7 @@ void KN_ATTRIBUTE(noinline) kn_value_deallocate(kn_value value) {
 #endif /* KN_CUSTOM */
 
 	case KN_TAG_CONSTANT:
-	case KN_TAG_NUMBER:
+	case KN_TAG_INTEGER:
 	case KN_TAG_VARIABLE:
 		KN_UNREACHABLE();
 	}

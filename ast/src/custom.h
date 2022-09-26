@@ -1,7 +1,7 @@
 #if defined(KN_CUSTOM) && !defined(KN_CUSTOM_H)
 #define KN_CUSTOM_H
 
-#include "value.h"  /* kn_value, kn_number, kn_boolean, kn_string */
+#include "value.h"  /* kn_value, kn_integer, kn_boolean, kn_string */
 #include <stddef.h> /* size_t */
 
 /*
@@ -11,7 +11,7 @@
  * omitted (by assigning them to `NULL`); if they are, their default
  * implementations will be used.
  *
- * However, at a minimum, either `run` or all of `to_number`, `to_boolean`, and
+ * However, at a minimum, either `run` or all of `to_integer`, `to_boolean`, and
  * `to_string` must be defined.
  *
  * Note that the `data` value passed to each function is actually the pointer to
@@ -43,12 +43,12 @@ struct kn_custom_vtable {
 	kn_value (*run)(void *data);
 
 	/*
-	 * Converts the `data` to a number.
+	 * Converts the `data` to an integer.
 	 *
 	 * The default implementation will call `run`, and then convert the result
-	 * to a number.
+	 * to an integer.
 	 */
-	kn_number (*to_number)(void *data);
+	kn_integer (*to_integer)(void *data);
 
 	/*
 	 * Converts the `data` to a boolean.

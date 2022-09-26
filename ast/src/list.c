@@ -81,14 +81,14 @@ bool kn_list_equal(const struct kn_list *lhs, const struct kn_list *rhs) {
 	return true;
 }
 
-kn_number kn_list_compare(const struct kn_list *lhs, const struct kn_list *rhs) {
+kn_integer kn_list_compare(const struct kn_list *lhs, const struct kn_list *rhs) {
 	if (lhs == rhs)
 		return 0;
 
 	size_t minlen = kn_length(lhs) < kn_length(rhs) ? kn_length(lhs) : kn_length(rhs);
 
 	for (size_t i = 0; i < minlen; ++i) {
-		kn_number cmp = kn_value_compare(
+		kn_integer cmp = kn_value_compare(
 			kn_list_get(lhs, i),
 			kn_list_get(rhs, i)
 		);
@@ -103,12 +103,12 @@ kn_number kn_list_compare(const struct kn_list *lhs, const struct kn_list *rhs) 
 struct kn_list *kn_list_concat(struct kn_list *lhs, struct kn_list *rhs) {
 	if (kn_length(lhs) == 0) {
 		assert(lhs == &kn_list_empty);
-		return kn_list_clone_number(rhs);
+		return kn_list_clone_integer(rhs);
 	}
 
 	if (KN_UNLIKELY(kn_length(rhs) == 0)) {
 		assert(rhs == &kn_list_empty);
-		assert(!(lhs->flags & KN_LIST_FL_NUMBER));
+		assert(!(lhs->flags & KN_LIST_FL_INTEGER));
 		return lhs;
 	}
 

@@ -4,7 +4,7 @@
 #include "env.h"      /* kn_env_fetch, kn_variable, kn_variable_run,
                          kn_variable_assign */
 #include "list.h"  
-#include "number.h"  
+#include "integer.h"  
 #include "shared.h"   /* die, xmalloc, xrealloc, kn_hash, kn_hash_acc,
                          KN_LIKELY, KN_UNLIKELY */
 #include "string.h"   /* kn_string, kn_string_new_owned, kn_string_new_borrowed,
@@ -12,14 +12,14 @@
                          kn_string_deref, kn_string_length, kn_string_cache,
                          kn_string_clone_static, kn_string_cache_lookup,
                          kn_string_equal */
-#include "value.h"    /* kn_value, kn_number, KN_TRUE, KN_FALSE, KN_NULL,
+#include "value.h"    /* kn_value, kn_integer, KN_TRUE, KN_FALSE, KN_NULL,
                          KN_UNDEFINED, new_value_number, new_value_string,
                          new_value_boolean, kn_value_clone, kn_value_free,
-                         kn_value_dump, kn_value_is_number, kn_value_is_boolean,
+                         kn_value_dump, kn_value_is_integer, kn_value_is_boolean,
                          kn_value_is_string, kn_value_is_variable,
-                         kn_value_as_number, kn_value_as_string,
+                         kn_value_as_integer, kn_value_as_string,
                          kn_value_as_variable, kn_value_to_boolean,
-                         kn_value_to_number, kn_value_to_string, kn_value_run */
+                         kn_value_to_integer, kn_value_to_string, kn_value_run */
 #include <string.h>   /* memcpy, memcmp, strndup, strerror */
 #include <assert.h>   /* assert */
 #include <stdlib.h>   /* rand, srand, free, exit, size_t, NULL */
@@ -94,7 +94,7 @@ DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 DECLARE_FUNCTION(random, 0, "RANDOM") {
 	(void) args;
 
-	return kn_value_new((kn_number) rand());
+	return kn_value_new((kn_integer) rand());
 }
 
 #ifdef KN_EXT_EVAL
@@ -235,7 +235,7 @@ DECLARE_FUNCTION(system, 2, "$") {
 #endif /* KN_EXT_SYSTEM */
 
 DECLARE_FUNCTION(quit, 1, "QUIT") {
-	int status_code = (int) kn_value_to_number(args[0]);
+	int status_code = (int) kn_value_to_integer(args[0]);
 
 #ifdef KN_FUZZING
 	if (true)
@@ -256,23 +256,23 @@ DECLARE_FUNCTION(length, 1, "LENGTH") {
 		size_t length = kn_container_length(ran);
 
 		kn_value_free(ran);
-		return kn_value_new((kn_number) length);
+		return kn_value_new((kn_integer) length);
 	}
 
-	if (kn_value_is_number(ran)) {
-		kn_number number = kn_value_as_number(ran);
-		kn_number length = 0;
+	if (kn_value_is_integer(ran)) {
+		kn_integer integer = kn_value_as_integer(ran);
+		kn_integer length = 0;
 
 		do {
 			length++;
-			number /= 10;
-		} while (number);
+			integer /= 10;
+		} while (integer);
 
 		return kn_value_new(length);
 	}
 
 	struct kn_list *list = kn_value_to_list(ran);
-	kn_number length = (kn_number) kn_length(list);
+	kn_integer length = (kn_integer) kn_length(list);
 
 	kn_value_free(ran);
 	kn_list_free(list);
@@ -314,8 +314,8 @@ DECLARE_FUNCTION(output, 1, "OUTPUT") {
 DECLARE_FUNCTION(ascii, 1, "ASCII") {
 	kn_value ran = kn_value_run(args[0]);
 
-	if (!kn_value_is_number(ran) && !kn_value_is_string(ran))
-		kn_error("can only call ASCII on numbers and strings.");
+	if (!kn_value_is_integer(ran) && !kn_value_is_string(ran))
+		kn_error("can only call ASCII on integer and strings.");
 
 	// If lhs is a string, convert both to a string and concatenate.
 	if (kn_value_is_string(ran)) {
@@ -327,16 +327,16 @@ DECLARE_FUNCTION(ascii, 1, "ASCII") {
 		char head = kn_string_deref(string)[0];
 		kn_string_free(string);
 
-		return kn_value_new((kn_number) head);
+		return kn_value_new((kn_integer) head);
 	}
 
-	kn_number number = kn_value_as_number(ran);
+	kn_integer integer = kn_value_as_integer(ran);
 
 	// just check for ASCIIness, not actually full-blown knight correctness. 
-	if (number <= 0 || 127 < number)
-		kn_error("Number %" PRIdkn " is out of range for ascii char.", number);
+	if (integer <= 0 || 127 < integer)
+		kn_error("Integer %" PRIdkn " is out of range for ascii char.", integer);
 
-	char buf[2] = { number, 0 };
+	char buf[2] = { integer, 0 };
 	return kn_value_new(kn_string_new_borrowed(buf, 1));
 }
 
@@ -351,7 +351,7 @@ DECLARE_FUNCTION(value, 1, "VALUE") {
 #endif /* KN_EXT_VALUE */
 
 DECLARE_FUNCTION(negate, 1, "~") {
-	return kn_value_new((kn_number) -kn_value_to_number(args[0]));
+	return kn_value_new((kn_integer) -kn_value_to_integer(args[0]));
 }
 
 DECLARE_FUNCTION(add, 2, "+") {
@@ -370,39 +370,39 @@ DECLARE_FUNCTION(add, 2, "+") {
 			kn_value_to_string(args[1])
 		));
 
-	case KN_TAG_NUMBER:
+	case KN_TAG_INTEGER:
 		return kn_value_new(
-			kn_value_as_number(lhs) + kn_value_to_number(args[1])
+			kn_value_as_integer(lhs) + kn_value_to_integer(args[1])
 		);
 
 	default:
-		kn_error("can only add to strings, numbers, and lists");
+		kn_error("can only add to strings, integers, and lists");
 	}
 }
 
 DECLARE_FUNCTION(sub, 2, "-") {
 	kn_value lhs = kn_value_run(args[0]);
 
-	if (!kn_value_is_number(lhs))
-		kn_error("can only subtract from numbers");
+	if (!kn_value_is_integer(lhs))
+		kn_error("can only subtract from integers");
 
-	return kn_value_new(kn_value_as_number(lhs) - kn_value_to_number(args[1]));
+	return kn_value_new(kn_value_as_integer(lhs) - kn_value_to_integer(args[1]));
 }
 
 DECLARE_FUNCTION(mul, 2, "*") {
 	kn_value lhs = kn_value_run(args[0]);
-	kn_number rhs = kn_value_to_number(args[1]);
+	kn_integer rhs = kn_value_to_integer(args[1]);
 
-	if (kn_value_is_number(lhs))
-		return kn_value_new(kn_value_as_number(lhs) * rhs);
+	if (kn_value_is_integer(lhs))
+		return kn_value_new(kn_value_as_integer(lhs) * rhs);
 
-	if (rhs < 0 || rhs != (kn_number) (size_t) rhs)
+	if (rhs < 0 || rhs != (kn_integer) (size_t) rhs)
 		kn_error("negative or too large an amount given");
 
 	if (!kn_value_is_list(lhs) && !kn_value_is_string(lhs))
-		kn_error("can only multiply numbers, strings, and lists");
+		kn_error("can only multiply integers, strings, and lists");
 
-	// If lhs is a string, convert rhs to a number and multiply.
+	// If lhs is a string, convert rhs to an integer and multiply.
 	if (kn_value_is_string(lhs))
 		return kn_value_new(kn_string_repeat(kn_value_as_string(lhs), rhs));
 
@@ -412,41 +412,41 @@ DECLARE_FUNCTION(mul, 2, "*") {
 DECLARE_FUNCTION(div, 2, "/") {
 	kn_value lhs = kn_value_run(args[0]);
 
-	if (!kn_value_is_number(lhs))
-		kn_error("can only divide numbers");
+	if (!kn_value_is_integer(lhs))
+		kn_error("can only divide integers");
 
-	kn_number divisor = kn_value_to_number(args[1]);
+	kn_integer divisor = kn_value_to_integer(args[1]);
 
 	if (divisor == 0)
 		kn_error("attempted to divide by zero");
 
-	return kn_value_new(kn_value_as_number(lhs) / divisor);
+	return kn_value_new(kn_value_as_integer(lhs) / divisor);
 }
 
 DECLARE_FUNCTION(mod, 2, "%") {
 	kn_value lhs = kn_value_run(args[0]);
 
-	if (!kn_value_is_number(lhs))
-		kn_error("can only modulo numbers");
+	if (!kn_value_is_integer(lhs))
+		kn_error("can only modulo integers");
 
-	kn_number base = kn_value_to_number(args[1]);
+	kn_integer base = kn_value_to_integer(args[1]);
 
 	if (base == 0)
 		kn_error("attempted to modulo by zero");
 
-	return kn_value_new(kn_value_as_number(lhs) % base);
+	return kn_value_new(kn_value_as_integer(lhs) % base);
 }
 
 DECLARE_FUNCTION(pow, 2, "^") {
 	kn_value lhs = kn_value_run(args[0]);
 
-	if (!kn_value_is_list(lhs) && !kn_value_is_number(lhs))
-		kn_error("can only exponentiate numbers and lists");
+	if (!kn_value_is_list(lhs) && !kn_value_is_integer(lhs))
+		kn_error("can only exponentiate integers and lists");
 
-	if (kn_value_is_number(lhs)) {
-		return kn_value_new((kn_number) powl(
-			kn_value_as_number(lhs),
-			kn_value_to_number(args[1])
+	if (kn_value_is_integer(lhs)) {
+		return kn_value_new((kn_integer) powl(
+			kn_value_as_integer(lhs),
+			kn_value_to_integer(args[1])
 		));
 	}
 
@@ -567,20 +567,20 @@ DECLARE_FUNCTION(if, 3, "IF") {
 
 DECLARE_FUNCTION(get, 3, "GET") {
 	kn_value container = kn_value_run(args[0]);
-	kn_number start = kn_value_to_number(args[1]);
-	kn_number length = kn_value_to_number(args[2]);
+	kn_integer start = kn_value_to_integer(args[1]);
+	kn_integer length = kn_value_to_integer(args[2]);
 
-	if (start < 0 || start != (kn_number) (size_t) start)
+	if (start < 0 || start != (kn_integer) (size_t) start)
 		kn_error("starting index is negative or too large: %"PRIdkn, start);
 
-	if (length < 0 || length != (kn_number) (size_t) length)
+	if (length < 0 || length != (kn_integer) (size_t) length)
 		kn_error("length is negative or too large: %"PRIdkn, length);
 
 	if (!kn_value_is_string(container) && !kn_value_is_list(container))
 		kn_error("can only call GET on lists and strings");
 
 	// NOTE: both strings and lists have the the length in the same spot.
-	if ((kn_number) kn_container_length(container) < start + length) {
+	if ((kn_integer) kn_container_length(container) < start + length) {
 		kn_error(
 			"invalid bounds for GET: container length = %zu, end index=%"PRIdkn,
 			kn_container_length(container),
@@ -605,19 +605,19 @@ DECLARE_FUNCTION(get, 3, "GET") {
 
 DECLARE_FUNCTION(set, 4, "SET") {
 	kn_value container = kn_value_run(args[0]);
-	kn_number start = kn_value_to_number(args[1]);
-	kn_number length = kn_value_to_number(args[2]);
+	kn_integer start = kn_value_to_integer(args[1]);
+	kn_integer length = kn_value_to_integer(args[2]);
 
-	if (start < 0 || start != (kn_number) (size_t) start)
+	if (start < 0 || start != (kn_integer) (size_t) start)
 		kn_error("starting index is negative or too large: %"PRIdkn, start);
 
-	if (length < 0 || length != (kn_number) (size_t) length)
+	if (length < 0 || length != (kn_integer) (size_t) length)
 		kn_error("length is negative or too large: %"PRIdkn, length);
 
 	if (!kn_value_is_string(container) && !kn_value_is_list(container))
 		kn_error("can only call SET on lists and strings");
 
-	if ((kn_number) kn_container_length(container) < start + length) {
+	if ((kn_integer) kn_container_length(container) < start + length) {
 		kn_error(
 			"invalid bounds for GET: container length = %zu, end index=%"PRIdkn,
 			kn_container_length(container),

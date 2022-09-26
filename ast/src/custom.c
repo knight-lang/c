@@ -7,7 +7,7 @@ struct kn_dummy_struct_;
 #ifdef KN_CUSTOM
 #include <assert.h> /* assert */
 #include "custom.h" /* prototypes, kn_custom, kn_custom_vtable, kn_value,
-                       kn_number, kn_boolean, kn_string, size_t */
+                       kn_integer, kn_boolean, kn_string, size_t */
 #include "shared.h" /* xmalloc */
 #include <stdlib.h> /* free, NULL */
 

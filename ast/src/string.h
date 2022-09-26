@@ -243,16 +243,16 @@ static inline void kn_string_free(struct kn_string *string) {
  */
 bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs);
 
-kn_number kn_string_compare(const struct kn_string *lhs, const struct kn_string *rhs);
+kn_integer kn_string_compare(const struct kn_string *lhs, const struct kn_string *rhs);
 
 /*
- * Convert a string to a number, as per the knight specs.
+ * Convert a string to an integer, as per the knight specs.
  *
  * This means we strip all leading whitespace, and then an optional `-` or `+`
- * may appear (`+` is ignored, `-` indicates a negative number). Then as many
+ * may appear (`+` is ignored, `-` indicates a negative integer). Then as many
  * digits as possible are read.
  */
-static inline kn_number kn_string_to_number(const struct kn_string *string) {
+static inline kn_integer kn_string_to_integer(const struct kn_string *string) {
 	return strtoll(kn_string_deref(string), NULL, 10);
 }
 

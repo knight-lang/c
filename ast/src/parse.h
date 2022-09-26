@@ -37,11 +37,11 @@ kn_value kn_parse_value(struct kn_stream *stream);
 void kn_parse_strip(struct kn_stream *stream);
 
 /*
- * Parses a `kn_number` from the `kn_parse_stream`.
+ * Parses a `kn_integer` from the `kn_parse_stream`.
  *
  * The stream must start with a valid digit.
  */
-kn_number kn_parse_number(struct kn_stream *stream);
+kn_integer kn_parse_integer(struct kn_stream *stream);
 
 /*
  * Parses a `kn_string` from the `kn_parse_stream`.

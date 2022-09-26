@@ -25,7 +25,7 @@
  */
 enum kn_value_tag {
 	KN_TAG_CONSTANT = 0,
-	KN_TAG_NUMBER = 1,
+	KN_TAG_INTEGER = 1,
 	KN_TAG_VARIABLE = 2,
 	KN_TAG_AST = 3,
 	KN_TAG_STRING = 4,
@@ -63,8 +63,8 @@ enum kn_value_tag {
  */
 #define KN_UNDEFINED  ((3 << KN_SHIFT) | KN_TAG_CONSTANT)
 
-#define KN_ONE  (((kn_number) 1 << KN_SHIFT) | KN_TAG_NUMBER)
-#define KN_ZERO (((kn_number) 0 << KN_SHIFT) | KN_TAG_NUMBER)
+#define KN_ONE  (((kn_integer) 1 << KN_SHIFT) | KN_TAG_INTEGER)
+#define KN_ZERO (((kn_integer) 0 << KN_SHIFT) | KN_TAG_INTEGER)
 
 static inline enum kn_value_tag kn_tag(kn_value value) {
 	return value & KN_TAG_MASK;
@@ -77,7 +77,7 @@ static inline enum kn_value_tag kn_tag(kn_value value) {
 #endif
 
 #define kn_value_new(x) (_Generic(x,            \
-	kn_number: kn_value_new_number,              \
+	kn_integer: kn_value_new_integer,              \
 	kn_boolean: kn_value_new_boolean,            \
 	struct kn_string *: kn_value_new_string,     \
 	struct kn_list *: kn_value_new_list,         \
@@ -89,15 +89,15 @@ static inline enum kn_value_tag kn_tag(kn_value value) {
 #define KN_UNMASK(x) ((x) & ~KN_TAG_MASK)
 
 /*
- * Creates a new number value.
+ * Creates a new integer value.
  *
- * Note that `number` has to be a valid `kn_number`---see its typedef for more
+ * Note that `integer` has to be a valid `kn_integer`---see its typedef for more
  * details on what this entails.
  */
-static inline kn_value kn_value_new_number(kn_number number) {
-	assert(number == (((kn_number) ((kn_value) number << KN_SHIFT)) >> KN_SHIFT));
+static inline kn_value kn_value_new_integer(kn_integer integer) {
+	assert(integer == (((kn_integer) ((kn_value) integer << KN_SHIFT)) >> KN_SHIFT));
 
-	return (((kn_value) number) << KN_SHIFT) | KN_TAG_NUMBER;
+	return (((kn_value) integer) << KN_SHIFT) | KN_TAG_INTEGER;
 }
 
 /*
@@ -180,10 +180,10 @@ static inline kn_value kn_value_new_custom(struct kn_custom *custom) {
 #endif /* KN_CUSTOM */
 
 /*
- * Checks to see if `value` is a `kn_number`.
+ * Checks to see if `value` is a `kn_integer`.
  */
-static inline bool kn_value_is_number(kn_value value) {
-	return kn_tag(value) == KN_TAG_NUMBER;
+static inline bool kn_value_is_integer(kn_value value) {
+	return kn_tag(value) == KN_TAG_INTEGER;
 }
 
 /*
@@ -235,13 +235,13 @@ static inline bool kn_value_is_custom(kn_value value) {
 #endif /* KN_CUSTOM */
 
 /*
- * Retrieves the `kn_number` associated with `value`.
+ * Retrieves the `kn_integer` associated with `value`.
  *
- * This should only be called on number values.
+ * This should only be called on integer values.
  */
-static inline kn_number kn_value_as_number(kn_value value) {
-	assert(kn_value_is_number(value));
-	return ((kn_number) value) >> KN_SHIFT;
+static inline kn_integer kn_value_as_integer(kn_value value) {
+	assert(kn_value_is_integer(value));
+	return ((kn_integer) value) >> KN_SHIFT;
 }
 
 /*
@@ -307,9 +307,9 @@ static inline struct kn_custom *kn_value_as_custom(kn_value value) {
 #endif /* KN_CUSTOM */
 
 /*
- * Converts the `value` to a `kn_number`, coercing it if need be.
+ * Converts the `value` to a `kn_integer`, coercing it if need be.
  */
-kn_number kn_value_to_number(kn_value value);
+kn_integer kn_value_to_integer(kn_value value);
 
 /*
  * Converts the `value` to a `kn_boolean`, coercing it if need be.
@@ -398,6 +398,6 @@ static inline void kn_value_free(kn_value value) {
 }
 
 bool kn_value_equal(kn_value lhs, kn_value rhs);
-kn_number kn_value_compare(kn_value lhs, kn_value rhs);
+kn_integer kn_value_compare(kn_value lhs, kn_value rhs);
 
 #endif /* !KN_VALUE_H */

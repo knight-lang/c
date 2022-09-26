@@ -50,7 +50,7 @@ bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs) {
 	return !memcmp(kn_string_deref(lhs), kn_string_deref(rhs), kn_length(lhs));
 }
 
-kn_number kn_string_compare(
+kn_integer kn_string_compare(
 	const struct kn_string *lhs,
 	const struct kn_string *rhs
 ) {

@@ -19,12 +19,12 @@
 typedef uint64_t kn_value;
 
 /*
- * The number type within Knight.
+ * The integer type within Knight.
  *
  * Technically, this implementation only supports `int63_t` (as the extra bit
- * is used to indicate whether a `kn_value`'s a number or something else).
+ * is used to indicate whether a `kn_value`'s an integer or something else).
  */
-typedef int64_t kn_number;
+typedef int64_t kn_integer;
 
 /*
  * The boolean type within Knight.

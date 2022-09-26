@@ -2,7 +2,7 @@
 #define KN_LIST_H
 
 #include "container.h"
-#include "value.h"  /* kn_value, kn_number, kn_boolean, kn_list */
+#include "value.h"  /* kn_value, kn_integer, kn_boolean, kn_list */
 #include "string.h"
 #include <string.h>
 #include <stddef.h> /* size_t */
@@ -27,7 +27,7 @@ struct kn_list {
 		KN_LIST_FL_CONS   = 4,
 		KN_LIST_FL_REPEAT = 8,
 		KN_LIST_FL_STATIC = 16,
-		KN_LIST_FL_NUMBER = 32,
+		KN_LIST_FL_INTEGER = 32,
 	} flags;
 
 	union {
@@ -63,8 +63,9 @@ static inline struct kn_list *kn_list_clone(struct kn_list *list) {
 
 	return list;
 }
-static inline struct kn_list *kn_list_clone_number(struct kn_list *list) {
-	if (!(list->flags & KN_LIST_FL_NUMBER))
+
+static inline struct kn_list *kn_list_clone_integer(struct kn_list *list) {
+	if (!(list->flags & KN_LIST_FL_INTEGER))
 		return list;
 
 	struct kn_list *cloned = kn_list_alloc(kn_length(list));
@@ -144,8 +145,8 @@ static inline kn_boolean kn_list_to_boolean(const struct kn_list *list) {
 	return kn_length(list) != 0;
 }
 
-static inline kn_number kn_list_to_number(const struct kn_list *list) {
-	return (kn_number) kn_length(list);
+static inline kn_integer kn_list_to_integer(const struct kn_list *list) {
+	return (kn_integer) kn_length(list);
 }
 
 static inline struct kn_string *kn_list_to_string(const struct kn_list *list) {
@@ -153,7 +154,7 @@ static inline struct kn_string *kn_list_to_string(const struct kn_list *list) {
 	return kn_list_join(list, &newline);
 }
 
-kn_number kn_list_compare(const struct kn_list *lhs, const struct kn_list *rhs);
+kn_integer kn_list_compare(const struct kn_list *lhs, const struct kn_list *rhs);
 
 
 #endif /* !KN_LIST_H */
