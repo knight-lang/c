@@ -235,7 +235,7 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 	return string;
 }
 
-void kn_string_deallocate(struct kn_string *string) {
+void kn_string_dealloc(struct kn_string *string) {
 	assert(*kn_refcount(string) == 0);
 
 	// If we're not cached, deallocate the string.

@@ -4,7 +4,7 @@
 #include "value.h"  /* kn_value, kn_integer, kn_boolean, kn_string */
 #include <stddef.h> /* size_t */
 
-/*
+/**
  * The virtual table for custom types.
  *
  * There should generally only be one of these per type. Functions may be
@@ -17,7 +17,7 @@
  * Note that the `data` value passed to each function is actually the pointer to
  * `kn_custom`'s `data` field. As such, the original `custom` can be recovered
  * if needed.
- */
+ **/
 struct kn_custom_vtable {
 	/*
 	 * Releases the resources associated with `data`.
@@ -75,9 +75,9 @@ struct kn_custom_vtable {
 	struct kn_list *(*to_list)(void *data);
 };
 
-/*
+/**
  * The struct that represents user-defined data within Knight.
- */
+ **/
 struct kn_custom {
 	/*
 	 * The reference count for this type.
@@ -103,7 +103,7 @@ struct kn_custom {
 	_Alignas(max_align_t) char data[];
 };
 
-/*
+/**
  * Returns a pointer to a new `kn_custom`, whose `data` field can hold at least
  * `size` bytes.
  *
@@ -111,36 +111,36 @@ struct kn_custom {
  * longer in use to prevent resource leaks.
  *
  * Note that `vtable` may not be NULL, and should point to a valid vtable.
- */
+ **/
 struct kn_custom *kn_custom_alloc(
 	size_t size,
 	const struct kn_custom_vtable *vtable
 );
 
-/*
+/**
  * Frees the memory associated with `custom`. This should only be called with a
  * zero-refcount `custom`.
- */
-void kn_custom_deallocate(struct kn_custom *custom);
+ **/
+void kn_custom_dealloc(struct kn_custom *custom);
 
-/*
+/**
  * Indicates that this reference to `custom` is no longer needed.
  *
  * If called with the last reference to the custom struct, this will free the
  * resources associated with the struct. If a `free` function is provided in the
  * constructor, it will also be called.
- */
+ **/
 static inline void kn_custom_free(struct kn_custom *custom) {
 	if (--custom->refcount == 0)
-		kn_custom_deallocate(custom);
+		kn_custom_dealloc(custom);
 }
 
-/*
+/**
  * Returns a new reference to `custom`.
  *
  * After use, both `custom` and the returned struct must be passed to
  * `kn_custom_free` to ensure that resources are cleaned up.
- */
+ **/
 struct kn_custom *kn_custom_clone(struct kn_custom *custom);
 
 #endif /* KN_CUSTOM && !KN_CUSTOM_H */

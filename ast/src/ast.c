@@ -57,7 +57,7 @@ struct kn_ast *kn_ast_alloc(size_t argc) {
 	return ast;
 }
 
-void kn_ast_deallocate(struct kn_ast *ast) {
+void kn_ast_dealloc(struct kn_ast *ast) {
 	assert(*kn_refcount(ast) == 0);
 
 	size_t arity = ast->function->arity;

@@ -9,28 +9,28 @@
 // it's declared within `env.c
 struct kn_env;
 
-/*
+/**
  * Initializes the global Knight environment.
  *
  * This _must_ be called before `kn_env_fetch` is called.
- */
+ **/
 struct kn_env *kn_env_create(size_t capacity_per_bucket, size_t number_of_buckets);
 
-/*
+/**
  * Frees all resources associated with the global Knight environment.
  *
  * This will invalidate all `kn_variable` pointers, and `kn_env_startup` must
  * be called again before `kn_env_fetch` can be used.
- */
+ **/
 void kn_env_destroy(struct kn_env *env);
 
-/*
+/**
  * A variable within Knight.
  *
  * This struct is only returned via `kn_env_fetch`, and lives for the remainder
  * of the program's lifetime. (Or, at least until `kn_env_free` is called.) As
  * such, there is no need to free it.
- */
+ **/
 struct kn_variable {
 	/*
 	 * The value associated with this variable.
@@ -46,20 +46,20 @@ struct kn_variable {
 	const char *name;
 };
 
-/*
+/**
  * Fetches the variable associated with the given identifier.
  *
  * This will always return a `kn_variable`, which may have been newly created.
- */
+ **/
 struct kn_variable *kn_env_fetch(
 	struct kn_env *env,
 	const char *identifier,
 	size_t length
 );
 
-/*
+/**
  * Assigns a value to this variable, overwriting whatever was there previously.
- */
+ **/
 static inline void kn_variable_assign(
 	struct kn_variable *variable,
 	kn_value value
@@ -70,11 +70,11 @@ static inline void kn_variable_assign(
 	variable->value = value;
 }
 
-/*
+/**
  * Runs the given variable, returning the value associated with it.
  *
  * If the variable has not been assigned to yet, this will abort the program.
- */
+ **/
 static inline kn_value kn_variable_run(struct kn_variable *variable) {
 	if (KN_UNLIKELY(variable->value == KN_UNDEFINED))
 		kn_error("undefined variable '%s'", variable->name);

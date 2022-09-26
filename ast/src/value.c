@@ -1,8 +1,8 @@
 #include "env.h"    /* kn_variable, kn_variable_run */
-#include "ast.h"    /* kn_ast, kn_ast_deallocate, kn_ast_clone, kn_ast_run */
+#include "ast.h"    /* kn_ast, kn_ast_dealloc, kn_ast_clone, kn_ast_run */
 #include "value.h"  /* prototypes, bool, uint64_t, int64_t, kn_value, kn_integer,
                        kn_boolean, KN_UNDEFINED, KN_NULL, KN_TRUE, KN_FALSE */
-#include "string.h" /* kn_string, kn_string_clone, kn_string_deallocate,
+#include "string.h" /* kn_string, kn_string_clone, kn_string_dealloc,
                        kn_string_deref, kn_string_length, KN_STRING_FL_STATIC,
                        KN_STRING_NEW_EMBED */
 #include "custom.h" /* kn_custom, kn_custom_free, kn_custom_clone */
@@ -81,7 +81,7 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 
 		kn_boolean ret = kn_container_length(value) != 0;
 		if (!--*kn_container_refcount(value))
-			kn_value_deallocate(value);
+			kn_value_dealloc(value);
 		return ret;
 
 	case KN_TAG_STRING:
@@ -326,25 +326,25 @@ kn_value kn_value_run(kn_value value) {
 }
 
 
-void KN_ATTRIBUTE(noinline) kn_value_deallocate(kn_value value) {
+void KN_ATTRIBUTE(noinline) kn_value_dealloc(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
 	switch (kn_tag(value)) {
 	case KN_TAG_STRING:
-		kn_string_deallocate(kn_value_as_string(value));
+		kn_string_dealloc(kn_value_as_string(value));
 		return;
 
 	case KN_TAG_LIST:
-		kn_list_deallocate(kn_value_as_list(value));
+		kn_list_dealloc(kn_value_as_list(value));
 		return;
 
 	case KN_TAG_AST:
-		kn_ast_deallocate(kn_value_as_ast(value));
+		kn_ast_dealloc(kn_value_as_ast(value));
 		return;
 
 #ifdef KN_CUSTOM
 	case KN_TAG_CUSTOM:
-		kn_custom_deallocate(kn_value_as_custom(value));
+		kn_custom_dealloc(kn_value_as_custom(value));
 		return;
 #endif /* KN_CUSTOM */
 

@@ -5,7 +5,7 @@
 #include <stdbool.h> /* bool */
 
 
-/*
+/**
  * The type that represents values within Knight.
  *
  * All the different types within knight are represented in this type (which
@@ -15,22 +15,22 @@
  * To duplicate a value, use the `kn_value_clone` function---this returns a new
  * value which must be freed separately from the given one. To free a value,
  * pass it to `kn_value_free`.
- */
+ **/
 typedef uint64_t kn_value;
 
-/*
+/**
  * The integer type within Knight.
  *
  * Technically, this implementation only supports `int63_t` (as the extra bit
  * is used to indicate whether a `kn_value`'s an integer or something else).
- */
+ **/
 typedef int64_t kn_integer;
 
-/*
+/**
  * The boolean type within Knight.
  *
  * This simply exists for completeness and functions identically to a `bool`.
- */
+ **/
 typedef bool kn_boolean;
 
 // Forward declarations.

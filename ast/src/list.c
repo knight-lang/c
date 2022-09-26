@@ -31,7 +31,7 @@ struct kn_list *kn_list_alloc(size_t length) {
 	return list;
 }
 
-void kn_list_deallocate(struct kn_list *list) {
+void kn_list_dealloc(struct kn_list *list) {
 	if (list->flags & KN_LIST_FL_STATIC)
 		return;
 

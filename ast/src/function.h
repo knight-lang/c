@@ -3,16 +3,16 @@
 
 #include "value.h" /* kn_value */
 
-/*
+/**
  * The maximum argc for functions. Used for optimizations in some places.
- */
+ **/
 #ifndef KN_MAX_ARGC
 # define KN_MAX_ARGC 4
 #endif /* !KN_MAX_ARGC */
 
-/*
+/**
  * This struct is used to keep track of all data relevant for a Knight function.
- */
+ **/
 struct kn_function {
 	/*
 	 * A pointer to the function. It will take exactly `arity` arguments.
@@ -30,16 +30,16 @@ struct kn_function {
 	const char *name;
 };
 
-/*
+/**
  * Initializes all relevant data for functions.
  *
  * This should be called before any `kn_function.func` methods are called.
- */
+ **/
 void kn_function_startup(void);
 
-/*
+/**
  * Declares a function with the given function name, arity, and char name.
- */
+ **/
 #define KN_DECLARE_FUNCTION(func_, arity_, name_)         \
    static kn_value func_##_function(const kn_value *);    \
    const struct kn_function func_ = {                     \
@@ -93,7 +93,7 @@ extern const struct kn_function kn_fn_system;
 #endif /* KN_EXT_SYSTEM */
 
 #ifdef KN_EXT_VALUE
-/*
+/**
  * An extension function that converts its argument to a string, and then uses
  * the string's value as an identifier to look it up.
  *
@@ -102,7 +102,7 @@ extern const struct kn_function kn_fn_system;
  *
  * Any lookups of non-variable-names (eg `VALUE(0)`) will simply terminate the
  * program like any unknown variable lookup would.
- */
+ **/
 extern const struct kn_function kn_fn_value;
 #endif /* KN_EXT_VALUE */
 

@@ -7,9 +7,9 @@
 #include <string.h>
 #include <stddef.h> /* size_t */
 
-/*
+/**
  * How many additional `kn_value`s can be stored in an embedded list.
- */
+ **/
 #ifndef KN_LIST_EMBED_PADDING
 # define KN_LIST_EMBED_PADDING 1
 #endif /* !KN_LIST_EMBED_PADDING */
@@ -50,11 +50,11 @@ extern struct kn_list kn_list_empty;
 
 struct kn_list *kn_list_alloc(size_t length);
 
-/*
+/**
  * Deallocates the memory associated with `string`; should only be called with
  * a string with a zero refcount.
- */
-void kn_list_deallocate(struct kn_list *list);
+ **/
+void kn_list_dealloc(struct kn_list *list);
 
 static inline struct kn_list *kn_list_clone(struct kn_list *list) {
 	assert(*kn_refcount(list) != 0);
@@ -83,7 +83,7 @@ static inline void kn_list_free(struct kn_list *list) {
 	assert(*kn_refcount(list) != 0);
 
 	if (--*kn_refcount(list) == 0)
-		kn_list_deallocate(list);
+		kn_list_dealloc(list);
 }
 
 static inline kn_value kn_list_get(const struct kn_list *list, size_t index) {

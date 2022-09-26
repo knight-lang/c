@@ -165,8 +165,9 @@ DECLARE_FUNCTION(tail, 1, "]") {
 
 DECLARE_FUNCTION(block, 1, "BLOCK") {
 	assert(kn_value_is_ast(args[0])); // should have been taken care of during parsing.
+	assert(*kn_refcount(args[0]) != 0);
 
-	kn_ast_clone(kn_value_as_ast(args[0]));
+	++*kn_refcount(kn_value_as_ast(args[0]));
 
 	return args[0];
 }

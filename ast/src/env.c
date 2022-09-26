@@ -1,4 +1,4 @@
-/*
+/**
  * The environment of Knight is used to keep track of all the variables
  * within it.
  *
@@ -10,7 +10,7 @@
  *
  * Therefore, whenever a variable is referenced in the source code, it's given
  * an entry, even if it's never actually assigned.
- */
+ **/
 
 #include <string.h>  /* strdup, strcmp */
 #include <assert.h>  /* assert */
