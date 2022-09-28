@@ -1,10 +1,8 @@
 #ifndef KN_INTEGER_H
 #define KN_INTEGER_H
 
-#include <stdint.h>  /* uint64_t, int64_t */
-#include <inttypes.h> /* PRId64 */
-#include "shared.h" /* die */
-#include <math.h> /* powl */
+#include <stdint.h>
+#include <inttypes.h>
 
 /**
  * The integer type within Knight.
@@ -14,17 +12,29 @@
  **/
 typedef int64_t kn_integer;
 
+/**
+ * The format conversion specifier for `kn_integer`.
+ **/
 #define PRIdkn PRId64
 
+// Forward declarations.
 struct kn_string;
 struct kn_list;
 
-static inline _Bool kn_integer_to_boolean(kn_integer integer) {
-	return integer != 0;
-}
-
+/**
+ * Returns a string representation of `integer`.
+ * 
+ * For efficiency purposes, this doesn't actually allocate the string (and thus you also don't need
+ * to free it). To get an allocated version, use `kn_string_clone_static` on it.
+ **/
 struct kn_string *kn_integer_to_string(kn_integer integer);
-struct kn_list *kn_integer_to_list(kn_integer integer);
 
+/**
+ * Returns a list representation of `integer`.
+ * 
+ * For efficiency purposes, this doesn't actually allocate the list (and thus you also don't need
+ * to free it). To get an allocated version, use `kn_list_clone_integer` on it.
+ **/
+struct kn_list *kn_integer_to_list(kn_integer integer);
 
 #endif /* !KN_INTEGER_H */

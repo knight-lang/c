@@ -1,7 +1,9 @@
 #ifndef KN_KNIGHT_H
 #define KN_KNIGHT_H
 
-#include "value.h"  /* kn_value */
+#include "value.h"
+#include "env.h"
+#include "shared.h"
 
 /**
  * Begins the Knight interpreter.

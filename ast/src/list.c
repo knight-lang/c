@@ -18,7 +18,7 @@ struct kn_list *kn_list_alloc(size_t length) {
 
 	struct kn_list *list = xmalloc(sizeof(struct kn_list));
 
-	*kn_refcount(list) = 1;
+	kn_refcount(list) = 1;
 	kn_length(list) = length;
 
 	if (KN_LIST_EMBED_LENGTH < length) {
@@ -35,7 +35,7 @@ void kn_list_dealloc(struct kn_list *list) {
 	if (list->flags & KN_LIST_FL_STATIC)
 		return;
 
-	assert(*kn_refcount(list) == 0);
+	assert(kn_refcount(list) == 0);
 
 	// since we're not `KN_LIST_FL_STATIC`, we can switch on them
 	switch (list->flags) {
@@ -114,7 +114,7 @@ struct kn_list *kn_list_concat(struct kn_list *lhs, struct kn_list *rhs) {
 
 	struct kn_list *concat = xmalloc(sizeof(struct kn_list));
 
-	*kn_refcount(concat) = 1;
+	kn_refcount(concat) = 1;
 	kn_length_set(concat, kn_length(lhs) + kn_length(rhs));
 	concat->flags = KN_LIST_FL_CONS;
 	concat->cons.lhs = lhs;
@@ -140,7 +140,7 @@ struct kn_list *kn_list_repeat(struct kn_list *list, size_t amount) {
 
 	struct kn_list *repetition = xmalloc(sizeof(struct kn_list));
 
-	*kn_refcount(repetition) = 1;
+	kn_refcount(repetition) = 1;
 	kn_length_set(repetition, kn_length(list) * amount);
 	repetition->flags = KN_LIST_FL_REPEAT;
 	repetition->repeat.list = list;

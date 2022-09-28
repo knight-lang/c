@@ -27,6 +27,7 @@
 #include <stdio.h>    /* fflush, fputs, putc, puts, feof, ferror, FILE, getline,
                          clearerr, stdout, stdin, popen, fread, pclose */
 #include <time.h>     /* time */
+#include <math.h>
 #ifndef KN_RECKLESS
 #include <sys/errno.h>
 #endif /* !KN_RECKLESS */
@@ -165,9 +166,9 @@ DECLARE_FUNCTION(tail, 1, "]") {
 
 DECLARE_FUNCTION(block, 1, "BLOCK") {
 	assert(kn_value_is_ast(args[0])); // should have been taken care of during parsing.
-	assert(*kn_refcount(args[0]) != 0);
+	assert(kn_refcount(args[0]) != 0);
 
-	++*kn_refcount(kn_value_as_ast(args[0]));
+	++kn_refcount(kn_value_as_ast(args[0]));
 
 	return args[0];
 }
@@ -181,10 +182,10 @@ DECLARE_FUNCTION(call, 1, "CALL") {
 	struct kn_ast *ast = kn_value_as_ast(ran);
 
 	// Optimize for the case where we are running a non-unique ast.
-	if (KN_LIKELY(--*kn_refcount(ast) != 0))
+	if (KN_LIKELY(--kn_refcount(ast) != 0))
 		return kn_ast_run(ast);
 
-	++*kn_refcount(ast); // We subtracted one, so now we have to add.
+	++kn_refcount(ast); // We subtracted one, so now we have to add.
 	kn_value ret = kn_ast_run(ast);
 	kn_ast_free(ast);
 	return ret;

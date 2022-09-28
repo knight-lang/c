@@ -12,6 +12,9 @@
  * Note that this struct should be created through `kn_ast_alloc` and freed through `kn_ast_free`.
  **/
 struct kn_ast {
+	/**
+	 * The refcount of the AST.
+	 **/
 	struct kn_refcount refcount;
 
 	/*
@@ -47,9 +50,9 @@ void KN_ATTRIBUTE(cold) kn_ast_dealloc(struct kn_ast *ast);
  * Releases the memory resources associated with this struct.
  **/
 static inline void kn_ast_free(struct kn_ast *ast) {
-	assert(*kn_refcount(ast) != 0);
+	assert(kn_refcount(ast) != 0);
 
-	if (--*kn_refcount(ast) == 0)
+	if (--kn_refcount(ast) == 0)
 		kn_ast_dealloc(ast);
 }
 

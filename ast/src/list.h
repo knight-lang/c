@@ -57,9 +57,9 @@ struct kn_list *kn_list_alloc(size_t length);
 void kn_list_dealloc(struct kn_list *list);
 
 static inline struct kn_list *kn_list_clone(struct kn_list *list) {
-	assert(*kn_refcount(list) != 0);
+	assert(kn_refcount(list) != 0);
 
-	++*kn_refcount(list);
+	++kn_refcount(list);
 
 	return list;
 }
@@ -80,9 +80,9 @@ static inline struct kn_list *kn_list_clone_integer(struct kn_list *list) {
 }
 
 static inline void kn_list_free(struct kn_list *list) {
-	assert(*kn_refcount(list) != 0);
+	assert(kn_refcount(list) != 0);
 
-	if (--*kn_refcount(list) == 0)
+	if (--kn_refcount(list) == 0)
 		kn_list_dealloc(list);
 }
 

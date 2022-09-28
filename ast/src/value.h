@@ -354,7 +354,7 @@ static inline size_t kn_container_length(kn_value value) {
 static inline size_t *kn_container_refcount(kn_value value) {
 	assert(kn_value_is_ast(value) || kn_value_is_string(value) || kn_value_is_list(value));
 
-	return kn_refcount(KN_UNMASK(value));
+	return &kn_refcount(KN_UNMASK(value));
 }
 
 

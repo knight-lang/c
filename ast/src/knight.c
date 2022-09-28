@@ -1,13 +1,12 @@
-#include "knight.h"   /* prototypes, kn_value, kn_value_run, kn_value_free
-                         KN_UNDEFINED */
-#include "function.h" /* kn_function_startup */
-#include "parse.h"    /* kn_parse */
-#include "env.h"      /* kn_env_startup, kn_env_shutdown */
-#include "ast.h"      /* kn_ast_cleanup */
-#include "string.h"   /* kn_string_cleanup */
+#include "knight.h"
+#include "parse.h"
+#include "env.h"
+#include "function.h"
+#include "ast.h"
+#include "string.h"
 
 #ifndef KN_RECKLESS
-#include "shared.h"   /* die */
+#include "shared.h"
 #endif /* !KN_RECKLESS */
 
 void kn_startup(void) {

@@ -2,6 +2,7 @@
 #define KN_BOOLEAN_H
 
 #include <stdbool.h>
+
 /**
  * The boolean type within Knight.
  *

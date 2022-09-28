@@ -1,8 +1,8 @@
 #ifndef KN_DECLS_H
 #define KN_DECLS_H
 /**
- * This file exists so that the header files of types dependent upon `value` (such as `kn_list`) can
- * use the declaration of `kn_value` internally.
+ * This file exists so that the header files of types dependent upon the typedef'd `kn_value`,
+ * `kn_integer`, and `kn_boolean` can use the declaration internally.
  **/
 
 #include "boolean.h"

@@ -16,7 +16,7 @@ void kn_ast_cleanup(void) {
 			struct kn_ast *ast = freed_asts[i][j];
 
 			if (ast != NULL) {
-				assert(*kn_refcount(ast) == 0);
+				assert(kn_refcount(ast) == 0);
 				free(ast);
 			}
 		}
@@ -42,23 +42,23 @@ struct kn_ast *kn_ast_alloc(size_t argc) {
 		freed_asts[argc][i] = NULL;
 
 		// Sanity check.
-		assert(*kn_refcount(ast) == 0);
+		assert(kn_refcount(ast) == 0);
 
 		// Increase the refcount as we're now using it.
-		++*kn_refcount(ast);
+		++kn_refcount(ast);
 		return ast;
 	}
 #endif /* KN_AST_CACHE */
 
 	// There are no cached free asts, so we have to allocate.
 	ast = xmalloc(sizeof(struct kn_ast) + sizeof(kn_value) * argc);
-	*kn_refcount(ast) = 1;
+	kn_refcount(ast) = 1;
 
 	return ast;
 }
 
 void kn_ast_dealloc(struct kn_ast *ast) {
-	assert(*kn_refcount(ast) == 0);
+	assert(kn_refcount(ast) == 0);
 
 	size_t arity = ast->function->arity;
 

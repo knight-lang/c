@@ -351,7 +351,7 @@ CASES1('P') {
 	};
 
 	strip_keyword(stream);
-	++*kn_refcount(&ast_prompt);
+	++kn_refcount(&ast_prompt);
 	return kn_value_new_ast(&ast_prompt);
 }
 
@@ -363,7 +363,7 @@ CASES1('R') {
 	};
 
 	strip_keyword(stream);
-	++*kn_refcount(&ast_random);
+	++kn_refcount(&ast_random);
 	return kn_value_new_ast(&ast_random);
 }
 

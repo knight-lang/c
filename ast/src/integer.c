@@ -1,6 +1,8 @@
 #include "integer.h"
 #include "string.h"
 #include "list.h"
+#include "shared.h" /* die */
+#include <math.h> /* powl */
 
 struct kn_string *kn_integer_to_string(kn_integer integer) {
 	// pre-known strings.
@@ -10,8 +12,8 @@ struct kn_string *kn_integer_to_string(kn_integer integer) {
 		uint64_min_string = KN_STRING_NEW_EMBED("-9223372036854775808");
 
 	// Note that `21` is the length of `INT64_MIN`, which is 20 characters long + the trailing `\0`.
-	// But to be safe, let's just allocate 100.
-	static char buf[100];
+	// So, to be safe, let's just allocate 64.
+	static char buf[64];
 	static struct kn_string integer_string = { .flags = KN_STRING_FL_STATIC };
 
 	if (integer == 0)
