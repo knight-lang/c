@@ -23,17 +23,8 @@ struct kn_container {
 };
 
 /**
- * Gets the length of a container.
+ * The length of a container, which can be modified.
  **/
 #define kn_length(ptr) (((struct kn_container *) (ptr))->length)
-
-/**
- * Sets the length of a container.
- * 
- * The reason that `kn_length` doesn't return a pointer is because it's uncommon to actually set the
- * lengths of collections---since they're immutable it's only done at creation time. As such, it's
- * a separate macro to avoid potential changing of lengths without intending it.
- **/
-#define kn_length_set(ptr, value) (((struct kn_container *) (ptr))->length = (value))
 
 #endif /* !KN_CONTAINER_H */

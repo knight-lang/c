@@ -76,13 +76,14 @@ DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 		line = xrealloc(line, capacity *= 2);
 	}
 
-	assert(length != 0);
-	if (line[length - 1] == '\n') {
+	assert(length != 0); // shoudla been checked by fgets
+	if (line[length - 1] == '\n')
 		length--;
-		if (length && line[length - 1] == '\r')
-			--length;
-		line[length] = '\0';
-	}
+
+	while (length && line[length - 1] == '\r')
+		--length;
+
+	line[length] = '\0';
 
 	if (KN_UNLIKELY(length == 0)) {
 		free(line);

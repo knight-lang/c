@@ -12,21 +12,25 @@ struct kn_list kn_list_empty = {
 	.flags = KN_LIST_FL_STATIC,
 };
 
-struct kn_list *kn_list_alloc(size_t length) {
-	if (KN_UNLIKELY(length == 0))
-		return &kn_list_empty;
-
+static struct kn_list *alloc_list(size_t length, enum kn_list_flags flags) {
 	struct kn_list *list = xmalloc(sizeof(struct kn_list));
 
 	kn_refcount(list) = 1;
 	kn_length(list) = length;
+	list->flags = flags;
 
-	if (KN_LIST_EMBED_LENGTH < length) {
+	return list;
+}
+
+struct kn_list *kn_list_alloc(size_t length) {
+	if (KN_UNLIKELY(length == 0))
+		return &kn_list_empty;
+
+	bool is_embed = KN_LIST_EMBED_LENGTH < length;
+	struct kn_list *list = alloc_list(length, is_embed ? KN_LIST_FL_ALLOC : KN_LIST_FL_EMBED);
+
+	if (is_embed)
 		list->alloc = xmalloc(sizeof(kn_value) * length);
-		list->flags = KN_LIST_FL_ALLOC;
-	} else {
-		list->flags = KN_LIST_FL_EMBED;
-	}
 
 	return list;
 }
@@ -36,6 +40,7 @@ void kn_list_dealloc(struct kn_list *list) {
 		return;
 
 	assert(kn_refcount(list) == 0);
+	assert(!(list->flags & KN_LIST_FL_INTEGER)); // `FL_STATIC` covers it.
 
 	// since we're not `KN_LIST_FL_STATIC`, we can switch on them
 	switch (list->flags) {
@@ -67,6 +72,19 @@ void kn_list_dealloc(struct kn_list *list) {
 	free(list);
 }
 
+struct kn_list *kn_list_clone_integer(struct kn_list *list) {
+	if (!(list->flags & KN_LIST_FL_INTEGER))
+		return list;
+
+	struct kn_list *cloned = kn_list_alloc(kn_length(list));
+	kn_value *ptr = (cloned->flags & KN_LIST_FL_EMBED)
+			? cloned->embed
+			: cloned->alloc;
+
+	memcpy(ptr, list->alloc, sizeof(kn_value) * kn_length(list));
+	return cloned;
+}
+
 bool kn_list_equal(const struct kn_list *lhs, const struct kn_list *rhs) {
 	if (lhs == rhs)
 		return true;
@@ -88,10 +106,7 @@ kn_integer kn_list_compare(const struct kn_list *lhs, const struct kn_list *rhs)
 	size_t minlen = kn_length(lhs) < kn_length(rhs) ? kn_length(lhs) : kn_length(rhs);
 
 	for (size_t i = 0; i < minlen; ++i) {
-		kn_integer cmp = kn_value_compare(
-			kn_list_get(lhs, i),
-			kn_list_get(rhs, i)
-		);
+		kn_integer cmp = kn_value_compare(kn_list_get(lhs, i), kn_list_get(rhs, i));
 
 		if (cmp != 0)
 			return cmp;
@@ -112,11 +127,7 @@ struct kn_list *kn_list_concat(struct kn_list *lhs, struct kn_list *rhs) {
 		return lhs;
 	}
 
-	struct kn_list *concat = xmalloc(sizeof(struct kn_list));
-
-	kn_refcount(concat) = 1;
-	kn_length_set(concat, kn_length(lhs) + kn_length(rhs));
-	concat->flags = KN_LIST_FL_CONS;
+	struct kn_list *concat = alloc_list(kn_length(lhs) + kn_length(rhs), KN_LIST_FL_CONS);
 	concat->cons.lhs = lhs;
 	concat->cons.rhs = rhs;
 
@@ -138,21 +149,14 @@ struct kn_list *kn_list_repeat(struct kn_list *list, size_t amount) {
 		return list;
 
 
-	struct kn_list *repetition = xmalloc(sizeof(struct kn_list));
-
-	kn_refcount(repetition) = 1;
-	kn_length_set(repetition, kn_length(list) * amount);
-	repetition->flags = KN_LIST_FL_REPEAT;
+	struct kn_list *repetition = alloc_list(kn_length(list) * amount, KN_LIST_FL_REPEAT);
 	repetition->repeat.list = list;
 	repetition->repeat.amount = amount;
 
 	return repetition;
 }
 
-struct kn_string *kn_list_join(
-	const struct kn_list *list,
-	const struct kn_string *sep
-) {
+struct kn_string *kn_list_join(const struct kn_list *list, const struct kn_string *sep) {
 	if (kn_length(list) == 0) {
 		assert(list == &kn_list_empty);
 		return &kn_string_empty;
@@ -189,11 +193,7 @@ struct kn_string *kn_list_join(
 	return kn_string_new_owned(joined, len);
 }
 
-struct kn_list *kn_list_get_sublist(
-	struct kn_list *list,
-	size_t start,
-	size_t length
-) {
+struct kn_list *kn_list_get_sublist(struct kn_list *list, size_t start, size_t length) {
 	assert(start + length <= kn_length(list));
 
 	if (length == 0) {

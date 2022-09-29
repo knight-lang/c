@@ -1,6 +1,5 @@
 #include "knight.h"
 #include "parse.h"
-#include "env.h"
 #include "function.h"
 #include "ast.h"
 #include "string.h"

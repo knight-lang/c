@@ -43,7 +43,7 @@ struct kn_string *kn_integer_to_string(kn_integer integer) {
 		*--ptr = '-';
 
 	integer_string.ptr = ptr;
-	kn_length_set(&integer_string, &buf[sizeof(buf) - 1] - ptr);
+	kn_length(&integer_string) = &buf[sizeof(buf) - 1] - ptr;
 
 	return &integer_string;
 }
@@ -60,7 +60,7 @@ struct kn_list *kn_integer_to_list(kn_integer integer) {
 	};
 
 	digits_list.alloc = &buf[sizeof(buf) / sizeof(kn_value)];
-	kn_length_set(&digits_list, 0);
+	kn_length(&digits_list) = 0;
 
 	do {
 		*--digits_list.alloc = kn_value_new(integer % 10);
