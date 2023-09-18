@@ -16,7 +16,7 @@ struct kn_string kn_string_empty = KN_STRING_NEW_EMBED("");
 #  define KN_STRING_CACHE_MAXLEN 32
 # endif /* !KN_STRING_CACHE_MAXLEN */
 # ifndef KN_STRING_CACHE_LINELEN
-#  define KN_STRING_CACHE_LINELEN (1<<14)
+#  define KN_STRING_CACHE_LINELEN (1 << 14)
 # endif /* !KN_STRING_CACHE_LINELEN */
 
 static struct kn_string *cache[KN_STRING_CACHE_MAXLEN][KN_STRING_CACHE_LINELEN];
@@ -113,6 +113,7 @@ static void deallocate_string(struct kn_string *string) {
 	free(string);
 }
 
+#ifdef KN_STRING_CACHE
 static void evict_string_active(struct kn_string *string) {
 	assert(kn_refcount(string) != 0);
 	assert(string->flags & KN_STRING_FL_CACHED);
@@ -132,6 +133,7 @@ static void evict_string(struct kn_string *string) {
 		evict_string_active(string);
 	}
 }
+#endif /* KN_STRING_CACHE */
 
 struct kn_string *kn_string_alloc(size_t length) {
 	// If it has no length, return the empty string
@@ -151,6 +153,7 @@ void kn_string_cache(struct kn_string *string) {
 	// empty strings should never be cached.
 	assert(kn_length(string) != 0);
 
+#ifdef KN_STRING_CACHE
 	// If it's too large for the cache, then just ignore it.
 	if (KN_STRING_CACHE_MAXLEN < kn_length(string))
 		return;
@@ -167,6 +170,10 @@ void kn_string_cache(struct kn_string *string) {
 	// Indicate that the string is now cached, and replace the old cache line.
 	string->flags |= KN_STRING_FL_CACHED;
 	*cacheline = string;
+#else
+	(void) string;
+#endif /* KN_STRING_CACHE */
+
 }
 
 struct kn_string *kn_string_new_owned(char *str, size_t length) {
@@ -180,12 +187,15 @@ struct kn_string *kn_string_new_owned(char *str, size_t length) {
 		return &kn_string_empty;
 	}
 
+	struct kn_string *string;
+
+#ifdef KN_STRING_CACHE
 	// if it's too big just dont cache it
 	if (KN_STRING_CACHE_MAXLEN < length)
 		return allocate_heap_string(str, length);
 
 	struct kn_string **cacheline = get_cache_slot(str, length);
-	struct kn_string *string = *cacheline;
+	string = *cacheline;
 
 	if (KN_LIKELY(string != NULL)) {
 		// if it's the same as `str`, use the cached version.
@@ -196,9 +206,14 @@ struct kn_string *kn_string_new_owned(char *str, size_t length) {
 
 		evict_string(string);
 	}
+#endif /* KN_STRING_CACHE */
 
-	*cacheline = string = allocate_heap_string(str, length);
+	string = allocate_heap_string(str, length);
 	string->flags |= KN_STRING_FL_CACHED;
+
+#ifdef KN_STRING_CACHE
+	*cacheline = string;
+#endif /* KN_STRING_CACHE */
 
 	return string;
 }
@@ -207,11 +222,14 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 	if (KN_UNLIKELY(length == 0))
 		return &kn_string_empty;
 
+	struct kn_string *string;
+
+#ifdef KN_STRING_CACHE
 	if (KN_STRING_CACHE_MAXLEN < length)
 		return allocate_heap_string(strndup(str, length), length);
 
-	struct kn_string **cache = get_cache_slot(str, length);
-	struct kn_string *string = *cache;
+	struct kn_string **cached = get_cache_slot(str, length);
+	string = *cached;
 
 	if (KN_LIKELY(string != NULL)) {
 		// cached strings must be allocated.
@@ -224,13 +242,18 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 
 		evict_string(string);
 	}
+#endif /* KN_STRING_CACHE */
 
 	// it may be embeddable, so don't just call `allocate_heap_string`.
-	*cache = string = kn_string_alloc(length);
+	string = kn_string_alloc(length);
 	string->flags |= KN_STRING_FL_CACHED;
 
 	memcpy(kn_string_deref(string), str, length);
 	kn_string_deref(string)[length] = '\0';
+
+#ifdef KN_STRING_CACHE
+	*cached = string;
+#endif /* KN_STRING_CACHE */
 
 	return string;
 }
@@ -251,6 +274,7 @@ struct kn_string *kn_string_clone_static(struct kn_string *string) {
 }
 
 void kn_string_cleanup() {
+#ifdef KN_STRING_CACHE
 	struct kn_string *string;
 
 	for (size_t i = 0; i < KN_STRING_CACHE_MAXLEN; ++i) {
@@ -267,6 +291,7 @@ void kn_string_cleanup() {
 			}
 		}
 	}
+#endif /* KN_STRING_CACHE */
 }
 
 struct kn_list *kn_string_to_list(const struct kn_string *string) {
@@ -308,7 +333,10 @@ struct kn_string *kn_string_concat(
 
 	size_t length = lhslen + rhslen;
 
-	struct kn_string *string = kn_string_cache_lookup(hash, length);
+	struct kn_string *string;
+
+#ifdef KN_STRING_CACHE
+	string = kn_string_cache_lookup(hash, length);
 	if (string == NULL)
 		goto allocate_and_cache;
 
@@ -330,6 +358,8 @@ struct kn_string *kn_string_concat(
 	goto free_and_return;
 
 allocate_and_cache:
+#endif /* KN_STRING_CACHE */
+
 	string = kn_string_alloc(length);
 	char *str = kn_string_deref(string);
 
@@ -338,7 +368,10 @@ allocate_and_cache:
 	str[length] = '\0';
 
 	kn_string_cache(string);
+
+#ifdef KN_STRING_CACHE
 free_and_return:
+#endif /* KN_STRING_CACHE */
 
 	kn_string_free(lhs);
 	kn_string_free(rhs);
@@ -427,8 +460,10 @@ struct kn_string *kn_string_set_substring(
 	hash = kn_hash_acc(repl_str, kn_length(replacement), hash);
 	hash = kn_hash_acc(string_str + start + length, kn_length(string) - start - length, hash);
 
-	struct kn_string *cached = kn_string_cache_lookup(hash, replaced_length);
+	struct kn_string *cached;
 
+#ifdef KN_STRING_CACHE
+	cached = kn_string_cache_lookup(hash, replaced_length);
 	if (
 		cached
 		&& !memcmp(string_str, kn_string_deref(cached), start)
@@ -440,17 +475,23 @@ struct kn_string *kn_string_set_substring(
 		)
 	) {
 		cached = kn_string_clone(cached);
-	} else {
-		cached = kn_string_alloc(replaced_length);
-		char *str = kn_string_deref(cached);
-
-		memcpy(str, string_str, start);
-		memcpy(str + start, repl_str, kn_length(replacement));
-		memcpy(str + start + kn_length(replacement), string_str + start + length, kn_length(string));
-		str[replaced_length] = '\0';
-
-		kn_string_cache(cached);
+		goto free_and_return;
 	}
+#endif /* KN_STRING_CACHE */
+
+	cached = kn_string_alloc(replaced_length);
+	char *str = kn_string_deref(cached);
+
+	memcpy(str, string_str, start);
+	memcpy(str + start, repl_str, kn_length(replacement));
+	memcpy(str + start + kn_length(replacement), string_str + start + length, kn_length(string));
+	str[replaced_length] = '\0';
+
+	kn_string_cache(cached);
+
+#ifdef KN_STRING_CACHE
+free_and_return:
+#endif /* KN_STRING_CACHE */
 
 	kn_string_free(string);
 	kn_string_free(replacement);

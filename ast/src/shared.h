@@ -18,7 +18,7 @@
 #endif /* KN_HAS_ATTRIBUTE */
 
 #ifdef _MSC_VER
-# define KN_ATTRIBUTE(attr) __declspec(x)
+# define KN_ATTRIBUTE(x) __declspec(x)
 #elif defined(__GNUC__) || defined(__llvm__)
 # define KN_ATTRIBUTE(x) __attribute__((x))
 #else
