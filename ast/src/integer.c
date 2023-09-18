@@ -1,7 +1,7 @@
 #include "integer.h"
 #include "string.h"
 #include "list.h"
-#include "shared.h" /* die */
+#include "shared.h" /* kn_die */
 #include <math.h> /* powl */
 
 struct kn_string *kn_integer_to_string(kn_integer integer) {

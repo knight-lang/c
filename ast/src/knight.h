@@ -10,7 +10,7 @@
  *
  * This function should be called before any other Knight function.
  **/
-void KN_ATTRIBUTE(cold) kn_startup(void);
+void KN_COLD kn_startup(void);
 
 /**
  * Frees all memory related to the current running Knight process.
@@ -21,7 +21,7 @@ void KN_ATTRIBUTE(cold) kn_startup(void);
  * After this function is run, `kn_startup` must be called again before calling
  * any other Knight functions.
  **/
-void KN_ATTRIBUTE(cold) kn_shutdown(void);
+void KN_COLD kn_shutdown(void);
 
 /**
  * Executes the given stream as knight code.

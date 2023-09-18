@@ -9,7 +9,7 @@
                          KN_NULL, kn_function, <all the function definitions> */
 #include "string.h"   /* kn_string_new_borrowed */
 #include "ast.h"      /* kn_ast, kn_ast_alloc */
-#include "shared.h"   /* die, KN_UNREACHABLE */
+#include "shared.h"   /* KN_UNREACHABLE */
 #include "env.h"      /* kn_variable, kn_env_fetch */
 #include "list.h"
 
@@ -418,7 +418,7 @@ default:
 	}
 #endif /* !KN_COMPUTED_GOTOS */
 
-	KN_UNREACHABLE();
+	KN_UNREACHABLE
 }
 
 // Actually parses the stream

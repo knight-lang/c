@@ -210,7 +210,7 @@ static inline kn_value kn_list_get(const struct kn_list *list, size_t index) {
 		return kn_list_get(list->repeat.list, index % kn_length(list->repeat.list));
 
 	default:
-		KN_UNREACHABLE();
+		KN_UNREACHABLE
 	}
 }
 

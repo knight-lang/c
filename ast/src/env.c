@@ -18,7 +18,7 @@
 #include <stdbool.h> /* bool, true, false */
 #include "env.h"     /* prototypes, size_t, kn_variable, kn_value, KN_UNDEFINED,
                         kn_value_free, kn_value_clone */
-#include "shared.h"  /* die, xmalloc, xrealloc, kn_hash, KN_UNLIKELY */
+#include "shared.h"  /* kn_die, xmalloc, xrealloc, kn_hash, KN_UNLIKELY */
 
 struct kn_env {
 	size_t capacity_per_bucket, number_of_buckets;
@@ -82,7 +82,7 @@ struct kn_variable *kn_env_fetch(struct kn_env *env, const char *identifier, siz
 
 	// If the bucket is full, then too many variables have been defined.
 	if (KN_UNLIKELY(bucket->length == env->capacity_per_bucket))
-		die("too many variables created!");
+		kn_die("too many variables created!");
 
 	struct kn_variable *variable = &bucket->variables[bucket->length++];
 

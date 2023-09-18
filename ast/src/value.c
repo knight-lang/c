@@ -6,7 +6,6 @@
                        kn_string_deref, kn_string_length, KN_STRING_FL_STATIC,
                        KN_STRING_NEW_EMBED */
 #include "custom.h" /* kn_custom, kn_custom_free, kn_custom_clone */
-#include "shared.h" /* die */
 #include "integer.h" /* kn_integer_to_string */
 #include "list.h"
 
@@ -52,7 +51,7 @@ kn_integer kn_value_to_integer(kn_value value) {
 		return ret;
 	}
 
-	KN_UNREACHABLE();
+	KN_UNREACHABLE
 }
 
 kn_boolean kn_value_to_boolean(kn_value value) {
@@ -74,8 +73,8 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 		// simply execute the value and call this function again.
 		value = kn_value_run(value);
 		if (kn_tag(value) <= KN_TAG_INTEGER) {
-		case KN_TAG_CONSTANT:
-		case KN_TAG_INTEGER:
+	case KN_TAG_CONSTANT:
+	case KN_TAG_INTEGER:
 			return KN_NULL < value;
 		}
 
@@ -87,6 +86,9 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 	case KN_TAG_STRING:
 	case KN_TAG_LIST:
 		return kn_container_length(value) != 0;
+
+	default:
+		KN_UNREACHABLE
 	}
 }
 
@@ -134,10 +136,10 @@ struct kn_string *kn_value_to_string(kn_value value) {
 		return ret;
 
 	case KN_TAG_CONSTANT:
-		KN_UNREACHABLE();
+		KN_UNREACHABLE
 	}
 
-	KN_UNREACHABLE();
+	KN_UNREACHABLE
 }
 
 
@@ -180,6 +182,9 @@ struct kn_list *kn_value_to_list(kn_value value) {
 		struct kn_list *ret = kn_value_to_list(value);
 		kn_value_free(value);
 		return ret;
+
+	default:
+		KN_UNREACHABLE
 	}
 }
 
@@ -250,7 +255,7 @@ void kn_value_dump(kn_value value, FILE *out) {
 			return;
 
 		default:
-			KN_UNREACHABLE();
+			KN_UNREACHABLE
 		}
 
 	case KN_TAG_INTEGER:
@@ -322,11 +327,18 @@ kn_value kn_value_run(kn_value value) {
 	case KN_TAG_INTEGER:
 	case KN_TAG_CONSTANT:
 		return value;
+
+	default:
+		KN_UNREACHABLE
 	}
 }
 
 
-void KN_ATTRIBUTE(noinline) kn_value_dealloc(kn_value value) {
+void
+#if KN_HAS_ATTRIBUTE(noinline)
+KN_ATTRIBUTE(noinline)
+#endif
+kn_value_dealloc(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
 	switch (kn_tag(value)) {
@@ -351,6 +363,6 @@ void KN_ATTRIBUTE(noinline) kn_value_dealloc(kn_value value) {
 	case KN_TAG_CONSTANT:
 	case KN_TAG_INTEGER:
 	case KN_TAG_VARIABLE:
-		KN_UNREACHABLE();
+		KN_UNREACHABLE
 	}
 }

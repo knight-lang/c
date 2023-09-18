@@ -3,7 +3,6 @@
 
 #include <stddef.h>   /* size_t */
 #include <stdbool.h>  /* bool */
-#include <stdalign.h> /* alignas */
 #include "decls.h"
 #include <stdio.h>
 #include "shared.h"
@@ -127,7 +126,7 @@ extern struct kn_string kn_string_empty;
  * Note that this will _not_ clean up live strings, but only ones with a
  * refcount of zero.
  **/
-void KN_ATTRIBUTE(cold) kn_string_cleanup(void);
+void KN_COLD kn_string_cleanup(void);
 
 /**
  * Allocates a new `kn_string` that can hold at least the given length.

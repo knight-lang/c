@@ -1,5 +1,5 @@
 #include "string.h" /* prototypes, kn_string, kn_string_flags variants, size_t,
-                       KN_STRING_NEW_EMBED, alignas */
+                       KN_STRING_NEW_EMBED */
 #include "shared.h" /* xmalloc, kn_hash, KN_LIKELY, KN_UNLIKELY */
 #include <stdlib.h> /* free, NULL */
 #include <string.h> /* strlen, strcmp, memcpy, strndup, strncmp, memcmp */

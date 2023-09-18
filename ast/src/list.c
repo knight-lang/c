@@ -66,7 +66,7 @@ void kn_list_dealloc(struct kn_list *list) {
 		break;
 
 	default:
-		KN_UNREACHABLE();
+		KN_UNREACHABLE
 	}
 
 	free(list);

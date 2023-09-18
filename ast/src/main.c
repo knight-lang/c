@@ -2,7 +2,7 @@
 struct _ignored;
 #else
 #include "knight.h" /* kn_startup, kn_play, kn_value_free, kn_shutdown */
-#include "shared.h" /* die, xmalloc, xrealloc */
+#include "shared.h" /* kn_die, xmalloc, xrealloc */
 #include "env.h"
 
 #include <stdlib.h> /* free, NULL, size_t */
@@ -73,7 +73,7 @@ static char *read_file(const char *filename) {
 }
 
 static void usage(char *program) {
-	die("usage: %s (-e 'expr' | -f file)", program);
+	kn_die("usage: %s (-e 'expr' | -f file)", program);
 }
 
 int main(int argc, char **argv) {

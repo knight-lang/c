@@ -5,7 +5,7 @@
                          kn_variable_assign */
 #include "list.h"  
 #include "integer.h"  
-#include "shared.h"   /* die, xmalloc, xrealloc, kn_hash, kn_hash_acc,
+#include "shared.h"   /* kn_die, xmalloc, xrealloc, kn_hash, kn_hash_acc,
                          KN_LIKELY, KN_UNLIKELY */
 #include "string.h"   /* kn_string, kn_string_new_owned, kn_string_new_borrowed,
                          kn_string_alloc, kn_string_free, kn_string_empty,
@@ -197,7 +197,7 @@ DECLARE_FUNCTION(system, 2, "$") {
 	struct kn_string *command = kn_value_to_string(args[0]);
 
 	if (kn_value_run(args[1]) != KN_NULL)
-		die("only `NULL` for a second arg is currently supported");
+		kn_die("only `NULL` for a second arg is currently supported");
 
 	const char *str = kn_string_deref(command);
 	FILE *stream = popen(str, "r");
