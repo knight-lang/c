@@ -31,10 +31,16 @@
  **/
 void *
 #if KN_HAS_ATTRIBUTE(malloc)
-KN_ATTRIBUTE(malloc)
+ KN_ATTRIBUTE(malloc)
 #endif
 #if KN_HAS_ATTRIBUTE(returns_nonnull)
-KN_ATTRIBUTE(returns_nonnull)
+ KN_ATTRIBUTE(returns_nonnull)
+#endif
+#if KN_HAS_ATTRIBUTE(alloc_size)
+ KN_ATTRIBUTE(alloc_size(1))
+#endif
+#if KN_HAS_ATTRIBUTE(warn_unused_result)
+ KN_ATTRIBUTE(warn_unused_result)
 #endif
 kn_heap_malloc(size_t size);
 
@@ -47,7 +53,13 @@ kn_heap_malloc(size_t size);
  **/
 void *
 #if KN_HAS_ATTRIBUTE(returns_nonnull)
-KN_ATTRIBUTE(returns_nonnull)
+ KN_ATTRIBUTE(returns_nonnull)
+#endif
+#if KN_HAS_ATTRIBUTE(warn_unused_result)
+ KN_ATTRIBUTE(warn_unused_result)
+#endif
+#if KN_HAS_ATTRIBUTE(alloc_size)
+ KN_ATTRIBUTE(alloc_size(2))
 #endif
 kn_heap_realloc(void *ptr, size_t size);
 

@@ -60,6 +60,7 @@
 #ifdef NDEBUG
 # if KN_HAS_BUILTIN(__builtin_unreachable)
 #  define KN_UNREACHABLE do { __builtin_unreachable(); } while(0);
+	// __builtin_debugtrap <-- todo this too?
 # else
 #  define KN_UNREACHABLE do { (void) KN_UNLIKELY(1); abort(); } while(0);
 # endif /* KN_HAS_BUILTIN(__builtin_unreachable) */
