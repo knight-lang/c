@@ -8,6 +8,7 @@
 #include "container.h"
 
 #define KN_VALUE_ALIGN _Alignas(8)
+// #define KN_VALUE_SIZE 
 
 /**
  * The layout of `kn_value`:

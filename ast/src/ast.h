@@ -12,12 +12,10 @@
  * Note that this struct should be created through `kn_ast_alloc` and freed through `kn_ast_free`.
  **/
 struct kn_ast {
-#ifdef kn_refcount
 	/**
-	 * The refcount of the AST.
+	 * The allocation of the AST.
 	 **/
-	struct kn_refcount refcount;
-#endif /* kn_refcount */
+	kn_allocation
 
 	/*
 	 * The function associated with this ast.

@@ -350,7 +350,7 @@ CASES1('P') {
 	static struct kn_ast ast_prompt = {
 		.function = &kn_fn_prompt
 #ifdef kn_refcount
-		.refcount = { 1 }, // Set it to `1` so nothing will ever deallocate it
+		, .refcount = { 1 } // Set it to `1` so nothing will ever deallocate it
 	};
 	++kn_refcount(&ast_prompt);
 #else
@@ -366,9 +366,9 @@ CASES1('R') {
 	static struct kn_ast ast_random = {
 		.function = &kn_fn_random
 #ifdef kn_refcount
-		.refcount = { 1 }, // Set it to `1` so nothing will ever deallocate it
+		, .refcount = { 1 } // Set it to `1` so nothing will ever deallocate it
 	};
-	++kn_refcount(&ast_prompt);
+	++kn_refcount(&ast_random);
 #else
 	};
 #endif /* kn_refcount */

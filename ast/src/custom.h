@@ -80,14 +80,13 @@ struct kn_custom_vtable {
  * The struct that represents user-defined data within Knight.
  **/
 struct kn_custom {
-#ifdef kn_refcount
 	/*
-	 * The reference count for this type.
+	 * The allocation count for this type.
 	 *
 	 * This is manipulated via `kn_custom_free` and `kn_custom_clone`.
 	 */
-	struct kn_refcount refcount;
-#endif
+	kn_allocation
+
 	/*
 	 * The vtable associated with this struct.
 	 *

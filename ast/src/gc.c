@@ -1,3 +1,22 @@
+#include "gc.h"
+
+struct anyvalue {
+// 	SQ_BASIC_DECLARATION basic;
+// 	SQ_ALIGNAS(SQ_VALUE_ALIGNMENT) char _ignored[SQ_VALUE_SIZE - SQ_VALUE_ALIGNMENT];
+};
+
+static struct anyvalue *heap_start, *heap;
+static unsigned long long heap_size;
+
+void sq_gc_init(unsigned long long heap_size_) {
+	// heap_size = heap_size_ * KN_VALUE_SIZE;
+}
+
+void kn_gc_init(unsigned long long heap_size);
+void kn_gc_start(void);
+void kn_gc_teardown(void);
+void *kn_gc_malloc(void);
+
 /*
 #include <squire/gc.h>
 #include <squire/basic.h>
