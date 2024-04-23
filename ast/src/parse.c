@@ -345,25 +345,34 @@ SYMBOL_FUNC(system, '$');
 
 LABEL(function_prompt)
 CASES1('P') {
-	static struct kn_ast ast_prompt = {
-		.refcount = { 1 }, // Set it to `1` so nothing will ever deallocate it
-		.function = &kn_fn_prompt
-	};
-
 	strip_keyword(stream);
+
+	static struct kn_ast ast_prompt = {
+		.function = &kn_fn_prompt
+#ifdef kn_refcount
+		.refcount = { 1 }, // Set it to `1` so nothing will ever deallocate it
+	};
 	++kn_refcount(&ast_prompt);
+#else
+	};
+#endif /* kn_refcount */
+
 	return kn_value_new_ast(&ast_prompt);
 }
 
 LABEL(function_random)
 CASES1('R') {
-	static struct kn_ast ast_random = {
-		.refcount = { 1 }, // Set it to `1` so nothing will ever deallocate it
-		.function = &kn_fn_random
-	};
-
 	strip_keyword(stream);
-	++kn_refcount(&ast_random);
+	static struct kn_ast ast_random = {
+		.function = &kn_fn_random
+#ifdef kn_refcount
+		.refcount = { 1 }, // Set it to `1` so nothing will ever deallocate it
+	};
+	++kn_refcount(&ast_prompt);
+#else
+	};
+#endif /* kn_refcount */
+
 	return kn_value_new_ast(&ast_random);
 }
 

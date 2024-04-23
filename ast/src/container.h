@@ -1,7 +1,9 @@
 #ifndef KN_CONTAINER_H
 #define KN_CONTAINER_H
 
+#include "gc.h"
 #include "refcount.h"
+#include <stdalign.h>
 #include <stddef.h>
 
 /**
@@ -11,11 +13,14 @@
  * to downcast a value to a list of string.
  **/
 struct kn_container {
+#ifdef kn_refcount
 	/**
 	 * All containers also have an associated refcount.
 	 **/
 	struct kn_refcount refcount;
-
+#else
+	alignas(8)
+#endif
 	/**
 	 * The length of the container.
 	 **/

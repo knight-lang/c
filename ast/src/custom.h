@@ -2,6 +2,7 @@
 #define KN_CUSTOM_H
 
 #include "value.h"  /* kn_value, kn_integer, kn_boolean, kn_string */
+#include "refcount.h"
 #include <stddef.h> /* size_t */
 
 /**
@@ -79,13 +80,14 @@ struct kn_custom_vtable {
  * The struct that represents user-defined data within Knight.
  **/
 struct kn_custom {
+#ifdef kn_refcount
 	/*
 	 * The reference count for this type.
 	 *
 	 * This is manipulated via `kn_custom_free` and `kn_custom_clone`.
 	 */
-	size_t refcount;
-
+	struct kn_refcount refcount;
+#endif
 	/*
 	 * The vtable associated with this struct.
 	 *
@@ -131,8 +133,12 @@ void kn_custom_dealloc(struct kn_custom *custom);
  * constructor, it will also be called.
  **/
 static inline void kn_custom_free(struct kn_custom *custom) {
-	if (--custom->refcount == 0)
+#ifndef kn_refcount
+	(void) custom;
+#else
+	if (--kn_refcount(custom) == 0)
 		kn_custom_dealloc(custom);
+#endif /* !kn_refcount */
 }
 
 /**
@@ -141,6 +147,11 @@ static inline void kn_custom_free(struct kn_custom *custom) {
  * After use, both `custom` and the returned struct must be passed to
  * `kn_custom_free` to ensure that resources are cleaned up.
  **/
-struct kn_custom *kn_custom_clone(struct kn_custom *custom);
+static inline struct kn_custom *kn_custom_clone(struct kn_custom *custom) {
+#ifdef kn_refcount
+	++kn_refcount(custom);
+#endif /* kn_refcount */
+	return custom;
+}
 
 #endif /* KN_CUSTOM && !KN_CUSTOM_H */

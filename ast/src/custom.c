@@ -19,7 +19,9 @@ struct kn_custom *kn_custom_alloc(
 
 	struct kn_custom *custom = xmalloc(size + sizeof(struct kn_custom));
 
-	custom->refcount = 1;
+#ifdef kn_refcount
+	kn_refcount(custom) = 1;
+#endif /* kn_refcount */
 	custom->vtable = vtable;
 
 	return custom;
@@ -30,12 +32,6 @@ void kn_custom_dealloc(struct kn_custom *custom) {
 		custom->vtable->free((void *) custom->data);
 
 	free(custom);
-}
-
-struct kn_custom *kn_custom_clone(struct kn_custom *custom) {
-	++custom->refcount;
-
-	return custom;
 }
 
 #endif /* KN_CUSTOM */

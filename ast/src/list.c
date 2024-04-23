@@ -6,7 +6,9 @@
 
 struct kn_list kn_list_empty = {
 	.container = {
+#ifdef kn_refcount
 		.refcount = { 1 },
+#endif /* kn_refcount */
 		.length = 0
 	},
 	.flags = KN_LIST_FL_STATIC,
@@ -15,7 +17,10 @@ struct kn_list kn_list_empty = {
 static struct kn_list *alloc_list(size_t length, enum kn_list_flags flags) {
 	struct kn_list *list = xmalloc(sizeof(struct kn_list));
 
+#ifdef kn_refcount
 	kn_refcount(list) = 1;
+#endif /* kn_refcount */
+
 	kn_length(list) = length;
 	list->flags = flags;
 
@@ -39,7 +44,9 @@ void kn_list_dealloc(struct kn_list *list) {
 	if (list->flags & KN_LIST_FL_STATIC)
 		return;
 
+#ifdef kn_refcount
 	assert(kn_refcount(list) == 0);
+#endif /* kn_refcount */
 	assert(!(list->flags & KN_LIST_FL_INTEGER)); // `FL_STATIC` covers it.
 
 	// since we're not `KN_LIST_FL_STATIC`, we can switch on them

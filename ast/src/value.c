@@ -79,8 +79,12 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 		}
 
 		kn_boolean ret = kn_container_length(value) != 0;
+
+#ifdef kn_refcount
 		if (!--*kn_container_refcount(value))
 			kn_value_dealloc(value);
+#endif /* kn_refcount */
+
 		return ret;
 
 	case KN_TAG_STRING:
@@ -320,8 +324,9 @@ kn_value kn_value_run(kn_value value) {
 
 	case KN_TAG_STRING:
 	case KN_TAG_LIST:
+#ifdef kn_refcount
 		++*kn_container_refcount(value);
-
+#endif /* kn_refcount */
 		KN_FALLTHROUGH
 
 	case KN_TAG_INTEGER:

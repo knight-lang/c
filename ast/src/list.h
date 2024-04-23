@@ -154,10 +154,11 @@ void kn_list_dealloc(struct kn_list *list);
  * Each copy must be `kn_list_free`d separately after use to ensure that no memory leaks occur.
  **/
 static inline struct kn_list *kn_list_clone(struct kn_list *list) {
+#ifdef kn_refcount
 	assert(kn_refcount(list) != 0);
 
 	++kn_refcount(list);
-
+#endif /* kn_refcount */
 	return list;
 }
 
@@ -175,10 +176,14 @@ struct kn_list *kn_list_clone_integer(struct kn_list *list);
  * If this is the last live reference to the list, then `kn_list_dealloc` will be called.
  **/
 static inline void kn_list_free(struct kn_list *list) {
+#ifndef kn_refcount
+	(void) list;
+#else
 	assert(kn_refcount(list) != 0);
 
 	if (--kn_refcount(list) == 0)
 		kn_list_dealloc(list);
+#endif /* !kn_refcount */
 }
 
 /**

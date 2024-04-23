@@ -53,9 +53,11 @@ struct kn_list *kn_integer_to_list(kn_integer integer) {
 	// let's go with 100.
 	static kn_value buf[100];
 	static struct kn_list digits_list = {
+#ifdef kn_refcount
 		.container = {
 			.refcount = { 1 }
 		},
+#endif /* kn_refcount */
 		.flags = KN_LIST_FL_ALLOC | KN_LIST_FL_STATIC | KN_LIST_FL_INTEGER,
 	};
 

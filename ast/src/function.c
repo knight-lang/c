@@ -167,9 +167,11 @@ DECLARE_FUNCTION(tail, 1, "]") {
 
 DECLARE_FUNCTION(block, 1, "BLOCK") {
 	assert(kn_value_is_ast(args[0])); // should have been taken care of during parsing.
-	assert(kn_refcount(args[0]) != 0);
 
+#ifdef kn_refcount
+	assert(kn_refcount(args[0]) != 0);
 	++kn_refcount(kn_value_as_ast(args[0]));
+#endif /* kn_refcount */
 
 	return args[0];
 }
@@ -182,6 +184,9 @@ DECLARE_FUNCTION(call, 1, "CALL") {
 
 	struct kn_ast *ast = kn_value_as_ast(ran);
 
+#ifndef kn_refcount
+	return kn_ast_run(ast);
+#else
 	// Optimize for the case where we are running a non-unique ast.
 	if (KN_LIKELY(--kn_refcount(ast) != 0))
 		return kn_ast_run(ast);
@@ -190,6 +195,7 @@ DECLARE_FUNCTION(call, 1, "CALL") {
 	kn_value ret = kn_ast_run(ast);
 	kn_ast_free(ast);
 	return ret;
+#endif /* !kn_refcount */
 }
 
 #ifdef KN_EXT_SYSTEM
