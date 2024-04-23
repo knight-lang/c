@@ -18,7 +18,7 @@
 #include <stdbool.h> /* bool, true, false */
 #include "env.h"     /* prototypes, size_t, kn_variable, kn_value, KN_UNDEFINED,
                         kn_value_free, kn_value_clone */
-#include "shared.h"  /* kn_die, xmalloc, xrealloc, kn_hash, KN_UNLIKELY */
+#include "shared.h"  /* kn_die, heap_malloc, heap_realloc, kn_hash, KN_UNLIKELY */
 
 struct kn_env {
 	size_t capacity_per_bucket, number_of_buckets;
@@ -30,15 +30,15 @@ struct kn_env {
 };
 
 struct kn_env *kn_env_create(size_t capacity_per_bucket, size_t number_of_buckets) {
-	struct kn_env *env = xmalloc(sizeof(struct kn_env));
+	struct kn_env *env = heap_malloc(sizeof(struct kn_env));
 
 	env->capacity_per_bucket = capacity_per_bucket;
 	env->number_of_buckets = number_of_buckets;
-	env->buckets = xmalloc(sizeof(struct kn_env_bucket) * number_of_buckets);
+	env->buckets = heap_malloc(sizeof(struct kn_env_bucket) * number_of_buckets);
 
 	for (size_t i = 0; i < number_of_buckets; ++i) {
 		env->buckets[i].length = 0;
-		env->buckets[i].variables = xmalloc(sizeof(struct kn_variable) * capacity_per_bucket);
+		env->buckets[i].variables = heap_malloc(sizeof(struct kn_variable) * capacity_per_bucket);
 	}
 
 	return env;

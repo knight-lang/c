@@ -1,7 +1,7 @@
 #ifndef KN_AST_H
 #define KN_AST_H
 
-#include "refcount.h"
+#include "allocator.h"
 #include "function.h"
 #include "value.h"
 #include "shared.h"

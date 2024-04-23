@@ -5,6 +5,17 @@
 #include <stdlib.h> /* exit, abort */
 #include <stdio.h>  /* fprintf, stderr */
 
+#ifdef __clang__
+# define kn_macro_to_str(x) #x
+# define kn_clang_pragma(x) _Pragma(#x)
+# define kn_clang_ignore(msg, x) _Pragma("clang diagnostic push") \
+	kn_clang_pragma(clang diagnostic ignored kn_macro_to_str("-W" msg)) \
+	x \
+	_Pragma("clang diagnostic pop")
+#else
+# define kn_clang_ignore(msg, x) x
+#endif
+
 #ifdef __has_builtin
 # define KN_HAS_BUILTIN(x) __has_builtin(x)
 #else
@@ -34,10 +45,10 @@
 #define KN_LIKELY(x)   KN_EXPECT(!!(x), 1)
 #define KN_UNLIKELY(x) KN_EXPECT(!!(x), 0)
 
-#if defined(__has_c_attribute) && __has_c_attribute(fallthrough)
+#if defined(__has_c_attribute) && __has_c_attribute(fallthrough) && (!defined(__GNUC__) || defined(__clang__))
 # define KN_FALLTHROUGH [[fallthrough]]
 #else
-# define KN_FALLTHROUGH
+# define KN_FALLTHROUGH /* fallthrough */
 #endif /* __has_c_attribute(fallthrough) */
 
 #if KN_HAS_ATTRIBUTE(cold)
@@ -108,7 +119,7 @@ KN_ATTRIBUTE(malloc)
 #if KN_HAS_ATTRIBUTE(returns_nonnull)
 KN_ATTRIBUTE(returns_nonnull)
 #endif
-xmalloc(size_t size);
+heap_malloc(size_t size);
 
 /**
  * Resizes the pointer to a segment of at least `size` bytes of memory and
@@ -121,6 +132,6 @@ void *
 #if KN_HAS_ATTRIBUTE(returns_nonnull)
 KN_ATTRIBUTE(returns_nonnull)
 #endif
-xrealloc(void *ptr, size_t size);
+heap_realloc(void *ptr, size_t size);
 
 #endif /* !KN_SHARED_H */

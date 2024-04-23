@@ -15,7 +15,7 @@ struct kn_list kn_list_empty = {
 };
 
 static struct kn_list *alloc_list(size_t length, enum kn_list_flags flags) {
-	struct kn_list *list = xmalloc(sizeof(struct kn_list));
+	struct kn_list *list = heap_malloc(sizeof(struct kn_list));
 
 #ifdef kn_refcount
 	kn_refcount(list) = 1;
@@ -35,7 +35,7 @@ struct kn_list *kn_list_alloc(size_t length) {
 	struct kn_list *list = alloc_list(length, is_embed ? KN_LIST_FL_ALLOC : KN_LIST_FL_EMBED);
 
 	if (is_embed)
-		list->alloc = xmalloc(sizeof(kn_value) * length);
+		list->alloc = heap_malloc(sizeof(kn_value) * length);
 
 	return list;
 }
@@ -173,12 +173,12 @@ struct kn_string *kn_list_join(const struct kn_list *list, const struct kn_strin
 		return kn_value_to_string(kn_list_get(list, 0));
 
 	size_t len = 0, cap = 64;
-	char *joined = xmalloc(cap);
+	char *joined = heap_malloc(cap);
 	
 	for (size_t i = 0; i < kn_length(list); ++i) {
 		if (i != 0) {
 			if (cap <= kn_length(sep) + len)
-				joined = xrealloc(joined, cap = cap * 2 + kn_length(sep));
+				joined = heap_realloc(joined, cap = cap * 2 + kn_length(sep));
 
 			memcpy(joined + len, kn_string_deref(sep), kn_length(sep));
 			len += kn_length(sep);
@@ -186,7 +186,7 @@ struct kn_string *kn_list_join(const struct kn_list *list, const struct kn_strin
 
 		struct kn_string *string = kn_value_to_string(kn_list_get(list, i));
 		if (cap <= kn_length(string) + len)
-			joined = xrealloc(joined, cap = cap * 2 + kn_length(string));
+			joined = heap_realloc(joined, cap = cap * 2 + kn_length(string));
 
 		memcpy(joined + len, kn_string_deref(string), kn_length(string));
 		len += kn_length(string);
@@ -194,7 +194,7 @@ struct kn_string *kn_list_join(const struct kn_list *list, const struct kn_strin
 		kn_string_free(string);
 	}
 
-	joined = xrealloc(joined, len + 1);
+	joined = heap_realloc(joined, len + 1);
 	joined[len] = '\0';
 
 	return kn_string_new_owned(joined, len);

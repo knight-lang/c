@@ -2,7 +2,7 @@
 #define KN_CUSTOM_H
 
 #include "value.h"  /* kn_value, kn_integer, kn_boolean, kn_string */
-#include "refcount.h"
+#include "allocator.h"
 #include <stddef.h> /* size_t */
 
 /**

@@ -36,7 +36,6 @@ enum kn_value_tag {
 #endif /* KN_CUSTOM */
 };
 
-
 #define KN_SHIFT 3
 #define KN_TAG_MASK ((1 << KN_SHIFT) - 1)
 

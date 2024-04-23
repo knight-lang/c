@@ -1,6 +1,7 @@
 #include "gc.h"
 
 struct anyvalue {
+	int x;
 // 	SQ_BASIC_DECLARATION basic;
 // 	SQ_ALIGNAS(SQ_VALUE_ALIGNMENT) char _ignored[SQ_VALUE_SIZE - SQ_VALUE_ALIGNMENT];
 };
@@ -9,6 +10,10 @@ static struct anyvalue *heap_start, *heap;
 static unsigned long long heap_size;
 
 void sq_gc_init(unsigned long long heap_size_) {
+	(void) heap_size_;
+	(void) heap_start;
+	(void) heap;
+	(void) heap_size;
 	// heap_size = heap_size_ * KN_VALUE_SIZE;
 }
 

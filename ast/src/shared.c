@@ -23,7 +23,7 @@ kn_hash_t kn_hash_acc(const char *str, size_t length, kn_hash_t hash) {
 	return hash;
 }
 
-void *xmalloc(size_t size) {
+void *heap_malloc(size_t size) {
 	void *ptr = malloc(size);
 
 #ifndef KN_RECKLESS
@@ -36,7 +36,7 @@ void *xmalloc(size_t size) {
 	return ptr;
 }
 
-void *xrealloc(void *ptr, size_t size) {
+void *heap_realloc(void *ptr, size_t size) {
 	ptr = realloc(ptr, size);
 
 #ifndef KN_RECKLESS

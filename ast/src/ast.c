@@ -6,7 +6,7 @@
 # ifndef KN_AST_FREE_CACHE_LEN
 #  define KN_AST_FREE_CACHE_LEN 32
 # endif /* !KN_AST_FREE_CACHE_LEN */
-struct kn_ast *freed_asts[KN_MAX_ARGC + 1][KN_AST_FREE_CACHE_LEN];
+static struct kn_ast *freed_asts[KN_MAX_ARGC + 1][KN_AST_FREE_CACHE_LEN];
 #endif /* KN_AST_CACHE */
 
 void kn_ast_cleanup(void) {
@@ -55,7 +55,7 @@ struct kn_ast *kn_ast_alloc(size_t argc) {
 #endif /* KN_AST_CACHE */
 
 	// There are no cached free asts, so we have to allocate.
-	ast = xmalloc(sizeof(struct kn_ast) + sizeof(kn_value) * argc);
+	ast = heap_malloc(sizeof(struct kn_ast) + sizeof(kn_value) * argc);
 #ifdef kn_refcount
 	kn_refcount(ast) = 1;
 #endif

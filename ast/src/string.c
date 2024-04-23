@@ -1,6 +1,6 @@
 #include "string.h" /* prototypes, kn_string, kn_string_flags variants, size_t,
                        KN_STRING_NEW_EMBED */
-#include "shared.h" /* xmalloc, kn_hash, KN_LIKELY, KN_UNLIKELY */
+#include "shared.h" /* heap_malloc, kn_hash, KN_LIKELY, KN_UNLIKELY */
 #include <stdlib.h> /* free, NULL */
 #include <string.h> /* strlen, strcmp, memcpy, strndup, strncmp, memcmp */
 #include <assert.h> /* assert */
@@ -67,7 +67,7 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 	assert(str != NULL);
 	assert(length != 0); // zero length strings are `empty`.
 
-	struct kn_string *string = xmalloc(sizeof(struct kn_string));
+	struct kn_string *string = heap_malloc(sizeof(struct kn_string));
 
 	string->flags = KN_STRING_FL_STRUCT_ALLOC;
 	string->container = (struct kn_container) {
@@ -84,7 +84,7 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 static struct kn_string *allocate_embed_string(size_t length) {
 	assert(length != 0);
 
-	struct kn_string *string = xmalloc(sizeof(struct kn_string));
+	struct kn_string *string = heap_malloc(sizeof(struct kn_string));
 
 	string->flags = KN_STRING_FL_STRUCT_ALLOC | KN_STRING_FL_EMBED;
 	string->container = (struct kn_container) {
@@ -155,7 +155,7 @@ struct kn_string *kn_string_alloc(size_t length) {
 		return allocate_embed_string(length);
 
 	// If it's too large to embed, heap allocate it with an uninit buffer.
-	return allocate_heap_string(xmalloc(length + 1), length);
+	return allocate_heap_string(heap_malloc(length + 1), length);
 }
 
 // Cache a string. note that it could have previously een cached.

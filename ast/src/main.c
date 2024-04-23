@@ -2,7 +2,7 @@
 struct _ignored;
 #else
 #include "knight.h" /* kn_startup, kn_play, kn_value_free, kn_shutdown */
-#include "shared.h" /* kn_die, xmalloc, xrealloc */
+#include "shared.h" /* kn_die, heap_malloc, heap_realloc */
 #include "env.h"
 
 #include <stdlib.h> /* free, NULL, size_t */
@@ -45,7 +45,7 @@ static char *read_file(const char *filename) {
 
 	size_t length = 0;
 	size_t capacity = 2048;
-	char *contents = xmalloc(capacity);
+	char *contents = heap_malloc(capacity);
 
 	while (!feof(file)) {
 		size_t amntread = fread(&contents[length], 1, capacity - length, file);
@@ -60,14 +60,14 @@ static char *read_file(const char *filename) {
 
 		if (length == capacity) {
 			capacity *= 2;
-			contents = xrealloc(contents, capacity);
+			contents = heap_realloc(contents, capacity);
 		}
 	}
 
 	if (fclose(file) == EOF)
 		kn_error("couldn't close input file: %s", strerror(errno));
 
-	contents = xrealloc(contents, length + 1);
+	contents = heap_realloc(contents, length + 1);
 	contents[length] = '\0';
 	return contents;
 }
