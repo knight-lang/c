@@ -105,33 +105,4 @@ kn_hash_t kn_hash(const char *str, size_t length);
  * This is useful to compute  hashes of non-sequential strings.
  **/
 kn_hash_t kn_hash_acc(const char *str, size_t length, kn_hash_t hash);
-
-/**
- * Allocates `size` bytes of memory and returns a pointer to them.
- *
- * This is identical to the stdlib's `malloc`, except the program is aborted
- * instead of returning `NULL`.
- **/
-void *
-#if KN_HAS_ATTRIBUTE(malloc)
-KN_ATTRIBUTE(malloc)
-#endif
-#if KN_HAS_ATTRIBUTE(returns_nonnull)
-KN_ATTRIBUTE(returns_nonnull)
-#endif
-heap_malloc(size_t size);
-
-/**
- * Resizes the pointer to a segment of at least `size` bytes of memory and
- * returns the new segment's pointer.
- *
- * This is identical to the stdlib's `realloc`, except the program is aborted
- * instead of returning `NULL`.
- **/
-void *
-#if KN_HAS_ATTRIBUTE(returns_nonnull)
-KN_ATTRIBUTE(returns_nonnull)
-#endif
-heap_realloc(void *ptr, size_t size);
-
 #endif /* !KN_SHARED_H */

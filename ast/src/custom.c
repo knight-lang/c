@@ -8,7 +8,7 @@ struct kn_dummy_struct_;
 #include <assert.h> /* assert */
 #include "custom.h" /* prototypes, kn_custom, kn_custom_vtable, kn_value,
                        kn_integer, kn_boolean, kn_string, size_t */
-#include "shared.h" /* heap_malloc */
+#include "shared.h" /* kn_heap_malloc */
 #include <stdlib.h> /* free, NULL */
 
 struct kn_custom *kn_custom_alloc(
@@ -17,7 +17,7 @@ struct kn_custom *kn_custom_alloc(
 ) {
 	assert(vtable != NULL);
 
-	struct kn_custom *custom = heap_malloc(size + sizeof(struct kn_custom));
+	struct kn_custom *custom = kn_heap_malloc(size + sizeof(struct kn_custom));
 
 #ifdef kn_refcount
 	kn_refcount(custom) = 1;
@@ -31,7 +31,7 @@ void kn_custom_dealloc(struct kn_custom *custom) {
 	if (custom->vtable->free != NULL)
 		custom->vtable->free((void *) custom->data);
 
-	free(custom);
+	kn_heap_free(custom);
 }
 
 #endif /* KN_CUSTOM */

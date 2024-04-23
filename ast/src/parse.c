@@ -122,7 +122,7 @@ kn_value kn_parse_ast(struct kn_stream *stream, const struct kn_function *fn) {
 		// undefined variables is UB so we choose to just ignore it), if the first
 		// value is not an ast, we just return the second function's value.
 		kn_value rhs = ast->args[1];
-		free(ast);
+		kn_heap_free(ast);
 		return rhs;
 	}
 

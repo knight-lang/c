@@ -1,6 +1,6 @@
 #include "string.h" /* prototypes, kn_string, kn_string_flags variants, size_t,
                        KN_STRING_NEW_EMBED */
-#include "shared.h" /* heap_malloc, kn_hash, KN_LIKELY, KN_UNLIKELY */
+#include "shared.h" /* kn_heap_malloc, kn_hash, KN_LIKELY, KN_UNLIKELY */
 #include <stdlib.h> /* free, NULL */
 #include <string.h> /* strlen, strcmp, memcpy, strndup, strncmp, memcmp */
 #include <assert.h> /* assert */
@@ -67,7 +67,7 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 	assert(str != NULL);
 	assert(length != 0); // zero length strings are `empty`.
 
-	struct kn_string *string = heap_malloc(sizeof(struct kn_string));
+	struct kn_string *string = kn_heap_malloc(sizeof(struct kn_string));
 
 	string->flags = KN_STRING_FL_STRUCT_ALLOC;
 	string->container = (struct kn_container) {
@@ -84,7 +84,7 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 static struct kn_string *allocate_embed_string(size_t length) {
 	assert(length != 0);
 
-	struct kn_string *string = heap_malloc(sizeof(struct kn_string));
+	struct kn_string *string = kn_heap_malloc(sizeof(struct kn_string));
 
 	string->flags = KN_STRING_FL_STRUCT_ALLOC | KN_STRING_FL_EMBED;
 	string->container = (struct kn_container) {
@@ -112,10 +112,10 @@ static void deallocate_string(struct kn_string *string) {
 
 	// If we're not embedded, free the allocated string
 	if (KN_UNLIKELY(!(string->flags & KN_STRING_FL_EMBED)))
-		free(string->ptr);
+		kn_heap_free(string->ptr);
 
 	// Finally free the entire struct itself.
-	free(string);
+	kn_heap_free(string);
 }
 
 #ifdef KN_STRING_CACHE
@@ -155,7 +155,7 @@ struct kn_string *kn_string_alloc(size_t length) {
 		return allocate_embed_string(length);
 
 	// If it's too large to embed, heap allocate it with an uninit buffer.
-	return allocate_heap_string(heap_malloc(length + 1), length);
+	return allocate_heap_string(kn_heap_malloc(length + 1), length);
 }
 
 // Cache a string. note that it could have previously een cached.
@@ -193,7 +193,7 @@ struct kn_string *kn_string_new_owned(char *str, size_t length) {
 
 	// If the input is empty, then just return an owned string.
 	if (KN_UNLIKELY(length == 0)) {
-		free(str); // free the owned string.
+		kn_heap_free(str); // free the owned string.
 		return &kn_string_empty;
 	}
 
@@ -210,7 +210,7 @@ struct kn_string *kn_string_new_owned(char *str, size_t length) {
 	if (KN_LIKELY(string != NULL)) {
 		// if it's the same as `str`, use the cached version.
 		if (KN_LIKELY(strcmp(kn_string_deref(string), str) == 0)) {
-			free(str); // we don't need this string anymore, free it.
+			kn_heap_free(str); // we don't need this string anymore, free it.
 			return kn_string_clone(string);
 		}
 

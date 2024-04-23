@@ -5,7 +5,7 @@
                          kn_variable_assign */
 #include "list.h"  
 #include "integer.h"  
-#include "shared.h"   /* kn_die, heap_malloc, heap_realloc, kn_hash, kn_hash_acc,
+#include "shared.h"   /* kn_die, kn_heap_malloc, kn_heap_realloc, kn_hash, kn_hash_acc,
                          KN_LIKELY, KN_UNLIKELY */
 #include "string.h"   /* kn_string, kn_string_new_owned, kn_string_new_borrowed,
                          kn_string_alloc, kn_string_free, kn_string_empty,
@@ -58,7 +58,7 @@ DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 
 	size_t length = 0;
 	size_t capacity = 1024;
-	char *line = heap_malloc(capacity);
+	char *line = kn_heap_malloc(capacity);
 
 	while (1) {
 		if (!fgets(line + length, capacity - length, stdin)) {
@@ -66,14 +66,14 @@ DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 				kn_error("unable to read line from stdin: %s", strerror(errno));
 
 			assert(feof(stdin));
-			free(line);
+			kn_heap_free(line);
 			return KN_NULL;
 		}
 
 		length += strlen(line + length);
 		if (length != capacity - 1)
 			break;
-		line = heap_realloc(line, capacity *= 2);
+		line = kn_heap_realloc(line, capacity *= 2);
 	}
 
 	assert(length != 0); // shoudla been checked by fgets
@@ -86,7 +86,7 @@ DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 	line[length] = '\0';
 
 	if (KN_UNLIKELY(length == 0)) {
-		free(line);
+		kn_heap_free(line);
 		return kn_value_new(&kn_string_empty);
 	}
 
@@ -216,7 +216,7 @@ DECLARE_FUNCTION(system, 2, "$") {
 	size_t tmp;
 	size_t capacity = 2048;
 	size_t length = 0;
-	char *result = heap_malloc(capacity);
+	char *result = kn_heap_malloc(capacity);
 
 	// try to read the entire stream's stdout to `result`.
 	while (0 != (tmp = fread(result + length, 1, capacity - length, stream))) {
@@ -224,7 +224,7 @@ DECLARE_FUNCTION(system, 2, "$") {
 
 		if (length == capacity) {
 			capacity *= 2;
-			result = heap_realloc(result, capacity);
+			result = kn_heap_realloc(result, capacity);
 		}
 	}
 
@@ -232,7 +232,7 @@ DECLARE_FUNCTION(system, 2, "$") {
 	if (ferror(stream))
 		kn_error("unable to read command stream");
 
-	result = heap_realloc(result, length + 1);
+	result = kn_heap_realloc(result, length + 1);
 	result[length] = '\0';
 
 	// Abort if we cant close stream.

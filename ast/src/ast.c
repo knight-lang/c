@@ -18,7 +18,7 @@ void kn_ast_cleanup(void) {
 			if (ast != NULL) {
 #ifdef kn_refcount
 				assert(kn_refcount(ast) == 0);
-				free(ast);
+				kn_heap_free(ast);
 #endif
 			}
 		}
@@ -55,7 +55,7 @@ struct kn_ast *kn_ast_alloc(size_t argc) {
 #endif /* KN_AST_CACHE */
 
 	// There are no cached free asts, so we have to allocate.
-	ast = heap_malloc(sizeof(struct kn_ast) + sizeof(kn_value) * argc);
+	ast = kn_heap_malloc(sizeof(struct kn_ast) + sizeof(kn_value) * argc);
 #ifdef kn_refcount
 	kn_refcount(ast) = 1;
 #endif
@@ -85,7 +85,7 @@ void kn_ast_dealloc(struct kn_ast *ast) {
 #endif /* KN_AST_CACHE */
 	
 	// All free slots are used, we cannot repurpose it.
-	free(ast);
+	kn_heap_free(ast);
 }
 
 void kn_ast_dump(const struct kn_ast *ast, FILE *out) {
