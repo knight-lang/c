@@ -33,13 +33,15 @@ enum kn_string_flags {
 	 * allocated, but should it should be fully duplicated when the function
 	 * `kn_string_clone_static` is called.
 	 */
-	KN_STRING_FL_STATIC = 4,
+	KN_STRING_FL_STATIC = 4
 
+#ifdef KN_STRING_CACHE
 	/*
 	 * Indicates that the string is cached, and thus should not delete itself
 	 * when its `refcount` goes to zero.
 	 */
-	KN_STRING_FL_CACHED = 8
+	, KN_STRING_FL_CACHED = 8
+#endif /* KN_STRING_CACHE */
 };
 
 /**
@@ -138,15 +140,6 @@ void KN_COLD kn_string_cleanup(void);
 struct kn_string *kn_string_alloc(size_t length);
 
 /**
- * Caches a string, such that `kn_string_new_xxx` can possibly use the string
- * in the future.
- *
- * This should only be used in conjunction with `kn_string_alloc`, as the other
- * string creation functions will automatically cache any strings they create.
- **/
-void kn_string_cache(struct kn_string *string);
-
-/**
  * Creates a new `kn_string` of the given length, and then initializes it to
  * `str`; the `str`'s ownership should be given given to this function.
  *
@@ -163,12 +156,24 @@ struct kn_string *kn_string_new_owned(char *str, size_t length);
  **/
 struct kn_string *kn_string_new_borrowed(const char *str, size_t length);
 
+
+#ifdef KN_STRING_CACHE
+/**
+ * Caches a string, such that `kn_string_new_xxx` can possibly use the string
+ * in the future.
+ *
+ * This should only be used in conjunction with `kn_string_alloc`, as the other
+ * string creation functions will automatically cache any strings they create.
+ **/
+void kn_string_cache(struct kn_string *string);
+
 /**
  * Looks up the string corresponding to the given `hash`.
  *
  * This function's a bit hacky, and probably could be redesigned a bit better...
  **/
 struct kn_string *kn_string_cache_lookup(kn_hash_t hash, size_t length);
+#endif /* KN_STRING_CACHE */
 
 /**
  * Dereferences the string, returning a mutable/immutable pointer to its data.

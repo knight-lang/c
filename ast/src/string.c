@@ -38,6 +38,56 @@ struct kn_string *kn_string_cache_lookup(kn_hash_t hash, size_t length) {
 static struct kn_string **get_cache_slot(const char *str, size_t length) {
 	return cache_lookup(kn_hash(str, length), length);
 }
+
+static void evict_string_active(struct kn_string *string) {
+# ifdef KN_USE_REFCOUNT
+	assert(kn_refcount(string) != 0);
+# endif /* KN_USE_REFCOUNT */
+
+	assert(string->flags & KN_STRING_FL_CACHED);
+
+	string->flags -= KN_STRING_FL_CACHED;
+}
+
+static void evict_string(struct kn_string *string) {
+	// we only cache allocated strings.
+	assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
+
+# ifdef KN_USE_REFCOUNT
+	if (kn_refcount(string) == 0) {
+		// If there are no more references to it, deallocate the string.
+		deallocate_string(string);
+		return;
+	}
+# endif /* KN_USE_REFCOUNT */
+
+	// otherwise, just evict it from the cache slot.
+	evict_string_active(string);
+}
+
+// Cache a string. note that it could have previously been cached.
+void kn_string_cache(struct kn_string *string) {
+	// empty strings should never be cached.
+	assert(kn_length(string) != 0);
+
+	// If it's too large for the cache, then just ignore it.
+	if (KN_STRING_CACHE_MAXLEN < kn_length(string))
+		return;
+
+	struct kn_string **cacheline = get_cache_slot(
+		kn_string_deref(string),
+		kn_length(string)
+	);
+
+	// If there was something there and has no live references left, free it.
+	if (KN_LIKELY(*cacheline != NULL))
+		evict_string(*cacheline);
+
+	// Indicate that the string is now cached, and replace the old cache line.
+	string->flags |= KN_STRING_FL_CACHED;
+	*cacheline = string;
+}
+
 #endif /* KN_STRING_CACHE */
 
 bool kn_string_equal(const struct kn_string *lhs, const struct kn_string *rhs) {
@@ -60,7 +110,6 @@ kn_integer kn_string_compare(
 	// FIXME: don't use strcmp, use memcmp
    return strcmp(kn_string_deref(lhs), kn_string_deref(rhs));
 }
-
 
 // Allocate a `kn_string` and populate it with the given `str`.
 static struct kn_string *allocate_heap_string(char *str, size_t length) {
@@ -118,33 +167,6 @@ static void deallocate_string(struct kn_string *string) {
 	kn_heap_free(string);
 }
 
-#ifdef KN_STRING_CACHE
-static void evict_string_active(struct kn_string *string) {
-#ifdef KN_USE_REFCOUNT
-	assert(kn_refcount(string) != 0);
-#endif /* KN_USE_REFCOUNT */
-	assert(string->flags & KN_STRING_FL_CACHED);
-
-	string->flags -= KN_STRING_FL_CACHED;
-}
-
-static void evict_string(struct kn_string *string) {
-	// we only cache allocated strings.
-	assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
-
-#ifdef KN_USE_REFCOUNT
-	if (kn_refcount(string) == 0) {
-		// If there are no more references to it, deallocate the string.
-		deallocate_string(string);
-	} else
-#endif /* kn_Gc */
-	{
-		// otherwise, just evict it from the cache slot.
-		evict_string_active(string);
-	}
-}
-#endif /* KN_STRING_CACHE */
-
 struct kn_string *kn_string_alloc(size_t length) {
 	// If it has no length, return the empty string
 	if (KN_UNLIKELY(length == 0))
@@ -156,34 +178,6 @@ struct kn_string *kn_string_alloc(size_t length) {
 
 	// If it's too large to embed, heap allocate it with an uninit buffer.
 	return allocate_heap_string(kn_heap_malloc(length + 1), length);
-}
-
-// Cache a string. note that it could have previously een cached.
-void kn_string_cache(struct kn_string *string) {
-	// empty strings should never be cached.
-	assert(kn_length(string) != 0);
-
-#ifdef KN_STRING_CACHE
-	// If it's too large for the cache, then just ignore it.
-	if (KN_STRING_CACHE_MAXLEN < kn_length(string))
-		return;
-
-	struct kn_string **cacheline = get_cache_slot(
-		kn_string_deref(string),
-		kn_length(string)
-	);
-
-	// If there was something there and has no live references left, free it.
-	if (KN_LIKELY(*cacheline != NULL))
-		evict_string(*cacheline);
-
-	// Indicate that the string is now cached, and replace the old cache line.
-	string->flags |= KN_STRING_FL_CACHED;
-	*cacheline = string;
-#else
-	(void) string;
-#endif /* KN_STRING_CACHE */
-
 }
 
 struct kn_string *kn_string_new_owned(char *str, size_t length) {
@@ -219,9 +213,9 @@ struct kn_string *kn_string_new_owned(char *str, size_t length) {
 #endif /* KN_STRING_CACHE */
 
 	string = allocate_heap_string(str, length);
-	string->flags |= KN_STRING_FL_CACHED;
 
 #ifdef KN_STRING_CACHE
+	string->flags |= KN_STRING_FL_CACHED;
 	*cacheline = string;
 #endif /* KN_STRING_CACHE */
 
@@ -256,14 +250,14 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 
 	// it may be embeddable, so don't just call `allocate_heap_string`.
 	string = kn_string_alloc(length);
+
+#ifdef KN_STRING_CACHE
 	string->flags |= KN_STRING_FL_CACHED;
+	*cached = string;
+#endif /* KN_STRING_CACHE */
 
 	memcpy(kn_string_deref(string), str, length);
 	kn_string_deref(string)[length] = '\0';
-
-#ifdef KN_STRING_CACHE
-	*cached = string;
-#endif /* KN_STRING_CACHE */
 
 	return string;
 }
@@ -273,9 +267,16 @@ void kn_string_dealloc(struct kn_string *string) {
 	assert(kn_refcount(string) == 0);
 #endif /* KN_USE_REFCOUNT */
 
+#ifdef KN_STRING_CACHE
 	// If we're not cached, deallocate the string.
-	if (!(string->flags & KN_STRING_FL_CACHED))
+	if (!(string->flags & KN_STRING_FL_CACHED)) {
+#endif /* KN_STRING_CACHE */
+
 		deallocate_string(string);
+
+#ifdef KN_STRING_CACHE
+	}
+#endif /* KN_STRING_CACHE */
 }
 
 #ifdef KN_USE_REFCOUNT
@@ -285,9 +286,9 @@ struct kn_string *kn_string_clone_static(struct kn_string *string) {
 
 	return kn_string_new_borrowed(kn_string_deref(string), kn_length(string));
 }
-#endif
+#endif /* KN_USE_REFCOUNT */
 
-void kn_string_cleanup() {
+void kn_string_cleanup(void) {
 #ifdef KN_STRING_CACHE
 	struct kn_string *string;
 
@@ -383,9 +384,8 @@ allocate_and_cache:
 	memcpy(str + lhslen, kn_string_deref(rhs), rhslen);
 	str[length] = '\0';
 
-	kn_string_cache(string);
-
 #ifdef KN_STRING_CACHE
+	kn_string_cache(string);
 free_and_return:
 #endif /* KN_STRING_CACHE */
 
@@ -503,9 +503,8 @@ struct kn_string *kn_string_set_substring(
 	memcpy(str + start + kn_length(replacement), string_str + start + length, kn_length(string));
 	str[replaced_length] = '\0';
 
-	kn_string_cache(cached);
-
 #ifdef KN_STRING_CACHE
+	kn_string_cache(cached);
 free_and_return:
 #endif /* KN_STRING_CACHE */
 
