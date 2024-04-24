@@ -26,7 +26,7 @@ void kn_ast_cleanup(void) {
 
 #ifdef KN_USE_GC
 void kn_ast_mark(struct kn_ast *ast) {
-	ast->used = 1;
+	kn_flags(ast) |= KN_AST_FL_MARKED;
 
 	for (size_t i = 0; i < ast->function->arity; ++i)
 		kn_value_mark(ast->args[i]);

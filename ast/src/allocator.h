@@ -4,11 +4,6 @@
 #include "shared.h"
 // #define KN_USE_GC
 
-#ifdef KN_USE_GC
-# include "gc.h"
-# define kn_value_header unsigned long long used;
-#endif
-
 struct kn_header {
 	_Alignas(8)
 
@@ -25,15 +20,17 @@ struct kn_header {
 
 #define kn_flags(x) (((struct kn_header *) (x))->flags)
 
+#ifdef KN_USE_GC
+# include "gc.h"
+# define kn_value_header unsigned long long used;
+#endif
+
 #ifdef KN_USE_REFCOUNT
 # ifdef KN_USE_GC
 #  error cant use both gc and refcount
 # endif
-# include "refcount.h"
+# define kn_refcount(ptr) (((struct kn_header *) (ptr))->refcount)
 # define kn_value_header struct kn_refcount refcount;
-# define KN_IF_RC(...) __VA_ARGS__
-#else
-# define KN_IF_RC(...)
 #endif
 
 #ifndef kn_value_header

@@ -117,7 +117,7 @@ DECLARE_FUNCTION(noop, 1, ":") {
 DECLARE_FUNCTION(box, 1, ",") {
 	struct kn_list *list = kn_list_alloc(1);
 
-	assert(list->flags & KN_LIST_FL_EMBED);
+	assert(kn_flags(list) & KN_LIST_FL_EMBED);
 	list->embed[0] = kn_value_run(args[0]);
 
 	return kn_value_new(list);

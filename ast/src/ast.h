@@ -6,6 +6,8 @@
 #include "value.h"
 #include "shared.h"
 
+#define KN_AST_FL_MARKED KN_GC_FL_MARKED
+
 /**
  * The type that represents a function and its arguments in Knight.
  *
