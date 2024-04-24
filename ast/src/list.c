@@ -6,17 +6,17 @@
 
 struct kn_list kn_list_empty = {
 	.container = {
-
+		.header = {
 #ifdef KN_USE_REFCOUNT
-		.refcount = 1,
+			.refcount = 1,
 #endif /* KN_USE_REFCOUNT */
-
+			.flags = KN_LIST_FL_STATIC
+		},
 		.length = 0
 	},
-	.flags = KN_LIST_FL_STATIC,
 };
 
-static struct kn_list *alloc_list(size_t length, enum kn_list_flags flags) {
+static struct kn_list *alloc_list(size_t length, unsigned flags) {
 	struct kn_list *list = kn_heap_malloc(sizeof(struct kn_list));
 
 #ifdef KN_USE_REFCOUNT
@@ -24,7 +24,7 @@ static struct kn_list *alloc_list(size_t length, enum kn_list_flags flags) {
 #endif /* KN_USE_REFCOUNT */
 
 	kn_length(list) = length;
-	list->flags = flags;
+	kn_flags(list) = flags;
 
 	return list;
 }
@@ -43,17 +43,17 @@ struct kn_list *kn_list_alloc(size_t length) {
 }
 
 void kn_list_dealloc(struct kn_list *list) {
-	if (list->flags & KN_LIST_FL_STATIC)
+	if (kn_flags(list) & KN_LIST_FL_STATIC)
 		return;
 
 #ifdef KN_USE_REFCOUNT
 	assert(kn_refcount(list) == 0);
 #endif /* KN_USE_REFCOUNT */
 
-	assert(!(list->flags & KN_LIST_FL_INTEGER)); // `FL_STATIC` covers it.
+	assert(!(kn_flags(list) & KN_LIST_FL_INTEGER)); // `FL_STATIC` covers it.
 
 	// since we're not `KN_LIST_FL_STATIC`, we can switch on them
-	switch (list->flags) {
+	switch (kn_flags(list)) {
 	case KN_LIST_FL_CONS:
 		kn_list_free(list->cons.lhs);
 		kn_list_free(list->cons.rhs);
@@ -83,11 +83,11 @@ void kn_list_dealloc(struct kn_list *list) {
 }
 
 struct kn_list *kn_list_clone_integer(struct kn_list *list) {
-	if (!(list->flags & KN_LIST_FL_INTEGER))
+	if (!(kn_flags(list) & KN_LIST_FL_INTEGER))
 		return list;
 
 	struct kn_list *cloned = kn_list_alloc(kn_length(list));
-	kn_value *ptr = (cloned->flags & KN_LIST_FL_EMBED)
+	kn_value *ptr = (kn_flags(cloned) & KN_LIST_FL_EMBED)
 			? cloned->embed
 			: cloned->alloc;
 
@@ -133,7 +133,7 @@ struct kn_list *kn_list_concat(struct kn_list *lhs, struct kn_list *rhs) {
 
 	if (KN_UNLIKELY(kn_length(rhs) == 0)) {
 		assert(rhs == &kn_list_empty);
-		assert(!(lhs->flags & KN_LIST_FL_INTEGER));
+		assert(!(kn_flags(lhs) & KN_LIST_FL_INTEGER));
 		return lhs;
 	}
 

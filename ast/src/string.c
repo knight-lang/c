@@ -44,15 +44,15 @@ static void evict_string_active(struct kn_string *string) {
 	assert(kn_refcount(string) != 0);
 # endif /* KN_USE_REFCOUNT */
 
-	assert(string->flags & KN_STRING_FL_CACHED);
+	assert(kn_flags(string) & KN_STRING_FL_CACHED);
 
-	string->flags -= KN_STRING_FL_CACHED;
+	kn_flags(string) -= KN_STRING_FL_CACHED;
 }
 
 static void deallocate_string(struct kn_string *string);
 static void evict_string(struct kn_string *string) {
 	// we only cache allocated strings.
-	assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
+	assert(kn_flags(string) & KN_STRING_FL_STRUCT_ALLOC);
 
 # ifdef KN_USE_REFCOUNT
 	if (kn_refcount(string) == 0) {
@@ -85,7 +85,7 @@ void kn_string_cache(struct kn_string *string) {
 		evict_string(*cacheline);
 
 	// Indicate that the string is now cached, and replace the old cache line.
-	string->flags |= KN_STRING_FL_CACHED;
+	kn_flags(string) |= KN_STRING_FL_CACHED;
 	*cacheline = string;
 }
 
@@ -120,7 +120,7 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 	struct kn_string *string = kn_heap_malloc(sizeof(struct kn_string));
 
 	string->ptr = str;
-	string->flags = KN_STRING_FL_STRUCT_ALLOC;
+	kn_flags(string) = KN_STRING_FL_STRUCT_ALLOC;
 	string->container.length = length;
 
 #ifdef KN_USE_REFCOUNT
@@ -135,7 +135,7 @@ static struct kn_string *allocate_embed_string(size_t length) {
 
 	struct kn_string *string = kn_heap_malloc(sizeof(struct kn_string));
 
-	string->flags = KN_STRING_FL_STRUCT_ALLOC | KN_STRING_FL_EMBED;
+	kn_flags(string) = KN_STRING_FL_STRUCT_ALLOC | KN_STRING_FL_EMBED;
 	string->container.length = length;
 
 #ifdef KN_USE_REFCOUNT
@@ -154,14 +154,14 @@ static void deallocate_string(struct kn_string *string) {
 #endif /* KN_USE_REFCOUNT */
 
 	// If the struct isn't actually allocated, then return.
-	if (!(string->flags & KN_STRING_FL_STRUCT_ALLOC)) {
+	if (!(kn_flags(string) & KN_STRING_FL_STRUCT_ALLOC)) {
 		// Sanity check, as these are the only two non-struct-ptr flags.
-		assert(string->flags & (KN_STRING_FL_EMBED | KN_STRING_FL_STATIC));
+		assert(kn_flags(string) & (KN_STRING_FL_EMBED | KN_STRING_FL_STATIC));
 		return;
 	}
 
 	// If we're not embedded, free the allocated string
-	if (KN_UNLIKELY(!(string->flags & KN_STRING_FL_EMBED)))
+	if (KN_UNLIKELY(!(kn_flags(string) & KN_STRING_FL_EMBED)))
 		kn_heap_free(string->ptr);
 
 	// Finally free the entire struct itself.
@@ -216,7 +216,7 @@ struct kn_string *kn_string_new_owned(char *str, size_t length) {
 	string = allocate_heap_string(str, length);
 
 #ifdef KN_STRING_CACHE
-	string->flags |= KN_STRING_FL_CACHED;
+	kn_flags(string) |= KN_STRING_FL_CACHED;
 	*cacheline = string;
 #endif /* KN_STRING_CACHE */
 
@@ -238,7 +238,7 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 
 	if (KN_LIKELY(string != NULL)) {
 		// cached strings must be allocated.
-		assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
+		assert(kn_flags(string) & KN_STRING_FL_STRUCT_ALLOC);
 		assert(kn_length(string) == length);
 
 		// if the string is the same, then that means we want the cached one.
@@ -253,7 +253,7 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 	string = kn_string_alloc(length);
 
 #ifdef KN_STRING_CACHE
-	string->flags |= KN_STRING_FL_CACHED;
+	kn_flags(string) |= KN_STRING_FL_CACHED;
 	*cached = string;
 #endif /* KN_STRING_CACHE */
 
@@ -270,7 +270,7 @@ void kn_string_dealloc(struct kn_string *string) {
 
 #ifdef KN_STRING_CACHE
 	// If we're not cached, deallocate the string.
-	if (!(string->flags & KN_STRING_FL_CACHED)) {
+	if (!(kn_flags(string) & KN_STRING_FL_CACHED)) {
 #endif /* KN_STRING_CACHE */
 
 		deallocate_string(string);
@@ -282,7 +282,7 @@ void kn_string_dealloc(struct kn_string *string) {
 
 #ifdef KN_USE_REFCOUNT
 struct kn_string *kn_string_clone_static(struct kn_string *string) {
-	if (!(string->flags & KN_STRING_FL_STATIC))
+	if (!(kn_flags(string) & KN_STRING_FL_STATIC))
 		return string;
 
 	return kn_string_new_borrowed(kn_string_deref(string), kn_length(string));
@@ -299,7 +299,7 @@ void kn_string_cleanup(void) {
 
 			if (string != NULL) {
 				// we only cache allocated strings.
-				assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
+				assert(kn_flags(string) & KN_STRING_FL_STRUCT_ALLOC);
 
 # ifdef kn_refcount
 				// If there are no more references to it, deallocate the string.

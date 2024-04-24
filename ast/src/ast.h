@@ -15,7 +15,7 @@ struct kn_ast {
 	/**
 	 * The allocation of the AST.
 	 **/
-	kn_value_header
+	struct kn_header header;
 
 	/*
 	 * The function associated with this ast.

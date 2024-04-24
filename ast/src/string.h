@@ -13,6 +13,12 @@
  * These flags are used to record information about how the memory of a
  * `kn_string` should be managed.
  **/
+/*
+ * The flags that dictate how to manage this struct's memory.
+ *
+ * Note that the struct _must_ have an 8-bit alignment, so as to work with
+ * `kn_value`'s layout.
+ */
 enum kn_string_flags {
 	/*
 	 * Indicates that the struct itself was allocated.
@@ -20,28 +26,32 @@ enum kn_string_flags {
 	 * If this is set, when a string is `kn_string_free`d, the struct pointer
 	 * itself will also be freed.
 	 */
-	KN_STRING_FL_STRUCT_ALLOC = 1,
+	KN_STRING_FL_STRUCT_ALLOC = (1 << 0),
 
 	/*
 	 * Indicates that a string's data is stored in the `embed`ded field of
 	 * the string, rather than the `alloc`ated  part.
 	 */
-	KN_STRING_FL_EMBED = 2,
+	KN_STRING_FL_EMBED = (1 << 1),
 
 	/*
 	 * Indicates that the string is a `static` string---that is, it's not
 	 * allocated, but should it should be fully duplicated when the function
 	 * `kn_string_clone_static` is called.
 	 */
-	KN_STRING_FL_STATIC = 4
+	KN_STRING_FL_STATIC = (1 << 2)
 
 #ifdef KN_STRING_CACHE
 	/*
 	 * Indicates that the string is cached, and thus should not delete itself
 	 * when its `refcount` goes to zero.
 	 */
-	, KN_STRING_FL_CACHED = 8
+	, KN_STRING_FL_CACHED = (1 << 3)
 #endif /* KN_STRING_CACHE */
+
+#ifdef KN_USE_GC
+	, KN_LIST_FL_MARK = KN_GC_FL_MARKED
+#endif /* KN_USE_GC */
 };
 
 /**
@@ -77,14 +87,6 @@ enum kn_string_flags {
 struct kn_string {
 	struct kn_container container;
 
-	/*
-	 * The flags that dictate how to manage this struct's memory.
-	 *
-	 * Note that the struct _must_ have an 8-bit alignment, so as to work with
-	 * `kn_value`'s layout.
-	 */
-	enum kn_string_flags flags;
-
 	/* All strings are either embedded or allocated. */
 	union {
 		/*
@@ -110,10 +112,14 @@ extern struct kn_string kn_string_empty;
  * It's up to the caller to ensure that `data` can fit within an embedded
  * string.
  **/
-#define KN_STRING_NEW_EMBED(data)                  \
-	{                                               \
-		.flags = KN_STRING_FL_EMBED,                 \
-		.container = { .length = sizeof(data) - 1 }, \
+#define KN_STRING_NEW_EMBED(data)                            \
+	{                                                    \
+		.container = {                               \
+			.header = {                          \
+				.flags = KN_STRING_FL_EMBED, \
+			},                                   \
+			.length = sizeof(data) - 1           \
+		},                                           \
 		.embed = data                                \
 	}
 
@@ -184,7 +190,7 @@ struct kn_string *kn_string_cache_lookup(kn_hash_t hash, size_t length);
 	)(x))
 
 static inline char *kn_string_deref_mut(struct kn_string *string) {
-	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
+	return KN_LIKELY(kn_flags(string) & KN_STRING_FL_EMBED)
 		? string->embed
 		: string->ptr;
 }
@@ -192,7 +198,7 @@ static inline char *kn_string_deref_mut(struct kn_string *string) {
 static inline const char *kn_string_deref_const(
 	const struct kn_string *string
 ) {
-	return KN_LIKELY(string->flags & KN_STRING_FL_EMBED)
+	return KN_LIKELY(kn_flags(string) & KN_STRING_FL_EMBED)
 		? string->embed
 		: string->ptr;
 }
@@ -204,7 +210,7 @@ static inline const char *kn_string_deref_const(
  * memory errors occur.
  **/
 static inline struct kn_string *kn_string_clone(struct kn_string *string) {
-	assert(!(string->flags & KN_STRING_FL_STATIC));
+	assert(!(kn_flags(string) & KN_STRING_FL_STATIC));
 
 #ifdef KN_USE_REFCOUNT
 	++kn_refcount(string); // this is irrelevant for non-allocated structs.

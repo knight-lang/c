@@ -9,6 +9,22 @@
 # define kn_value_header unsigned long long used;
 #endif
 
+struct kn_header {
+	_Alignas(8)
+
+#ifdef KN_USE_REFCOUNT
+	size_t refcount;
+#endif
+
+	unsigned int flags;
+};
+
+#ifdef KN_USE_GC
+# define KN_GC_FL_MARKED (1 << ((8 * sizeof(unsigned int)) - 1))
+#endif /* KN_USE_GC */
+
+#define kn_flags(x) (((struct kn_header *) (x))->flags)
+
 #ifdef KN_USE_REFCOUNT
 # ifdef KN_USE_GC
 #  error cant use both gc and refcount

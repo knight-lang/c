@@ -16,11 +16,8 @@ struct kn_container {
 	/**
 	 * All containers also have an associated refcount.
 	 **/
-	kn_value_header
+	struct kn_header header;
 
-#ifndef KN_USE_REFCOUNT
-	alignas(8)
-#endif
 	/**
 	 * The length of the container.
 	 **/

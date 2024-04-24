@@ -19,6 +19,67 @@
 	(KN_LIST_EMBED_PADDING + (sizeof(struct kn_list *) * 2 / sizeof(kn_value)))
 
 /**
+ * Flags denoting how the list works.
+ * 
+ * Other than `KN_LIST_FL_STATIC` (and `KN_LIST_FL_INTEGER`), flags aren't composable.
+ */
+enum kn_list_flags {
+	/**
+	 * The list's elements are embedded directly within the list itself.
+	 * 
+	 * This corresponds to the `embed` variant.
+	 **/
+	KN_LIST_FL_EMBED = (1 << 0),
+
+	/**
+	 * The list's elements are located behind a pointer.
+	 * 
+	 * This corresponds to the `alloc` variant.
+	 **/
+	KN_LIST_FL_ALLOC = (1 << 1),
+
+	/**
+	 * The list's the concatenation of two other lists (via the `kn_list_concat` function).
+	 * 
+	 * This corresponds to the `cons` variant. (`cons` is a function that originally came from
+	 * lisp and means concatenating two lists together)
+	 **/
+	KN_LIST_FL_CONS = (1 << 2),
+
+	/**
+	 * The list's the repetition of another list by a value greater than one.
+	 * 
+	 * This corresponds to the `repeat` variant.
+	 **/
+	KN_LIST_FL_REPEAT = (1 << 3),
+
+	/**
+	 * A mask to get all the "data representation" flags.
+	 **/
+	KN_LIST_FL_TYPE_MASK = (1 << 4) - 1,
+
+	/**
+	 * Indicates that a list is statically allocated, and should not be freed when
+	 * `kn_list_dealloc` is called.
+	 **/
+	KN_LIST_FL_STATIC = (1 << 4),
+
+	/**
+	 * A special flag that's only ever used by the `kn_integer_to_list`. 
+	 * 
+	 * This is used to avoid allocating new lists each time an integer is converted to a list. To
+	 * get an allocated version of this, use `kn_list_clone_integer`.
+	 * 
+	 * Note this flag is only ever used in conjunction with `KN_LIST_FL_STATIC`.
+	 **/
+	KN_LIST_FL_INTEGER = (1 << 5)
+
+#ifdef KN_USE_GC
+	, KN_LIST_FL_MARK = KN_GC_FL_MARKED
+#endif /* KN_USE_GC */
+};
+
+/**
  * The list type in Knight.
  *
  * Generally, lists are allocated via `kn_list_alloc`. However, some of the builtin list functions
@@ -37,63 +98,6 @@ struct kn_list {
 	 * The refcount and length of the list. 
 	 **/
 	struct kn_container container;
-
-	/**
-	 * Flags denoting how the list works.
-	 * 
-	 * Other than `KN_LIST_FL_STATIC` (and `KN_LIST_FL_INTEGER`), flags aren't composable.
-	 */
-	enum kn_list_flags {
-		/**
-		 * The list's elements are embedded directly within the list itself.
-		 * 
-		 * This corresponds to the `embed` variant.
-		 **/
-		KN_LIST_FL_EMBED = (1 << 0),
-
-		/**
-		 * The list's elements are located behind a pointer.
-		 * 
-		 * This corresponds to the `alloc` variant.
-		 **/
-		KN_LIST_FL_ALLOC = (1 << 1),
-
-		/**
-		 * The list's the concatenation of two other lists (via the `kn_list_concat` function).
-		 * 
-		 * This corresponds to the `cons` variant. (`cons` is a function that originally came from
-		 * lisp and means concatenating two lists together)
-		 **/
-		KN_LIST_FL_CONS = (1 << 2),
-
-		/**
-		 * The list's the repetition of another list by a value greater than one.
-		 * 
-		 * This corresponds to the `repeat` variant.
-		 **/
-		KN_LIST_FL_REPEAT = (1 << 3),
-
-		/**
-		 * A mask to get all the "data representation" flags.
-		 **/
-		KN_LIST_FL_TYPE_MASK = (1 << 4) - 1,
-
-		/**
-		 * Indicates that a list is statically allocated, and should not be freed when
-		 * `kn_list_dealloc` is called.
-		 **/
-		KN_LIST_FL_STATIC = (1 << 4),
-
-		/**
-		 * A special flag that's only ever used by the `kn_integer_to_list`. 
-		 * 
-		 * This is used to avoid allocating new lists each time an integer is converted to a list. To
-		 * get an allocated version of this, use `kn_list_clone_integer`.
-		 * 
-		 * Note this flag is only ever used in conjunction with `KN_LIST_FL_STATIC`.
-		 **/
-		KN_LIST_FL_INTEGER = (1 << 5),
-	} flags;
 
 	union {
 		/**
@@ -198,7 +202,7 @@ static inline void kn_list_free(struct kn_list *list) {
 static inline kn_value kn_list_get(const struct kn_list *list, size_t index) {
 	assert(index < kn_length(list));
 
-	switch (list->flags & KN_LIST_FL_TYPE_MASK) {
+	switch (kn_flags(list) & KN_LIST_FL_TYPE_MASK) {
 	case KN_LIST_FL_EMBED:
 		return list->embed[index];
 
@@ -222,10 +226,10 @@ static inline kn_value kn_list_get(const struct kn_list *list, size_t index) {
  * Sets an element within a list.
  **/
 static inline void kn_list_set(struct kn_list *list, size_t index, kn_value value) {
-	assert(list->flags & (KN_LIST_FL_EMBED | KN_LIST_FL_ALLOC));
+	assert(kn_flags(list) & (KN_LIST_FL_EMBED | KN_LIST_FL_ALLOC));
 	assert(index < kn_length(list));
 
-	(list->flags & KN_LIST_FL_EMBED ? list->embed : list->alloc)[index] = value;
+	(kn_flags(list) & KN_LIST_FL_EMBED ? list->embed : list->alloc)[index] = value;
 }
 
 void kn_list_dump(const struct kn_list *list, FILE *out);
