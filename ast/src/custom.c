@@ -22,6 +22,7 @@ struct kn_custom *kn_custom_alloc(
 #ifdef KN_USE_REFCOUNT
 	kn_refcount(custom) = 1;
 #endif /* KN_USE_REFCOUNT */
+
 	custom->vtable = vtable;
 
 	return custom;

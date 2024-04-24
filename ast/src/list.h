@@ -18,7 +18,6 @@
 #define KN_LIST_EMBED_LENGTH \
 	(KN_LIST_EMBED_PADDING + (sizeof(struct kn_list *) * 2 / sizeof(kn_value)))
 
-
 /**
  * The list type in Knight.
  *
@@ -154,14 +153,12 @@ void kn_list_dealloc(struct kn_list *list);
  * Each copy must be `kn_list_free`d separately after use to ensure that no memory leaks occur.
  **/
 static inline struct kn_list *kn_list_clone(struct kn_list *list) {
-#ifndef KN_USE_REFCOUNT
-	return list;
-#else
+#ifdef KN_USE_REFCOUNT
 	assert(kn_refcount(list) != 0);
-
 	++kn_refcount(list);
+#endif /* KN_USE_REFCOUNT */
+
 	return list;
-#endif /* !KN_USE_REFCOUNT */
 }
 
 /**
@@ -261,6 +258,5 @@ static inline struct kn_string *kn_list_to_string(const struct kn_list *list) {
 }
 
 kn_integer kn_list_compare(const struct kn_list *lhs, const struct kn_list *rhs);
-
 
 #endif /* !KN_LIST_H */

@@ -104,10 +104,7 @@ DECLARE_FUNCTION(eval, 1, "EVAL") {
 	struct kn_string *string = kn_value_to_string(args[0]);
 	kn_value ret = kn_play(kn_string_deref(string));
 
-#ifdef KN_USE_REFCOUNT
 	kn_string_free(string);
-#endif
-
 	return ret;
 }
 #endif /* KN_EXT_EVAL */
@@ -139,9 +136,7 @@ DECLARE_FUNCTION(head, 1, "[") {
 		struct kn_list *list = kn_value_as_list(ran);
 		kn_value head = kn_value_clone(kn_list_get(list, 0));
 
-#ifdef KN_USE_REFCOUNT
 		kn_list_free(list);
-#endif
 
 		return head;
 	} else {
@@ -289,10 +284,8 @@ DECLARE_FUNCTION(length, 1, "LENGTH") {
 	struct kn_list *list = kn_value_to_list(ran);
 	kn_integer length = (kn_integer) kn_length(list);
 
-#ifdef KN_USE_REFCOUNT
 	kn_value_free(ran);
 	kn_list_free(list);
-#endif
 
 	return kn_value_new(length);
 }
@@ -472,10 +465,8 @@ DECLARE_FUNCTION(pow, 2, "^") {
 	struct kn_string *sep = kn_value_to_string(args[1]);
 	struct kn_string *joined = kn_list_join(list, sep);
 
-#ifdef KN_USE_REFCOUNT
 	kn_list_free(list);
 	kn_string_free(sep);
-#endif
 
 	return kn_value_new(joined);
 }
@@ -486,10 +477,8 @@ DECLARE_FUNCTION(eql, 2, "?") {
 
 	kn_boolean equal = kn_value_equal(lhs, rhs);
 
-#ifdef KN_USE_REFCOUNT
 	kn_value_free(lhs);
 	kn_value_free(rhs);
-#endif
 
 	return kn_value_new(equal);
 }
