@@ -6,7 +6,7 @@ void *kn_heap_malloc(size_t size) {
 #ifdef KN_RECKLESS
 # if KN_HAS_ATTRIBUTE(__builtin_assume)
 	__builtin_assume(ptr != NULL);
-# endif
+# endif /* __builtin_assume */
 #else
 	if (KN_UNLIKELY(ptr == NULL && size != 0)) {
 		fprintf(stderr, "malloc failure for size %zu\n", size);
@@ -23,7 +23,7 @@ void *kn_heap_realloc(void *ptr, size_t size) {
 #ifdef KN_RECKLESS
 # if KN_HAS_ATTRIBUTE(__builtin_assume)
 	__builtin_assume(ptr != NULL || size == 0);
-# endif
+# endif /* __builtin_assume */
 #else
 	if (KN_UNLIKELY(ptr == NULL && size != 0)) {
 		fprintf(stderr, "realloc failure for size %zu\n", size);

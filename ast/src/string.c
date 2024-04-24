@@ -49,6 +49,7 @@ static void evict_string_active(struct kn_string *string) {
 	string->flags -= KN_STRING_FL_CACHED;
 }
 
+static void deallocate_string(struct kn_string *string);
 static void evict_string(struct kn_string *string) {
 	// we only cache allocated strings.
 	assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
@@ -123,7 +124,7 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 	string->container.length = length;
 
 #ifdef KN_USE_REFCOUNT
-	string->container.refcount = 1;
+	kn_refcount(&string->container) = 1;
 #endif /* KN_USE_REFCOUNT */
 
 	return string;
@@ -138,7 +139,7 @@ static struct kn_string *allocate_embed_string(size_t length) {
 	string->container.length = length;
 
 #ifdef KN_USE_REFCOUNT
-	string->container.refcount = 1;
+	kn_refcount(&string->container) = 1;
 #endif /* KN_USE_REFCOUNT */
 
 	return string;

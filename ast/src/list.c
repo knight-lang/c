@@ -6,9 +6,11 @@
 
 struct kn_list kn_list_empty = {
 	.container = {
+
 #ifdef KN_USE_REFCOUNT
-		.refcount = { 1 },
+		.refcount = 1,
 #endif /* KN_USE_REFCOUNT */
+
 		.length = 0
 	},
 	.flags = KN_LIST_FL_STATIC,
@@ -47,6 +49,7 @@ void kn_list_dealloc(struct kn_list *list) {
 #ifdef KN_USE_REFCOUNT
 	assert(kn_refcount(list) == 0);
 #endif /* KN_USE_REFCOUNT */
+
 	assert(!(list->flags & KN_LIST_FL_INTEGER)); // `FL_STATIC` covers it.
 
 	// since we're not `KN_LIST_FL_STATIC`, we can switch on them
