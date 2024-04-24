@@ -280,14 +280,12 @@ void kn_string_dealloc(struct kn_string *string) {
 #endif /* KN_STRING_CACHE */
 }
 
-#ifdef KN_USE_REFCOUNT
 struct kn_string *kn_string_clone_static(struct kn_string *string) {
 	if (!(kn_flags(string) & KN_STRING_FL_STATIC))
 		return string;
 
 	return kn_string_new_borrowed(kn_string_deref(string), kn_length(string));
 }
-#endif /* KN_USE_REFCOUNT */
 
 void kn_string_cleanup(void) {
 #ifdef KN_STRING_CACHE

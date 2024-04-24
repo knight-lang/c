@@ -219,7 +219,6 @@ static inline struct kn_string *kn_string_clone(struct kn_string *string) {
 	return string;
 }
 
-
 /**
  * Duplicates `KN_STRING_FL_STATIC` strings, simply returns all others.
  *
@@ -228,13 +227,7 @@ static inline struct kn_string *kn_string_clone(struct kn_string *string) {
  * if an entire new string is needed, this is used to ensure that the returned
  * string won't change if the original static one does.
  **/
-#ifndef KN_USE_REFCOUNT
-static inline struct kn_string *kn_string_clone_static(struct kn_string *string) {
-	return string;
-}
-#else
 struct kn_string *kn_string_clone_static(struct kn_string *string);
-#endif
 
 /**
  * Deallocates the memory associated with `string`; should only be called with
