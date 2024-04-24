@@ -351,13 +351,13 @@ static inline size_t kn_container_length(kn_value value) {
 	return kn_length(KN_UNMASK(value));
 }
 
-#ifdef kn_refcount
+#ifdef KN_USE_REFCOUNT
 static inline size_t *kn_container_refcount(kn_value value) {
 	assert(kn_value_is_ast(value) || kn_value_is_string(value) || kn_value_is_list(value));
 
 	return &kn_refcount(KN_UNMASK(value));
 }
-#endif /* kn_refcount */
+#endif /* KN_USE_REFCOUNT */
 
 static inline bool kn_value_is_allocated(kn_value value) {
 	return KN_TAG_VARIABLE < kn_tag(value);
@@ -372,10 +372,10 @@ static inline bool kn_value_is_allocated(kn_value value) {
 static inline kn_value kn_value_clone(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
-#ifdef kn_refcount
+#ifdef KN_USE_REFCOUNT
 	if (kn_value_is_allocated(value))
 		++*kn_container_refcount(value);
-#endif /* kn_refcount */
+#endif /* KN_USE_REFCOUNT */
 
 	return value;
 }
@@ -391,16 +391,22 @@ void kn_value_dealloc(kn_value value);
 static inline void kn_value_free(kn_value value) {
 	assert(value != KN_UNDEFINED);
 
+#ifndef KN_USE_REFCOUNT
+	(void) value;
+#else
 	if (!kn_value_is_allocated(value))
 		return;
 
-#ifdef kn_refcount
 	if (KN_LIKELY(--*kn_container_refcount(value)))
 		return;
 
 	kn_value_dealloc(value);
-#endif /* kn_refcount */
+#endif /* KN_USE_REFCOUNT */
 }
+
+#ifdef KN_USE_GC
+void kn_value_mark(kn_value value);
+#endif
 
 bool kn_value_equal(kn_value lhs, kn_value rhs);
 kn_integer kn_value_compare(kn_value lhs, kn_value rhs);

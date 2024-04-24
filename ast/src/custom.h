@@ -85,7 +85,7 @@ struct kn_custom {
 	 *
 	 * This is manipulated via `kn_custom_free` and `kn_custom_clone`.
 	 */
-	kn_allocation
+	kn_value_header
 
 	/*
 	 * The vtable associated with this struct.
@@ -124,6 +124,7 @@ struct kn_custom *kn_custom_alloc(
  **/
 void kn_custom_dealloc(struct kn_custom *custom);
 
+#ifdef KN_USE_REFCOUNT
 /**
  * Indicates that this reference to `custom` is no longer needed.
  *
@@ -132,13 +133,10 @@ void kn_custom_dealloc(struct kn_custom *custom);
  * constructor, it will also be called.
  **/
 static inline void kn_custom_free(struct kn_custom *custom) {
-#ifndef kn_refcount
-	(void) custom;
-#else
 	if (--kn_refcount(custom) == 0)
 		kn_custom_dealloc(custom);
-#endif /* !kn_refcount */
 }
+#endif /* KN_USE_REFCOUNT */
 
 /**
  * Returns a new reference to `custom`.
@@ -147,9 +145,9 @@ static inline void kn_custom_free(struct kn_custom *custom) {
  * `kn_custom_free` to ensure that resources are cleaned up.
  **/
 static inline struct kn_custom *kn_custom_clone(struct kn_custom *custom) {
-#ifdef kn_refcount
+#ifdef KN_USE_REFCOUNT
 	++kn_refcount(custom);
-#endif /* kn_refcount */
+#endif /* KN_USE_REFCOUNT */
 	return custom;
 }
 

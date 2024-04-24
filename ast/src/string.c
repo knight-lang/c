@@ -69,14 +69,13 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 
 	struct kn_string *string = kn_heap_malloc(sizeof(struct kn_string));
 
-	string->flags = KN_STRING_FL_STRUCT_ALLOC;
-	string->container = (struct kn_container) {
-#ifdef kn_refcount
-		.refcount = { 1 },
-#endif /* kn_refcount */
-		.length = length
-	};
 	string->ptr = str;
+	string->flags = KN_STRING_FL_STRUCT_ALLOC;
+	string->container.length = length;
+
+#ifdef KN_USE_REFCOUNT
+	string->container.refcount = 1;
+#endif /* KN_USE_REFCOUNT */
 
 	return string;
 }
@@ -87,12 +86,11 @@ static struct kn_string *allocate_embed_string(size_t length) {
 	struct kn_string *string = kn_heap_malloc(sizeof(struct kn_string));
 
 	string->flags = KN_STRING_FL_STRUCT_ALLOC | KN_STRING_FL_EMBED;
-	string->container = (struct kn_container) {
-#ifdef kn_refcount
-		.refcount = { 1 },
-#endif /* kn_refcount */
-		.length = length
-	};
+	string->container.length = length;
+
+#ifdef KN_USE_REFCOUNT
+	string->container.refcount = 1;
+#endif /* KN_USE_REFCOUNT */
 
 	return string;
 }
@@ -100,9 +98,11 @@ static struct kn_string *allocate_embed_string(size_t length) {
 // Actually deallocates the data associated with `string`.
 static void deallocate_string(struct kn_string *string) {
 	assert(string != NULL);
-#ifdef kn_refcount
+
+#ifdef KN_USE_REFCOUNT
 	assert(kn_refcount(string) == 0); // don't dealloc live strings...
-#endif /* kn_refcount */
+#endif /* KN_USE_REFCOUNT */
+
 	// If the struct isn't actually allocated, then return.
 	if (!(string->flags & KN_STRING_FL_STRUCT_ALLOC)) {
 		// Sanity check, as these are the only two non-struct-ptr flags.
@@ -120,9 +120,9 @@ static void deallocate_string(struct kn_string *string) {
 
 #ifdef KN_STRING_CACHE
 static void evict_string_active(struct kn_string *string) {
-#ifdef kn_refcount
+#ifdef KN_USE_REFCOUNT
 	assert(kn_refcount(string) != 0);
-#endif /* kn_refcount */
+#endif /* KN_USE_REFCOUNT */
 	assert(string->flags & KN_STRING_FL_CACHED);
 
 	string->flags -= KN_STRING_FL_CACHED;
@@ -132,7 +132,7 @@ static void evict_string(struct kn_string *string) {
 	// we only cache allocated strings.
 	assert(string->flags & KN_STRING_FL_STRUCT_ALLOC);
 
-#ifdef kn_refcount
+#ifdef KN_USE_REFCOUNT
 	if (kn_refcount(string) == 0) {
 		// If there are no more references to it, deallocate the string.
 		deallocate_string(string);
@@ -269,21 +269,23 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 }
 
 void kn_string_dealloc(struct kn_string *string) {
-#ifdef kn_refcount
+#ifdef KN_USE_REFCOUNT
 	assert(kn_refcount(string) == 0);
-#endif /* kn_refcount */
+#endif /* KN_USE_REFCOUNT */
 
 	// If we're not cached, deallocate the string.
 	if (!(string->flags & KN_STRING_FL_CACHED))
 		deallocate_string(string);
 }
 
+#ifdef KN_USE_REFCOUNT
 struct kn_string *kn_string_clone_static(struct kn_string *string) {
 	if (!(string->flags & KN_STRING_FL_STATIC))
 		return string;
 
 	return kn_string_new_borrowed(kn_string_deref(string), kn_length(string));
 }
+#endif
 
 void kn_string_cleanup() {
 #ifdef KN_STRING_CACHE

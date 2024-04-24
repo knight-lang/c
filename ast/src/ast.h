@@ -15,7 +15,7 @@ struct kn_ast {
 	/**
 	 * The allocation of the AST.
 	 **/
-	kn_allocation
+	kn_value_header
 
 	/*
 	 * The function associated with this ast.
@@ -49,16 +49,20 @@ void KN_COLD kn_ast_dealloc(struct kn_ast *ast);
 /**
  * Releases the memory resources associated with this struct.
  **/
-static inline void kn_ast_free(struct kn_ast *ast) {
-#ifndef kn_refcount
+static inline void kn_ast_free(struct kn_ast *ast)  {
+#ifndef KN_USE_REFCOUNT
 	(void) ast;
 #else
 	assert(kn_refcount(ast) != 0);
 
 	if (--kn_refcount(ast) == 0)
 		kn_ast_dealloc(ast);
-#endif /* !kn_refcount */
+#endif /* KN_USE_REFCOUNT */
 }
+
+#ifdef KN_USE_GC
+void kn_ast_mark(struct kn_ast *ast);
+#endif /* KN_USE_GC */
 
 /**
  * Executes a `kn_ast`, returning the function's result.

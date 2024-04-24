@@ -10,11 +10,19 @@
 
 void kn_startup(void) {
 	kn_function_startup();
+
+#ifdef KN_USE_GC
+	kn_gc_init(1000000); // todo: variable size
+#endif /* KN_USE_GC */
 }
 
 void kn_shutdown(void) {
 	kn_ast_cleanup();
 	kn_string_cleanup();
+
+#ifdef KN_USE_GC
+	kn_gc_teardown();
+#endif /* KN_USE_GC */
 }
 
 #ifdef KN_FUZZING

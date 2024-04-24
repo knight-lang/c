@@ -200,9 +200,11 @@ static inline const char *kn_string_deref_const(
  **/
 static inline struct kn_string *kn_string_clone(struct kn_string *string) {
 	assert(!(string->flags & KN_STRING_FL_STATIC));
-#ifdef kn_refcount
+
+#ifdef KN_USE_REFCOUNT
 	++kn_refcount(string); // this is irrelevant for non-allocated structs.
-#endif /* kn_refcount */
+#endif /* KN_USE_REFCOUNT */
+
 	return string;
 }
 
@@ -215,7 +217,13 @@ static inline struct kn_string *kn_string_clone(struct kn_string *string) {
  * if an entire new string is needed, this is used to ensure that the returned
  * string won't change if the original static one does.
  **/
+#ifndef KN_USE_REFCOUNT
+static inline struct kn_string *kn_string_clone_static(struct kn_string *string) {
+	return string;
+}
+#else
 struct kn_string *kn_string_clone_static(struct kn_string *string);
+#endif
 
 /**
  * Deallocates the memory associated with `string`; should only be called with

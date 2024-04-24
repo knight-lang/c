@@ -104,7 +104,10 @@ DECLARE_FUNCTION(eval, 1, "EVAL") {
 	struct kn_string *string = kn_value_to_string(args[0]);
 	kn_value ret = kn_play(kn_string_deref(string));
 
+#ifdef KN_USE_REFCOUNT
 	kn_string_free(string);
+#endif
+
 	return ret;
 }
 #endif /* KN_EXT_EVAL */
@@ -136,7 +139,10 @@ DECLARE_FUNCTION(head, 1, "[") {
 		struct kn_list *list = kn_value_as_list(ran);
 		kn_value head = kn_value_clone(kn_list_get(list, 0));
 
+#ifdef KN_USE_REFCOUNT
 		kn_list_free(list);
+#endif
+
 		return head;
 	} else {
 		struct kn_string *string = kn_value_as_string(ran);
@@ -168,10 +174,10 @@ DECLARE_FUNCTION(tail, 1, "]") {
 DECLARE_FUNCTION(block, 1, "BLOCK") {
 	assert(kn_value_is_ast(args[0])); // should have been taken care of during parsing.
 
-#ifdef kn_refcount
+#ifdef KN_USE_REFCOUNT
 	assert(kn_refcount(args[0]) != 0);
 	++kn_refcount(kn_value_as_ast(args[0]));
-#endif /* kn_refcount */
+#endif /* KN_USE_REFCOUNT */
 
 	return args[0];
 }
@@ -184,7 +190,7 @@ DECLARE_FUNCTION(call, 1, "CALL") {
 
 	struct kn_ast *ast = kn_value_as_ast(ran);
 
-#ifndef kn_refcount
+#ifndef KN_USE_REFCOUNT
 	return kn_ast_run(ast);
 #else
 	// Optimize for the case where we are running a non-unique ast.
@@ -195,7 +201,7 @@ DECLARE_FUNCTION(call, 1, "CALL") {
 	kn_value ret = kn_ast_run(ast);
 	kn_ast_free(ast);
 	return ret;
-#endif /* !kn_refcount */
+#endif /* !KN_USE_REFCOUNT */
 }
 
 #ifdef KN_EXT_SYSTEM
@@ -283,8 +289,11 @@ DECLARE_FUNCTION(length, 1, "LENGTH") {
 	struct kn_list *list = kn_value_to_list(ran);
 	kn_integer length = (kn_integer) kn_length(list);
 
+#ifdef KN_USE_REFCOUNT
 	kn_value_free(ran);
 	kn_list_free(list);
+#endif
+
 	return kn_value_new(length);
 }
 
@@ -463,8 +472,11 @@ DECLARE_FUNCTION(pow, 2, "^") {
 	struct kn_string *sep = kn_value_to_string(args[1]);
 	struct kn_string *joined = kn_list_join(list, sep);
 
+#ifdef KN_USE_REFCOUNT
 	kn_list_free(list);
 	kn_string_free(sep);
+#endif
+
 	return kn_value_new(joined);
 }
 
@@ -474,8 +486,10 @@ DECLARE_FUNCTION(eql, 2, "?") {
 
 	kn_boolean equal = kn_value_equal(lhs, rhs);
 
+#ifdef KN_USE_REFCOUNT
 	kn_value_free(lhs);
 	kn_value_free(rhs);
+#endif
 
 	return kn_value_new(equal);
 }

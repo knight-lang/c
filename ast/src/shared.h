@@ -36,6 +36,30 @@
 # define KN_ATTRIBUTE(x)
 #endif /* KN_ATTRIBUTE */
 
+// #ifdef __clang__
+// # pragma clang diagnostic ignored "-Wnullability-extension"
+// # pragma clang diagnostic ignored "-Wnullability-completeness"
+// # define kn_nonnull _Nonnull
+// # define kn_nullable _Nullable
+// #else
+// # define kn_nonnull
+// # define kn_nullable
+// #endif
+
+// #if KN_HAS_ATTRIBUTE(nonnull)
+// # define KN_ARGS_NONNULL KN_ATTRIBUTE(nonnull)
+// # define KN_ARG_NONNULL(...) KN_ATTRIBUTE(nonnull(__VA_ARGS__))
+// #else
+// # define KN_ARGS_NONNULL
+// # define KN_ARG_NONNULL(...)
+// #endif
+
+// #if KN_HAS_ATTRIBUTE(returns_nonnull)
+// # define KN_RETURNS_NONNULL KN_ATTRIBUTE(returns_nonnull)
+// #else
+// # define KN_RETURNS_NONNULL
+// #endif
+
 #if KN_HAS_BUILTIN(__builtin_expect)
 # define KN_EXPECT(x, y) (__builtin_expect(x, y))
 #else

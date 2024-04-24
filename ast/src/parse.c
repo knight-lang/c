@@ -319,7 +319,10 @@ CASES1('N')
 LABEL(literal_empty_list)
 CASES1('@')
 	kn_stream_advance(stream);
-	return kn_value_new_list(kn_list_clone(&kn_list_empty));
+#ifdef KN_USE_REFCOUNT
+	kn_list_clone(&kn_list_empty);
+#endif /* KN_USE_REFCOUNT */
+	return kn_value_new_list(&kn_list_empty);
 
 SYMBOL_FUNC(box, ',');
 SYMBOL_FUNC(head, '[');
@@ -349,13 +352,13 @@ CASES1('P') {
 
 	static struct kn_ast ast_prompt = {
 		.function = &kn_fn_prompt
-#ifdef kn_refcount
+#ifdef KN_USE_REFCOUNT
 		, .refcount = { 1 } // Set it to `1` so nothing will ever deallocate it
 	};
 	++kn_refcount(&ast_prompt);
 #else
 	};
-#endif /* kn_refcount */
+#endif /* KN_USE_REFCOUNT */
 
 	return kn_value_new_ast(&ast_prompt);
 }
@@ -365,13 +368,13 @@ CASES1('R') {
 	strip_keyword(stream);
 	static struct kn_ast ast_random = {
 		.function = &kn_fn_random
-#ifdef kn_refcount
+#ifdef KN_USE_REFCOUNT
 		, .refcount = { 1 } // Set it to `1` so nothing will ever deallocate it
 	};
 	++kn_refcount(&ast_random);
 #else
 	};
-#endif /* kn_refcount */
+#endif /* KN_USE_REFCOUNT */
 
 	return kn_value_new_ast(&ast_random);
 }

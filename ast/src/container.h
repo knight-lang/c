@@ -16,9 +16,9 @@ struct kn_container {
 	/**
 	 * All containers also have an associated refcount.
 	 **/
-	kn_allocation
+	kn_value_header
 
-#ifndef kn_refcount
+#ifndef KN_USE_REFCOUNT
 	alignas(8)
 #endif
 	/**

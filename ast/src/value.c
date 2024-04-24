@@ -80,10 +80,10 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 
 		kn_boolean ret = kn_container_length(value) != 0;
 
-#ifdef kn_refcount
+#ifdef KN_USE_REFCOUNT
 		if (!--*kn_container_refcount(value))
 			kn_value_dealloc(value);
-#endif /* kn_refcount */
+#endif /* KN_USE_REFCOUNT */
 
 		return ret;
 
@@ -150,6 +150,9 @@ struct kn_string *kn_value_to_string(kn_value value) {
 struct kn_list *kn_value_to_list(kn_value value) {
 	static struct kn_list true_list = {
 		.container = {
+#ifdef KN_USE_REFCOUNT
+			.refcount = { 1 },
+#endif
 			.length = 1
 		},
 		.flags = KN_LIST_FL_STATIC | KN_LIST_FL_EMBED,
@@ -158,7 +161,7 @@ struct kn_list *kn_value_to_list(kn_value value) {
 
 	switch (kn_tag(value)) {
 	case KN_TAG_CONSTANT:
-		return value == KN_TRUE ? &true_list : &kn_list_empty;
+		return kn_list_clone(value == KN_TRUE ? &true_list : &kn_list_empty); // todo: is this clone correct?
 
 	case KN_TAG_INTEGER:
 		return kn_integer_to_list(kn_value_as_integer(value));
@@ -324,9 +327,9 @@ kn_value kn_value_run(kn_value value) {
 
 	case KN_TAG_STRING:
 	case KN_TAG_LIST:
-#ifdef kn_refcount
+#ifdef KN_USE_REFCOUNT
 		++*kn_container_refcount(value);
-#endif /* kn_refcount */
+#endif /* KN_USE_REFCOUNT */
 		KN_FALLTHROUGH
 
 	case KN_TAG_INTEGER:
@@ -371,3 +374,32 @@ kn_value_dealloc(kn_value value) {
 		KN_UNREACHABLE
 	}
 }
+
+#ifdef KN_USE_GC
+void kn_value_mark(kn_value value) {
+	switch (kn_tag(value)) {
+	case KN_TAG_CONSTANT:
+	case KN_TAG_INTEGER:
+		return;
+
+	case KN_TAG_STRING:
+		return;
+
+	case KN_TAG_LIST:
+		return;
+
+	case KN_TAG_VARIABLE:
+		return;
+
+	case KN_TAG_AST:
+		kn_ast_mark(kn_value_as_ast(value));
+		return;
+
+#ifdef KN_CUSTOM
+	case KN_TAG_CUSTOM:
+		// kn_custom_dealloc(kn_value_as_custom(value));
+		return;
+#endif /* KN_CUSTOM */
+	}
+}
+#endif

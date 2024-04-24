@@ -1,5 +1,5 @@
-#ifndef KN_REFCOUNT_H
-#define KN_REFCOUNT_H
+#ifndef KN_USE_REFCOUNT_H
+#define KN_USE_REFCOUNT_H
 
 #include <stdalign.h>
 #include <stddef.h>
@@ -10,4 +10,4 @@ struct kn_refcount {
 
 #define kn_refcount(ptr) (((struct kn_refcount *) (ptr))->count)
 
-#endif /* !KN_REFCOUNT_H */
+#endif /* !KN_USE_REFCOUNT_H */

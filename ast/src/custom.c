@@ -19,9 +19,9 @@ struct kn_custom *kn_custom_alloc(
 
 	struct kn_custom *custom = kn_heap_malloc(size + sizeof(struct kn_custom));
 
-#ifdef kn_refcount
+#ifdef KN_USE_REFCOUNT
 	kn_refcount(custom) = 1;
-#endif /* kn_refcount */
+#endif /* KN_USE_REFCOUNT */
 	custom->vtable = vtable;
 
 	return custom;
