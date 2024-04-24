@@ -19,7 +19,7 @@
  * Note that the struct _must_ have an 8-bit alignment, so as to work with
  * `kn_value`'s layout.
  */
-enum kn_string_flags {
+enum {
 	/*
 	 * Indicates that the struct itself was allocated.
 	 *
@@ -50,7 +50,7 @@ enum kn_string_flags {
 #endif /* KN_STRING_CACHE */
 
 #ifdef KN_USE_GC
-	, KN_LIST_FL_MARK = KN_GC_FL_MARKED
+	, KN_STRING_FL_MARK = KN_GC_FL_MARKED
 #endif /* KN_USE_GC */
 };
 

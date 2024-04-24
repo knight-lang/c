@@ -23,7 +23,7 @@
  * 
  * Other than `KN_LIST_FL_STATIC` (and `KN_LIST_FL_INTEGER`), flags aren't composable.
  */
-enum kn_list_flags {
+enum {
 	/**
 	 * The list's elements are embedded directly within the list itself.
 	 * 
