@@ -16,7 +16,7 @@ struct kn_container {
 	/**
 	 * All containers also have an associated refcount.
 	 **/
-	struct kn_header header;
+	KN_HEADER
 
 	/**
 	 * The length of the container.

@@ -90,7 +90,7 @@ struct kn_variable *kn_env_fetch(struct kn_env *env, const char *identifier, siz
 	// new variable with an undefined starting value, so that any attempt to
 	// access it will be invalid.
 	variable->value = KN_UNDEFINED;
-	variable->name = strndup(identifier, length);
+	variable->name = kn_memdup(identifier, length);
 
 	return variable;
 }

@@ -231,7 +231,7 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 
 #ifdef KN_STRING_CACHE
 	if (KN_STRING_CACHE_MAXLEN < length)
-		return allocate_heap_string(strndup(str, length), length);
+		return allocate_heap_string(kn_memdup(str, length), length);
 
 	struct kn_string **cached = get_cache_slot(str, length);
 	string = *cached;

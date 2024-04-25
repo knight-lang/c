@@ -37,7 +37,7 @@ void kn_function_startup(void) {
 #ifdef KN_FUZZING
 	srand(0); // we want deterministic inputs
 #else
-	srand(time(NULL));
+	srand((unsigned) time(NULL));
 #endif  /* KN_FUZZING */
 }
 
@@ -62,8 +62,10 @@ DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 
 	while (1) {
 		if (!fgets(line + length, capacity - length, stdin)) {
-			if (ferror(stdin))
+			if (ferror(stdin)) {
+				KN_MSVC_SUPPRESS(4996)
 				kn_error("unable to read line from stdin: %s", strerror(errno));
+			}
 
 			assert(feof(stdin));
 			kn_heap_free(line);
@@ -102,7 +104,11 @@ DECLARE_FUNCTION(random, 0, "RANDOM") {
 #ifdef KN_EXT_EVAL
 DECLARE_FUNCTION(eval, 1, "EVAL") {
 	struct kn_string *string = kn_value_to_string(args[0]);
-	kn_value ret = kn_play(kn_string_deref(string));
+#error todo: figure out where the `env` is from.
+	kn_value ret = kn_play(
+		kn_string_deref(string),
+		kn_length(string),
+	);
 
 	kn_string_free(string);
 	return ret;
@@ -117,7 +123,7 @@ DECLARE_FUNCTION(noop, 1, ":") {
 DECLARE_FUNCTION(box, 1, ",") {
 	struct kn_list *list = kn_list_alloc(1);
 
-	assert(list->flags & KN_LIST_FL_EMBED);
+	assert(kn_flags(list) & KN_LIST_FL_EMBED);
 	list->embed[0] = kn_value_run(args[0]);
 
 	return kn_value_new(list);
@@ -347,7 +353,7 @@ DECLARE_FUNCTION(ascii, 1, "ASCII") {
 	if (integer <= 0 || 127 < integer)
 		kn_error("Integer %" PRIdkn " is out of range for ascii char.", integer);
 
-	char buf[2] = { integer, 0 };
+	char buf[2] = { (char) integer, 0 };
 	return kn_value_new(kn_string_new_borrowed(buf, 1));
 }
 
@@ -455,10 +461,11 @@ DECLARE_FUNCTION(pow, 2, "^") {
 		kn_error("can only exponentiate integers and lists");
 
 	if (kn_value_is_integer(lhs)) {
-		return kn_value_new((kn_integer) powl(
-			kn_value_as_integer(lhs),
-			kn_value_to_integer(args[1])
-		));
+		kn_integer power = (kn_integer) powl(
+			(long double) kn_value_as_integer(lhs),
+			(long double) kn_value_to_integer(args[1])
+		);
+		return kn_value_new((kn_integer) power);
 	}
 
 	struct kn_list *list = kn_value_as_list(lhs);

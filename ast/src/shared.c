@@ -1,7 +1,9 @@
 #include <stdio.h>  /* vfprintf, fprintf, stderr */
 #include <stdlib.h> /* exit, malloc, realloc */
 #include <assert.h> /* assert */
+#include <string.h>
 #include "shared.h" /* prototypes, size_t, NULL, KN_UNLIKELY */
+#include "allocator.h" /* prototypes, size_t, NULL, KN_UNLIKELY */
 
 kn_hash_t kn_hash(const char *str, size_t length) {
 	// start a `kn_hash_acc` with the default starting value
@@ -21,4 +23,13 @@ kn_hash_t kn_hash_acc(const char *str, size_t length, kn_hash_t hash) {
 	}
 
 	return hash;
+}
+
+void *kn_memdup(const void *mem, size_t length) {
+	void *new = kn_heap_malloc(length);
+
+	if (new)
+		memcpy(new, mem, length);
+
+	return new;
 }

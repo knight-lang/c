@@ -55,7 +55,7 @@ kn_value kn_play(struct kn_env *env, const char *source, size_t length) {
 	kn_value parsed = kn_parse(stream);
 
 	if (parsed == KN_UNDEFINED) {
-#if KN_FUZZING
+#ifdef KN_FUZZING
 		if (true)
 			return KN_NULL;
 #endif /* KN_FUZZING */

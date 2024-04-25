@@ -85,7 +85,7 @@ struct kn_custom {
 	 *
 	 * This is manipulated via `kn_custom_free` and `kn_custom_clone`.
 	 */
-	kn_value_header
+	KN_HEADER
 
 	/*
 	 * The vtable associated with this struct.
