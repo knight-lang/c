@@ -5,19 +5,16 @@
 // #define KN_USE_GC
 
 #define KN_VALUE_ALIGNMENT 8
-// struct kn_header {
-// 	_Alignas(8)
 
-// #ifdef KN_USE_REFCOUNT
-// 	size_t refcount;
-// #endif
+#ifdef KN_USE_REFCOUNT
+# define KN_HEADER _Alignas(KN_VALUE_ALIGNMENT) size_t kn_internal_refcount; \
+                   unsigned char kn_internal_flags;
+#else
+# define KN_HEADER _Alignas(KN_VALUE_ALIGNMENT) unsigned char kn_internal_flags;
+#endif /* KN_USE_REFCOUNT */
 
-// 	unsigned int flags;
-// };
-
-#define kn_internal_gc_flags_type _Alignas(KN_VALUE_ALIGNMENT) unsigned int kn_internal_gc_flags_type
-#define KN_HEADER _Alignas(KN_VALUE_ALIGNMENT) unsigned int kn_internal_gc_flags;
-#define kn_flags(x) (((unsigned int *) (x))->kn_internal_gc_flags)
+struct kn_internal_header { KN_HEADER };
+#define kn_flags(x) (((struct kn_internal_header *) (x))->kn_internal_flags)
 
 #ifdef KN_USE_GC
 # include "gc.h"
