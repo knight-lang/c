@@ -353,7 +353,7 @@ CASES1('P') {
 	static struct kn_ast ast_prompt = {
 		.function = &kn_fn_prompt
 #ifdef KN_USE_REFCOUNT
-		, .header = { .refcount = 1 } // Set it to `1` so nothing will ever deallocate it
+		, .refcount = 1 // Set it to `1` so nothing will ever deallocate it
 	};
 	++kn_refcount(&ast_prompt);
 #else
@@ -369,7 +369,7 @@ CASES1('R') {
 	static struct kn_ast ast_random = {
 		.function = &kn_fn_random
 #ifdef KN_USE_REFCOUNT
-		, .header = { .refcount = 1 } // Set it to `1` so nothing will ever deallocate it
+		, .refcount = 1 // Set it to `1` so nothing will ever deallocate it
 	};
 	++kn_refcount(&ast_random);
 #else
@@ -401,7 +401,7 @@ WORD_FUNC(value, 'V');
 
 parse_kw_function:
 	strip_keyword(stream);
-	KN_FALLTHROUGH
+	// fallthrough
 
 parse_function:
 	return kn_parse_ast(stream, function);

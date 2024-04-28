@@ -2,39 +2,33 @@
 #define KN_ALLOCATOR_H
 
 #include "shared.h"
+#include <stdalign.h>
 // #define KN_USE_GC
 
-struct kn_header {
-	_Alignas(8)
-
-#ifdef KN_USE_REFCOUNT
-	size_t refcount;
+#if defined(KN_USE_REFCOUNT) && defined(KN_USE_GC)
+# error cant use both gc and refcount
 #endif
 
-	unsigned int flags;
-};
+#define KN_VALUE_ALIGNMENT 8
 
-#ifdef KN_USE_GC
-# define KN_GC_FL_MARKED (1 << ((8 * sizeof(unsigned int)) - 1))
-#endif /* KN_USE_GC */
+#ifdef KN_USE_REFCOUNT
+# define KN_HEADER alignas(KN_VALUE_ALIGNMENT) size_t refcount; \
+                   unsigned char flags;
+# define kn_refcount(ptr) (*(size_t*) (((unsigned char *)(ptr) + offsetof(struct { KN_HEADER }, refcount))))
+#else
+# define KN_HEADER alignas(KN_VALUE_ALIGNMENT) unsigned char flags;
+#endif /* KN_USE_REFCOUNT */
 
-#define kn_flags(x) (((struct kn_header *) (x))->flags)
+#define kn_flags(ptr) (((unsigned char *)(ptr))[offsetof(struct { KN_HEADER }, flags)])
 
 #ifdef KN_USE_GC
 # include "gc.h"
-# define kn_value_header unsigned long long used;
+# define KN_GC_FL_MARKED (1 << ((8 * sizeof(unsigned int)) - 1))
 #endif
 
-#ifdef KN_USE_REFCOUNT
-# ifdef KN_USE_GC
-#  error cant use both gc and refcount
-# endif
-# define kn_refcount(ptr) (((struct kn_header *) (ptr))->refcount)
-# define kn_value_header struct kn_refcount refcount;
-#endif
 
-#ifndef kn_value_header
-# define kn_value_header
+#ifndef KN_HEADER
+// # message oops
 // # ifdef __GNUC__
 // #  pragma GCC diagnostic push
 // #  pragma GCC diagnostic ignored "-Wpedantic"

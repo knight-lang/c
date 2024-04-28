@@ -231,7 +231,7 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 
 #ifdef KN_STRING_CACHE
 	if (KN_STRING_CACHE_MAXLEN < length)
-		return allocate_heap_string(strndup(str, length), length);
+		return allocate_heap_string(kn_memdup(str, length), length);
 
 	struct kn_string **cached = get_cache_slot(str, length);
 	string = *cached;
@@ -335,12 +335,20 @@ struct kn_string *kn_string_concat(
 
 	// return early if either
 	if ((lhslen = kn_length(lhs)) == 0) {
+#if 0 /* TODO: WHY DOESNT THIS WORK? */
 		assert(lhs == &kn_string_empty);
+#else
+		kn_string_free(lhs); // this is the replacement to work.
+#endif
 		return kn_string_clone_static(rhs);
 	}
 
 	if ((rhslen = kn_length(rhs)) == 0) {
+#if 0 /* TODO: WHY DOESNT THIS WORK? */
 		assert(rhs == &kn_string_empty);
+#else
+		kn_string_free(rhs); // this is the replacement to work.
+#endif
 		return lhs;
 	}
 
@@ -434,7 +442,11 @@ struct kn_string *kn_string_get_substring(
 	assert(start + length <= kn_length(string));
 
 	if (length == 0) {
+#if 0 /* TODO: WHY DOESNT THIS WORK? */
 		assert(string == &kn_string_empty);
+#else
+		kn_string_free(string); // this is the replacement to work.
+#endif
 		return &kn_string_empty;
 	}
 

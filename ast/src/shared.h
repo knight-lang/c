@@ -5,15 +5,22 @@
 #include <stdlib.h> /* exit, abort */
 #include <stdio.h>  /* fprintf, stderr */
 
+#define kn_pragma(x) _Pragma(#x)
+
 #ifdef __clang__
-# define kn_macro_to_str(x) #x
-# define kn_clang_pragma(x) _Pragma(#x)
+#define kn_clang_macro_to_str(x) #x
 # define kn_clang_ignore(msg, x) _Pragma("clang diagnostic push") \
-	kn_clang_pragma(clang diagnostic ignored kn_macro_to_str("-W" msg)) \
+	kn_pragma(clang diagnostic ignored kn_clang_macro_to_str("-W" msg)) \
 	x \
 	_Pragma("clang diagnostic pop")
 #else
 # define kn_clang_ignore(msg, x) x
+#endif
+	
+#ifdef _MSC_VER
+# define KN_MSVC_SUPPRESS(x) kn_pragma(warning( suppress : x ))
+#else
+# define KN_MSVC_SUPPRESS(x)
 #endif
 
 #ifdef __has_builtin
@@ -69,11 +76,18 @@
 #define KN_LIKELY(x)   KN_EXPECT(!!(x), 1)
 #define KN_UNLIKELY(x) KN_EXPECT(!!(x), 0)
 
-#if defined(__has_c_attribute) && __has_c_attribute(fallthrough) && (!defined(__GNUC__) || defined(__clang__))
-# define KN_FALLTHROUGH [[fallthrough]]
-#else
-# define KN_FALLTHROUGH /* fallthrough */
-#endif /* __has_c_attribute(fallthrough) */
+#if defined(__has_c_attribute) && (!defined(__GNUC__) || defined(__clang__))
+# if __has_c_attribute(fallthrough)
+#  define KN_FALLTHROUGH [[fallthrough]]
+# endif
+#endif
+#ifndef KN_FALLTHROUGH
+# ifdef __GNUC__
+#  define KN_FALLTHROUGH __attribute__ ((fallthrough));
+# else
+#  define KN_FALLTHROUGH
+# endif
+#endif /* KN_FALLTHROUGH */
 
 #if KN_HAS_ATTRIBUTE(cold)
 # define KN_COLD KN_ATTRIBUTE(cold)
@@ -130,4 +144,7 @@ kn_hash_t kn_hash(const char *str, size_t length);
  * This is useful to compute  hashes of non-sequential strings.
  **/
 kn_hash_t kn_hash_acc(const char *str, size_t length, kn_hash_t hash);
+
+void *kn_memdup(const void *mem, size_t length);
+
 #endif /* !KN_SHARED_H */

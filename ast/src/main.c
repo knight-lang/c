@@ -40,8 +40,10 @@ struct _ignored;
 static char *read_file(const char *filename) {
 	FILE *file = fopen(filename, "r");
 
-	if (file == NULL)
+	if (file == NULL) {
+		KN_MSVC_SUPPRESS(4996)
 		kn_error("unable to read file '%s': %s", filename, strerror(errno));
+	}
 
 	size_t length = 0;
 	size_t capacity = 2048;
@@ -51,8 +53,10 @@ static char *read_file(const char *filename) {
 		size_t amntread = fread(&contents[length], 1, capacity - length, file);
 
 		if (amntread == 0) {
-			if (ferror(file)) 
+			if (ferror(file)) {
+				KN_MSVC_SUPPRESS(4996)
 				kn_error("unable to read file '%s': %s", filename, strerror(errno));
+			}
 			break;
 		}
 
@@ -64,23 +68,22 @@ static char *read_file(const char *filename) {
 		}
 	}
 
-	if (fclose(file) == EOF)
+	if (fclose(file) == EOF) {
+		KN_MSVC_SUPPRESS(4996)
 		kn_error("couldn't close input file: %s", strerror(errno));
+	}
 
 	contents = kn_heap_realloc(contents, length + 1);
 	contents[length] = '\0';
 	return contents;
 }
 
-static void usage(char *program) {
-	kn_die("usage: %s (-e 'expr' | -f file)", program);
-}
-
 int main(int argc, char **argv) {
 	char *str;
 
 	if (argc != 3 || (!strcmp(argv[1], "-e") && !strcmp(argv[1], "-f")))
-		usage(argv[0]);
+		goto usage;
+
 
 	switch (argv[1][1]) {
 	case 'e':
@@ -92,7 +95,9 @@ int main(int argc, char **argv) {
 		break;
 
 	default:
-		usage(argv[0]);
+	usage:
+		fprintf(stderr, "usage: %s (-e 'expr' | -f file)", argv[0]);
+		return 1;
 	}
 
 	kn_startup();

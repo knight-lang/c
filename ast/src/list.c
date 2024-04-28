@@ -6,12 +6,10 @@
 
 struct kn_list kn_list_empty = {
 	.container = {
-		.header = {
 #ifdef KN_USE_REFCOUNT
-			.refcount = 1,
+		.refcount = 1,
 #endif /* KN_USE_REFCOUNT */
-			.flags = KN_LIST_FL_STATIC
-		},
+		.flags = KN_LIST_FL_STATIC,
 		.length = 0
 	},
 };

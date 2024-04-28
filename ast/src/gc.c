@@ -9,7 +9,7 @@ struct _ignored;
 
 #define KN_VALUE_SIZE 64 // todo: replace with actual value
 struct anyvalue {
-	kn_value_header
+	KN_HEADER
 	_Alignas(8) char _ignored[KN_VALUE_SIZE];
 };
 
