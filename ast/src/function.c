@@ -169,6 +169,7 @@ DECLARE_FUNCTION(tail, 1, "]") {
 	} else {
 		struct kn_string *string = kn_value_as_string(ran);
 		return kn_value_new(kn_string_get_substring(string, 1, kn_length(string) - 1));
+		return kn_value_new(kn_string_get_substring(string, 1, kn_length(string) - 1));
 	}
 }
 
@@ -615,7 +616,6 @@ DECLARE_FUNCTION(get, 3, "GET") {
 		));
 	}
 
-	printf("start=%lli, len=%lli\n", start, length);fflush(stdout);
 	return kn_value_new(kn_string_get_substring(
 		kn_value_as_string(container),
 		start,
