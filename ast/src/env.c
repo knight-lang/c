@@ -52,7 +52,9 @@ void kn_env_destroy(struct kn_env *env) {
 			// All identifiers are owned, and only marked `const` so
 			// that users dont modify them (as it'd break the hash
 			// function).
-			kn_heap_free((char *) bucket->variables[len].name);
+			KN_CLANG_IGNORE("-Wcast-qual",
+				kn_heap_free((char *) bucket->variables[len].name);
+			)
 
 			// If the variable was defined in the source code, but
 			// never assigned, it'll have a value of `KN_UNDEFINED`.

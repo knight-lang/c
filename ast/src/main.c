@@ -50,9 +50,9 @@ static char *read_file(const char *filename) {
 	char *contents = kn_heap_malloc(capacity);
 
 	while (!feof(file)) {
-		size_t amntread = fread(&contents[length], 1, capacity - length, file);
+		size_t amnt_read = fread(&contents[length], 1, capacity - length, file);
 
-		if (amntread == 0) {
+		if (amnt_read == 0) {
 			if (ferror(file)) {
 				KN_MSVC_SUPPRESS(4996)
 				kn_error("unable to read file '%s': %s", filename, strerror(errno));
@@ -60,7 +60,7 @@ static char *read_file(const char *filename) {
 			break;
 		}
 
-		length += amntread;
+		length += amnt_read;
 
 		if (length == capacity) {
 			capacity *= 2;

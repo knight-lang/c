@@ -13,6 +13,14 @@ objects=$(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(source_files))
 KN_FLAGS?=-DKN_AST_CACHE -DKN_STRING_CACHE # -DKN_USE_REFCOUNT
 
 override CFLAGS+=-F$(SRCDIR)
+override CFLAGS+=-Weverything \
+	-Wno-covered-switch-default \
+	-Wno-switch-enum \
+	-Wno-poison-system-directories \
+	-Wno-padded \
+	-Wno-sign-conversion \
+# 	-Wno-cast-qual \
+kn_flags
 
 ifeq ($(MAKECMDGOALS),fuzzer) 
 override CFLAGS+=-g -fsanitize=address,undefined,fuzzer -DKN_FUZZING

@@ -97,7 +97,7 @@ struct kn_list {
 	/**
 	 * The refcount and length of the list. 
 	 **/
-	struct kn_container container;
+	KN_CONTAINER
 
 	union {
 		/**

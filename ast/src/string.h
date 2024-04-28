@@ -85,7 +85,7 @@ enum {
  * properly dispose of its resources when you're finished with it.
  **/
 struct kn_string {
-	struct kn_container container;
+	KN_CONTAINER
 
 	/* All strings are either embedded or allocated. */
 	union {
@@ -112,13 +112,11 @@ extern struct kn_string kn_string_empty;
  * It's up to the caller to ensure that `data` can fit within an embedded
  * string.
  **/
-#define KN_STRING_NEW_EMBED(data)                    \
-	{                                            \
-		.container = {                       \
-			.flags = KN_STRING_FL_EMBED, \
-			.length = sizeof(data) - 1   \
-		},                                   \
-		.embed = data                        \
+#define KN_STRING_NEW_EMBED(data)            \
+	{                                    \
+		.flags = KN_STRING_FL_EMBED, \
+		.length = sizeof(data) - 1,  \
+		.embed = data                \
 	}
 
 /**

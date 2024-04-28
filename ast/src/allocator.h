@@ -19,7 +19,7 @@
 # define KN_HEADER alignas(KN_VALUE_ALIGNMENT) unsigned char flags;
 #endif /* KN_USE_REFCOUNT */
 
-#define kn_flags(ptr) (((unsigned char *)(ptr))[offsetof(struct { KN_HEADER }, flags)])
+#define kn_flags(ptr) KN_CLANG_IGNORE("-Wcast-qual", (((unsigned char *)(ptr))[offsetof(struct { KN_HEADER }, flags)]))
 
 #ifdef KN_USE_GC
 # include "gc.h"

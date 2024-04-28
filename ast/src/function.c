@@ -56,8 +56,8 @@ DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 	if (KN_UNLIKELY(feof(stdin)))
 		return KN_NULL; // avoid the allocation.
 
-	size_t length = 0;
-	size_t capacity = 1024;
+	int length = 0;
+	int capacity = 1024;
 	char *line = kn_heap_malloc(capacity);
 
 	while (1) {
@@ -462,10 +462,16 @@ DECLARE_FUNCTION(pow, 2, "^") {
 		kn_error("can only exponentiate integers and lists");
 
 	if (kn_value_is_integer(lhs)) {
+		KN_CLANG_DIAG_PUSH
+		KN_CLANG_DIAG_IGNORE("-Wbad-function-cast") // useless warning here.
+
 		kn_integer power = (kn_integer) powl(
 			(long double) kn_value_as_integer(lhs),
 			(long double) kn_value_to_integer(args[1])
 		);
+
+		KN_CLANG_DIAG_POP
+
 		return kn_value_new((kn_integer) power);
 	}
 

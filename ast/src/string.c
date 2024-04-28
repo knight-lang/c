@@ -121,10 +121,10 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 
 	string->ptr = str;
 	kn_flags(string) = KN_STRING_FL_STRUCT_ALLOC;
-	string->container.length = length;
+	string->length = length;
 
 #ifdef KN_USE_REFCOUNT
-	kn_refcount(&string->container) = 1;
+	kn_refcount(&string) = 1;
 #endif /* KN_USE_REFCOUNT */
 
 	return string;
@@ -136,7 +136,7 @@ static struct kn_string *allocate_embed_string(size_t length) {
 	struct kn_string *string = kn_heap_malloc(sizeof(struct kn_string));
 
 	kn_flags(string) = KN_STRING_FL_STRUCT_ALLOC | KN_STRING_FL_EMBED;
-	string->container.length = length;
+	string->length = length;
 
 #ifdef KN_USE_REFCOUNT
 	kn_refcount(&string->container) = 1;

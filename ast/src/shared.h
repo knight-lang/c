@@ -8,13 +8,16 @@
 #define kn_pragma(x) _Pragma(#x)
 
 #ifdef __clang__
-#define kn_clang_macro_to_str(x) #x
-# define kn_clang_ignore(msg, x) _Pragma("clang diagnostic push") \
-	kn_pragma(clang diagnostic ignored kn_clang_macro_to_str("-W" msg)) \
-	x \
-	_Pragma("clang diagnostic pop")
+# define KN_CLANG_DIAG_PUSH _Pragma("clang diagnostic push")
+# define KN_CLANG_DIAG_POP _Pragma("clang diagnostic pop")
+# define KN_CLANG_DIAG_IGNORE(diag) kn_pragma(clang diagnostic ignored diag)
+# define KN_CLANG_IGNORE(msg, x) KN_CLANG_DIAG_PUSH KN_CLANG_DIAG_IGNORE(msg) x KN_CLANG_DIAG_POP
+// # pragma clang diagnostic ignored "-Wcast-qual" // I use `const` to indicate the args aren't modified
 #else
-# define kn_clang_ignore(msg, x) x
+# define KN_CLANG_DIAG_PUSH
+# define KN_CLANG_DIAG_POP
+# define KN_CLANG_DIAG_IGNORE(diag)
+# define KN_CLANG_IGNORE(msg, x) x
 #endif
 	
 #ifdef _MSC_VER

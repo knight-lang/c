@@ -37,7 +37,7 @@ enum kn_value_tag {
 };
 
 #define KN_SHIFT 3
-#define KN_TAG_MASK ((1 << KN_SHIFT) - 1)
+#define KN_TAG_MASK ((kn_value) ((1 << KN_SHIFT) - 1))
 
 /**
  * The false value within Knight.
@@ -348,7 +348,7 @@ static inline size_t kn_container_length(kn_value value) {
 	assert(kn_value_is_list(value) || kn_value_is_string(value));
 
 	// NOTE: both strings and lists have the the length in the same spot.
-	return kn_length(KN_UNMASK(value));
+	return ((struct { KN_CONTAINER } *)KN_UNMASK(value))->length;
 }
 
 #ifdef KN_USE_REFCOUNT

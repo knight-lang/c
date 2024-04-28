@@ -5,16 +5,14 @@
 #include <assert.h>
 
 struct kn_list kn_list_empty = {
-	.container = {
 #ifdef KN_USE_REFCOUNT
-		.refcount = 1,
+	.refcount = 1,
 #endif /* KN_USE_REFCOUNT */
-		.flags = KN_LIST_FL_STATIC,
-		.length = 0
-	},
+	.flags = KN_LIST_FL_STATIC,
+	.length = 0
 };
 
-static struct kn_list *alloc_list(size_t length, unsigned flags) {
+static struct kn_list *alloc_list(size_t length, unsigned char flags) {
 	struct kn_list *list = kn_heap_malloc(sizeof(struct kn_list));
 
 #ifdef KN_USE_REFCOUNT
