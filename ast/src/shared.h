@@ -19,6 +19,8 @@
 	
 #ifdef _MSC_VER
 # define KN_MSVC_SUPPRESS(x) kn_pragma(warning( suppress : x ))
+#else
+# define KN_MSVC_SUPPRESS(x)
 #endif
 
 #ifdef __has_builtin
@@ -80,8 +82,12 @@
 # endif
 #endif
 #ifndef KN_FALLTHROUGH
-# define KN_FALLTHROUGH /* fallthrough */
-#endif /* __has_c_attribute(fallthrough) */
+# ifdef __GNUC__
+#  define KN_FALLTHROUGH __attribute__ ((fallthrough));
+# else
+#  define KN_FALLTHROUGH
+# endif
+#endif /* KN_FALLTHROUGH */
 
 #if KN_HAS_ATTRIBUTE(cold)
 # define KN_COLD KN_ATTRIBUTE(cold)

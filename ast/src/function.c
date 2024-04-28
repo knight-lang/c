@@ -176,7 +176,7 @@ DECLARE_FUNCTION(block, 1, "BLOCK") {
 	assert(kn_value_is_ast(args[0])); // should have been taken care of during parsing.
 
 #ifdef KN_USE_REFCOUNT
-	assert(kn_refcount(args[0]) != 0);
+	assert(kn_refcount(args[0] & ~KN_TAG_MASK) != 0);
 	++kn_refcount(kn_value_as_ast(args[0]));
 #endif /* KN_USE_REFCOUNT */
 
@@ -615,6 +615,7 @@ DECLARE_FUNCTION(get, 3, "GET") {
 		));
 	}
 
+	printf("start=%lli, len=%lli\n", start, length);fflush(stdout);
 	return kn_value_new(kn_string_get_substring(
 		kn_value_as_string(container),
 		start,

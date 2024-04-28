@@ -15,7 +15,7 @@ struct kn_string *kn_integer_to_string(kn_integer integer) {
 	// So, to be safe, let's just allocate 64.
 	static char buf[64];
 	static struct kn_string integer_string = {
-		.container = { .header = { .flags = KN_STRING_FL_STATIC } }
+		.container = { .flags = KN_STRING_FL_STATIC }
 	};
 
 	if (integer == 0)
@@ -56,12 +56,10 @@ struct kn_list *kn_integer_to_list(kn_integer integer) {
 	static kn_value buf[100];
 	static struct kn_list digits_list = {
 		.container = {
-			.header = {
 #ifdef KN_USE_REFCOUNT
-				.refcount = 1,
+			.refcount = 1,
 #endif /* KN_USE_REFCOUNT */
-				.flags = KN_LIST_FL_ALLOC | KN_LIST_FL_STATIC | KN_LIST_FL_INTEGER
-			}
+			.flags = KN_LIST_FL_ALLOC | KN_LIST_FL_STATIC | KN_LIST_FL_INTEGER
 		}
 	};
 

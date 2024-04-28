@@ -112,15 +112,13 @@ extern struct kn_string kn_string_empty;
  * It's up to the caller to ensure that `data` can fit within an embedded
  * string.
  **/
-#define KN_STRING_NEW_EMBED(data)                            \
-	{                                                    \
-		.container = {                               \
-			.header = {                          \
-				.flags = KN_STRING_FL_EMBED, \
-			},                                   \
-			.length = sizeof(data) - 1           \
-		},                                           \
-		.embed = data                                \
+#define KN_STRING_NEW_EMBED(data)                    \
+	{                                            \
+		.container = {                       \
+			.flags = KN_STRING_FL_EMBED, \
+			.length = sizeof(data) - 1   \
+		},                                   \
+		.embed = data                        \
 	}
 
 /**

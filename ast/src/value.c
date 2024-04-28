@@ -150,12 +150,10 @@ struct kn_string *kn_value_to_string(kn_value value) {
 struct kn_list *kn_value_to_list(kn_value value) {
 	static struct kn_list true_list = {
 		.container = {
-			.header = {
 #ifdef KN_USE_REFCOUNT
-				.refcount = 1,
+			.refcount = 1,
 #endif /* KN_USE_REFCOUNT */
-				.flags = KN_LIST_FL_STATIC | KN_LIST_FL_EMBED,
-			},
+			.flags = KN_LIST_FL_STATIC | KN_LIST_FL_EMBED,
 			.length = 1
 		},
 		.embed = { KN_TRUE },
@@ -332,7 +330,7 @@ kn_value kn_value_run(kn_value value) {
 #ifdef KN_USE_REFCOUNT
 		++*kn_container_refcount(value);
 #endif /* KN_USE_REFCOUNT */
-		KN_FALLTHROUGH
+		; KN_FALLTHROUGH
 
 	case KN_TAG_INTEGER:
 	case KN_TAG_CONSTANT:
