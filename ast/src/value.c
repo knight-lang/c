@@ -91,8 +91,7 @@ kn_boolean kn_value_to_boolean(kn_value value) {
 	case KN_TAG_LIST:
 		return kn_container_length(value) != 0;
 
-	default:
-		KN_UNREACHABLE
+	KN_DEFAULT_UNREACHABLE
 	}
 }
 
@@ -188,8 +187,7 @@ struct kn_list *kn_value_to_list(kn_value value) {
 		kn_value_free(value);
 		return ret;
 
-	default:
-		KN_UNREACHABLE
+	KN_DEFAULT_UNREACHABLE
 	}
 }
 
@@ -299,6 +297,7 @@ void kn_value_dump(kn_value value, FILE *out) {
 		return;
 	}
 #endif /* KN_CUSTOM */
+	KN_DEFAULT_UNREACHABLE
 	}
 }
 
@@ -334,8 +333,7 @@ kn_value kn_value_run(kn_value value) {
 	case KN_TAG_CONSTANT:
 		return value;
 
-	default:
-		KN_UNREACHABLE
+	KN_DEFAULT_UNREACHABLE
 	}
 }
 
@@ -370,6 +368,8 @@ kn_value_dealloc(kn_value value) {
 	case KN_TAG_INTEGER:
 	case KN_TAG_VARIABLE:
 		KN_UNREACHABLE
+
+	KN_DEFAULT_UNREACHABLE
 	}
 }
 

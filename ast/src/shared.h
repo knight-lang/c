@@ -92,6 +92,10 @@
 # endif
 #endif /* KN_FALLTHROUGH */
 
+
+#define KN_DEFAULT_UNREACHABLE KN_CLANG_IGNORE("-Wcovered-switch-default", default: KN_UNREACHABLE)
+
+
 #if KN_HAS_ATTRIBUTE(cold)
 # define KN_COLD KN_ATTRIBUTE(cold)
 #else

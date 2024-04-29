@@ -30,9 +30,9 @@ enum kn_value_tag {
 	KN_TAG_VARIABLE = 2,
 	KN_TAG_AST = 3,
 	KN_TAG_STRING = 4,
-	KN_TAG_LIST = 5,
+	KN_TAG_LIST = 5
 #ifdef KN_CUSTOM
-	KN_TAG_CUSTOM = 6
+	, KN_TAG_CUSTOM = 6
 #endif /* KN_CUSTOM */
 };
 

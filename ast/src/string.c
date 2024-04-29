@@ -139,7 +139,7 @@ static struct kn_string *allocate_embed_string(size_t length) {
 	string->length = length;
 
 #ifdef KN_USE_REFCOUNT
-	kn_refcount(&string->container) = 1;
+	kn_refcount(&string) = 1;
 #endif /* KN_USE_REFCOUNT */
 
 	return string;
