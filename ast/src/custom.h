@@ -133,7 +133,7 @@ void kn_custom_dealloc(struct kn_custom *custom);
  * constructor, it will also be called.
  **/
 static inline void kn_custom_free(struct kn_custom *custom) {
-	if (--kn_refcount(custom) == 0)
+	if (--custom->refcount == 0)
 		kn_custom_dealloc(custom);
 }
 #endif /* KN_USE_REFCOUNT */
@@ -146,7 +146,7 @@ static inline void kn_custom_free(struct kn_custom *custom) {
  **/
 static inline struct kn_custom *kn_custom_clone(struct kn_custom *custom) {
 #ifdef KN_USE_REFCOUNT
-	++kn_refcount(custom);
+	++custom->refcount;
 #endif /* KN_USE_REFCOUNT */
 	return custom;
 }

@@ -16,7 +16,7 @@ void kn_ast_cleanup(void) {
 			struct kn_ast *ast = freed_asts[i][j];
 
 			if (ast != NULL) {
-				assert(kn_refcount(ast) == 0);
+				assert(ast->refcount == 0);
 				kn_heap_free(ast);
 			}
 		}
@@ -52,10 +52,10 @@ struct kn_ast *kn_ast_alloc(size_t argc) {
 
 # ifdef KN_USE_REFCOUNT
 		// Sanity check.
-		assert(kn_refcount(ast) == 0);
+		assert(ast->refcount == 0);
 
 		// Increase the refcount as we're now using it.
-		++kn_refcount(ast);
+		++ast->refcount;
 # endif /* KN_USE_REFCOUNT */
 
 		return ast;
@@ -67,7 +67,7 @@ struct kn_ast *kn_ast_alloc(size_t argc) {
 	// ast = kn_gc_malloc(struct kn_ast);
 
 #ifdef KN_USE_REFCOUNT
-	kn_refcount(ast) = 1;
+	ast->refcount = 1;
 #endif /* KN_USE_REFCOUNT */
 
 	return ast;
@@ -75,7 +75,7 @@ struct kn_ast *kn_ast_alloc(size_t argc) {
 
 void kn_ast_dealloc(struct kn_ast *ast) {
 #ifdef KN_USE_REFCOUNT
-	assert(kn_refcount(ast) == 0);
+	assert(ast->refcount == 0);
 #endif /* KN_USE_REFCOUNT */
 
 	size_t arity = ast->function->arity;

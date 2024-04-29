@@ -20,7 +20,7 @@ struct kn_custom *kn_custom_alloc(
 	struct kn_custom *custom = kn_heap_malloc(size + sizeof(struct kn_custom));
 
 #ifdef KN_USE_REFCOUNT
-	kn_refcount(custom) = 1;
+	custom->refcount = 1;
 #endif /* KN_USE_REFCOUNT */
 
 	custom->vtable = vtable;

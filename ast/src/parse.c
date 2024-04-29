@@ -355,7 +355,7 @@ CASES1('P') {
 #ifdef KN_USE_REFCOUNT
 		, .refcount = 1 // Set it to `1` so nothing will ever deallocate it
 	};
-	++kn_refcount(&ast_prompt);
+	++ast_prompt.refcount;
 #else
 	};
 #endif /* KN_USE_REFCOUNT */
@@ -371,7 +371,7 @@ CASES1('R') {
 #ifdef KN_USE_REFCOUNT
 		, .refcount = 1 // Set it to `1` so nothing will ever deallocate it
 	};
-	++kn_refcount(&ast_random);
+	++ast_random.refcount;
 #else
 	};
 #endif /* KN_USE_REFCOUNT */

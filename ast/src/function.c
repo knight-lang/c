@@ -177,8 +177,8 @@ DECLARE_FUNCTION(block, 1, "BLOCK") {
 	assert(kn_value_is_ast(args[0])); // should have been taken care of during parsing.
 
 #ifdef KN_USE_REFCOUNT
-	assert(kn_refcount(args[0] & ~KN_TAG_MASK) != 0);
-	++kn_refcount(kn_value_as_ast(args[0]));
+	assert(kn_value_as_ast(args[0])->refcount != 0);
+	++kn_value_as_ast(args[0])->refcount;
 #endif /* KN_USE_REFCOUNT */
 
 	return args[0];
@@ -196,10 +196,10 @@ DECLARE_FUNCTION(call, 1, "CALL") {
 	return kn_ast_run(ast);
 #else
 	// Optimize for the case where we are running a non-unique ast.
-	if (KN_LIKELY(--kn_refcount(ast) != 0))
+	if (KN_LIKELY(--ast->refcount != 0))
 		return kn_ast_run(ast);
 
-	++kn_refcount(ast); // We subtracted one, so now we have to add.
+	++ast->refcount; // We subtracted one, so now we have to add.
 	kn_value ret = kn_ast_run(ast);
 	kn_ast_free(ast);
 	return ret;

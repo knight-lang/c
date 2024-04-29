@@ -158,8 +158,8 @@ void kn_list_dealloc(struct kn_list *list);
  **/
 static inline struct kn_list *kn_list_clone(struct kn_list *list) {
 #ifdef KN_USE_REFCOUNT
-	assert(kn_refcount(list) != 0);
-	++kn_refcount(list);
+	assert(list->refcount != 0);
+	++list->refcount;
 #endif /* KN_USE_REFCOUNT */
 
 	return list;
@@ -182,9 +182,9 @@ static inline void kn_list_free(struct kn_list *list) {
 #ifndef KN_USE_REFCOUNT
 	(void) list;
 #else
-	assert(kn_refcount(list) != 0);
+	assert(list->refcount != 0);
 
-	if (--kn_refcount(list) == 0)
+	if (--list->refcount == 0)
 		kn_list_dealloc(list);
 #endif /* !KN_USE_REFCOUNT */
 }

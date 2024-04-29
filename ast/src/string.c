@@ -41,7 +41,7 @@ static struct kn_string **get_cache_slot(const char *str, size_t length) {
 
 static void evict_string_active(struct kn_string *string) {
 # ifdef KN_USE_REFCOUNT
-	assert(kn_refcount(string) != 0);
+	assert(string->refcount != 0);
 # endif /* KN_USE_REFCOUNT */
 
 	assert(kn_flags(string) & KN_STRING_FL_CACHED);
@@ -55,7 +55,7 @@ static void evict_string(struct kn_string *string) {
 	assert(kn_flags(string) & KN_STRING_FL_STRUCT_ALLOC);
 
 # ifdef KN_USE_REFCOUNT
-	if (kn_refcount(string) == 0) {
+	if (string->refcount == 0) {
 		// If there are no more references to it, deallocate the string.
 		deallocate_string(string);
 		return;
@@ -124,7 +124,7 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 	string->length = length;
 
 #ifdef KN_USE_REFCOUNT
-	kn_refcount(&string) = 1;
+	string->refcount = 1;
 #endif /* KN_USE_REFCOUNT */
 
 	return string;
@@ -139,7 +139,7 @@ static struct kn_string *allocate_embed_string(size_t length) {
 	string->length = length;
 
 #ifdef KN_USE_REFCOUNT
-	kn_refcount(&string) = 1;
+	string->refcount = 1;
 #endif /* KN_USE_REFCOUNT */
 
 	return string;
@@ -150,7 +150,7 @@ static void deallocate_string(struct kn_string *string) {
 	assert(string != NULL);
 
 #ifdef KN_USE_REFCOUNT
-	assert(kn_refcount(string) == 0); // don't dealloc live strings...
+	assert(string->refcount == 0); // don't dealloc live strings...
 #endif /* KN_USE_REFCOUNT */
 
 	// If the struct isn't actually allocated, then return.
@@ -265,7 +265,7 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 
 void kn_string_dealloc(struct kn_string *string) {
 #ifdef KN_USE_REFCOUNT
-	assert(kn_refcount(string) == 0);
+	assert(string->refcount == 0);
 #endif /* KN_USE_REFCOUNT */
 
 #ifdef KN_STRING_CACHE
@@ -299,11 +299,11 @@ void kn_string_cleanup(void) {
 				// we only cache allocated strings.
 				assert(kn_flags(string) & KN_STRING_FL_STRUCT_ALLOC);
 
-# ifdef kn_refcount
+# ifdef KN_USE_REFCOUNT
 				// If there are no more references to it, deallocate the string.
-				if (kn_refcount(string) == 0)
+				if (string->refcount == 0)
 					deallocate_string(string);
-# endif /* kn_refcount */
+# endif /* KN_USE_REFCOUNT */
 			}
 		}
 	}

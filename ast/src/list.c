@@ -16,7 +16,7 @@ static struct kn_list *alloc_list(size_t length, unsigned char flags) {
 	struct kn_list *list = kn_heap_malloc(sizeof(struct kn_list));
 
 #ifdef KN_USE_REFCOUNT
-	kn_refcount(list) = 1;
+	list->refcount = 1;
 #endif /* KN_USE_REFCOUNT */
 
 	kn_length(list) = length;
@@ -43,7 +43,7 @@ void kn_list_dealloc(struct kn_list *list) {
 		return;
 
 #ifdef KN_USE_REFCOUNT
-	assert(kn_refcount(list) == 0);
+	assert(list->refcount == 0);
 #endif /* KN_USE_REFCOUNT */
 
 	assert(!(kn_flags(list) & KN_LIST_FL_INTEGER)); // `FL_STATIC` covers it.

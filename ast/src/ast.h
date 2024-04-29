@@ -55,9 +55,9 @@ static inline void kn_ast_free(struct kn_ast *ast)  {
 #ifndef KN_USE_REFCOUNT
 	(void) ast;
 #else
-	assert(kn_refcount(ast) != 0);
+	assert(ast->refcount != 0);
 
-	if (--kn_refcount(ast) == 0)
+	if (--ast->refcount == 0)
 		kn_ast_dealloc(ast);
 #endif /* KN_USE_REFCOUNT */
 }

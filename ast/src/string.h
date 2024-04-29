@@ -209,7 +209,7 @@ static inline struct kn_string *kn_string_clone(struct kn_string *string) {
 	assert(!(kn_flags(string) & KN_STRING_FL_STATIC));
 
 #ifdef KN_USE_REFCOUNT
-	++kn_refcount(string); // this is irrelevant for non-allocated structs.
+	++string->refcount; // this is irrelevant for non-allocated structs.
 #endif /* KN_USE_REFCOUNT */
 
 	return string;
@@ -241,12 +241,12 @@ void kn_string_dealloc(struct kn_string *string);
  * we don't end up allocating multiple times for the same string.
  **/
 static inline void kn_string_free(struct kn_string *string) {
-#ifndef kn_refcount
+#ifndef KN_USE_REFCOUNT
 	(void) string;
 #else
-	if (--kn_refcount(string) == 0)
+	if (--string->refcount == 0)
 		kn_string_dealloc(string);
-#endif /* !kn_refcount */
+#endif /* !KN_USE_REFCOUNT */
 }
 
 /**

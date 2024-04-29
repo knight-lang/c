@@ -14,7 +14,6 @@
 #ifdef KN_USE_REFCOUNT
 # define KN_HEADER alignas(KN_VALUE_ALIGNMENT) size_t refcount; \
                    unsigned char flags;
-# define kn_refcount(ptr) (*(size_t*) (((unsigned char *)(ptr) + offsetof(struct { KN_HEADER }, refcount))))
 #else
 # define KN_HEADER alignas(KN_VALUE_ALIGNMENT) unsigned char flags;
 #endif /* KN_USE_REFCOUNT */
