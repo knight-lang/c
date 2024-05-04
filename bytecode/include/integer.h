@@ -1,7 +1,6 @@
 #ifndef KN_INTEGER_H
 #define KN_INTEGER_H
 
-#include <stdint.h>
 #include <inttypes.h>
 
 /**
@@ -10,12 +9,12 @@
  * Technically, this implementation only supports `int63_t` (as the extra bit
  * is used to indicate whether a `kn_value`'s an integer or something else).
  **/
-typedef int64_t kn_integer;
+typedef intptr_t kn_integer;
 
 /**
  * The format conversion specifier for `kn_integer`.
  **/
-#define PRIdkn PRId64
+#define PRIdkn PRIdPTR
 
 // Forward declarations.
 struct kn_string;

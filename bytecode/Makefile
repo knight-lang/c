@@ -1,7 +1,7 @@
 CC?=gcc
 CFLAGS+=-Wall -Wextra -Wpedantic -std=c11
 SRCDIR?=src
-INCLDIR?=include/knight
+INCLDIR?=include
 OBJDIR?=obj
 BINDIR?=bin
 CORPUSDIR?=corpus

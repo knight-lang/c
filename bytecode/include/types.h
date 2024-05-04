@@ -20,7 +20,7 @@
  * To duplicate a value, use the `kn_value_clone` function---this returns a new value which must be
  * freed separately from the given one. To free a value, pass it to `kn_value_free`.
  **/
-typedef uint64_t kn_value;
+typedef uintptr_t kn_value;
 
 // Forward declarations.
 struct kn_ast;
