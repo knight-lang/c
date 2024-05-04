@@ -93,7 +93,7 @@ enum {
  * Note that the only list with length zero is `kn_list_empty`.
  **/
 struct kn_list {
-	_Alignas(8) unsigned char flags;
+	KN_HEADER
 	size_t length;
 
 	union {
@@ -149,42 +149,12 @@ struct kn_list *kn_list_alloc(size_t length);
 void kn_list_dealloc(struct kn_list *list);
 
 /**
- * Duplicates this list, returning another copy of it.
- *
- * Each copy must be `kn_list_free`d separately after use to ensure that no memory leaks occur.
- **/
-static inline struct kn_list *kn_list_clone(struct kn_list *list) {
-#ifdef KN_USE_REFCOUNT
-	kn_assert(list->refcount != 0);
-	++list->refcount;
-#endif /* KN_USE_REFCOUNT */
-
-	return list;
-}
-
-/**
  * A no-op for normal lists, but duplicates `list` if it's an integer list.
  * 
  * Since integer lists are globally modifiable, if there's any possibility that a list's contents
  * will be overwritten, call this function.
  **/
 struct kn_list *kn_list_clone_integer(struct kn_list *list);
-
-/**
- * Indicates that the caller is done using this list.
- *
- * If this is the last live reference to the list, then `kn_list_dealloc` will be called.
- **/
-static inline void kn_list_free(struct kn_list *list) {
-#ifndef KN_USE_REFCOUNT
-	(void) list;
-#else
-	kn_assert(list->refcount != 0);
-
-	if (--list->refcount == 0)
-		kn_list_dealloc(list);
-#endif /* !KN_USE_REFCOUNT */
-}
 
 /**
  * Gets the element at `index` from within `list`.

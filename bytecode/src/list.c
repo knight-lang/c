@@ -53,12 +53,12 @@ void kn_list_dealloc(struct kn_list *list) {
 	// since we're not `KN_LIST_FL_STATIC`, we can switch on them
 	switch (kn_flags(list)) {
 	case KN_LIST_FL_CONS:
-		kn_list_free(list->cons.lhs);
-		kn_list_free(list->cons.rhs);
+		kn_list_dealloc(list->cons.lhs);
+		kn_list_dealloc(list->cons.rhs);
 		break;
 
 	case KN_LIST_FL_REPEAT:
-		kn_list_free(list->repeat.list);
+		kn_list_dealloc(list->repeat.list);
 		break;
 
 	case KN_LIST_FL_EMBED:
@@ -148,10 +148,8 @@ struct kn_list *kn_list_repeat(struct kn_list *list, size_t amount) {
 		return list;
 	}
 
-	if (KN_UNLIKELY(amount == 0)) {
-		kn_list_free(list);
+	if (KN_UNLIKELY(amount == 0))
 		return &kn_list_empty;
-	}
 
 	if (KN_UNLIKELY(amount == 1))
 		return list;
@@ -191,8 +189,6 @@ struct kn_string *kn_list_join(const struct kn_list *list, const struct kn_strin
 
 		memcpy(joined + len, kn_string_deref(string), kn_length(string));
 		len += kn_length(string);
-
-		kn_string_free(string);
 	}
 
 	joined = kn_heap_realloc(joined, len + 1);
@@ -204,10 +200,8 @@ struct kn_string *kn_list_join(const struct kn_list *list, const struct kn_strin
 struct kn_list *kn_list_get_sublist(struct kn_list *list, size_t start, size_t length) {
 	assert(start + length <= kn_length(list));
 
-	if (length == 0) {
-		kn_list_free(list);
+	if (length == 0)
 		return &kn_list_empty;
-	}
 
 	if (KN_UNLIKELY(start == 0 && length == kn_length(list)))
 		return list;
@@ -217,7 +211,6 @@ struct kn_list *kn_list_get_sublist(struct kn_list *list, size_t start, size_t l
 	for (size_t i = 0; i < length; ++i)
 		kn_list_set(sublist, i, kn_list_get(list, i + start));
 
-	kn_list_free(list);
 	return sublist;
 }
 

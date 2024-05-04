@@ -1,6 +1,7 @@
 extern int memcmp(const void *, const void *, unsigned long);
 extern void *memcpy(void *, const void *, unsigned long);
 extern int strncmp(const char *, const char *, unsigned long);
+extern unsigned long strlen(const char *);
 extern int strcmp(const char *, const char *);
 
 #include <string.h> /* strlen, strcmp, memcpy, strndup, strncmp, memcmp */
@@ -8,7 +9,6 @@ extern int strcmp(const char *, const char *);
                        KN_STRING_NEW_EMBED */
 #include "alloc.h" /* kn_heap_malloc, kn_hash, KN_LIKELY, KN_UNLIKELY */
 #include <stdlib.h> /* free, NULL */
-#include <assert.h> /* assert */
 #include <ctype.h>
 #include "list.h"
 
@@ -29,8 +29,8 @@ struct kn_string kn_string_empty = KN_STRING_NEW_EMBED("");
 static struct kn_string *cache[KN_STRING_CACHE_MAXLEN][KN_STRING_CACHE_LINELEN];
 
 static struct kn_string **cache_lookup(kn_hash_int hash, size_t length) {
-	assert(length != 0);
-	assert(length <= KN_STRING_CACHE_MAXLEN);
+	kn_assert(length != 0);
+	kn_assert(length <= KN_STRING_CACHE_MAXLEN);
 
 	return &cache[length - 1][hash & (KN_STRING_CACHE_LINELEN - 1)];
 }
@@ -48,10 +48,10 @@ static struct kn_string **get_cache_slot(const char *str, size_t length) {
 
 static void evict_string_active(struct kn_string *string) {
 # ifdef KN_USE_REFCOUNT
-	assert(string->refcount != 0);
+	kn_assert(string->refcount != 0);
 # endif /* KN_USE_REFCOUNT */
 
-	assert(kn_flags(string) & KN_STRING_FL_CACHED);
+	kn_assert(kn_flags(string) & KN_STRING_FL_CACHED);
 
 	kn_flags(string) -= KN_STRING_FL_CACHED;
 }
@@ -59,7 +59,7 @@ static void evict_string_active(struct kn_string *string) {
 static void deallocate_string(struct kn_string *string);
 static void evict_string(struct kn_string *string) {
 	// we only cache allocated strings.
-	assert(kn_flags(string) & KN_STRING_FL_STRUCT_ALLOC);
+	kn_assert(kn_flags(string) & KN_STRING_FL_STRUCT_ALLOC);
 
 # ifdef KN_USE_REFCOUNT
 	if (string->refcount == 0) {
@@ -76,7 +76,7 @@ static void evict_string(struct kn_string *string) {
 // Cache a string. note that it could have previously been cached.
 void kn_string_cache(struct kn_string *string) {
 	// empty strings should never be cached.
-	assert(kn_length(string) != 0);
+	kn_assert(kn_length(string) != 0);
 
 	// If it's too large for the cache, then just ignore it.
 	if (KN_STRING_CACHE_MAXLEN < kn_length(string))
@@ -121,8 +121,8 @@ kn_integer kn_string_compare(
 
 // Allocate a `kn_string` and populate it with the given `str`.
 static struct kn_string *allocate_heap_string(char *str, size_t length) {
-	assert(str != NULL);
-	assert(length != 0); // zero length strings are `empty`.
+	kn_assert(str != NULL);
+	kn_assert(length != 0); // zero length strings are `empty`.
 
 	struct kn_string *string = kn_heap_malloc(sizeof(struct kn_string));
 
@@ -138,7 +138,7 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 }
 
 static struct kn_string *allocate_embed_string(size_t length) {
-	assert(length != 0);
+	kn_assert(length != 0);
 
 	struct kn_string *string = kn_heap_malloc(sizeof(struct kn_string));
 
@@ -154,16 +154,16 @@ static struct kn_string *allocate_embed_string(size_t length) {
 
 // Actually deallocates the data associated with `string`.
 static void deallocate_string(struct kn_string *string) {
-	assert(string != NULL);
+	kn_assert(string != NULL);
 
 #ifdef KN_USE_REFCOUNT
-	assert(string->refcount == 0); // don't dealloc live strings...
+	kn_assert(string->refcount == 0); // don't dealloc live strings...
 #endif /* KN_USE_REFCOUNT */
 
 	// If the struct isn't actually allocated, then return.
 	if (!(kn_flags(string) & KN_STRING_FL_STRUCT_ALLOC)) {
 		// Sanity check, as these are the only two non-struct-ptr flags.
-		assert(kn_flags(string) & (KN_STRING_FL_EMBED | KN_STRING_FL_STATIC));
+		kn_assert(kn_flags(string) & (KN_STRING_FL_EMBED | KN_STRING_FL_STATIC));
 		return;
 	}
 
@@ -190,8 +190,8 @@ struct kn_string *kn_string_alloc(size_t length) {
 
 struct kn_string *kn_string_new_owned(char *str, size_t length) {
 	// sanity check for inputs.
-	assert(str != NULL);
-	assert(strlen(str) == length);
+	kn_assert(str != NULL);
+	kn_assert(strlen(str) == length);
 
 	// If the input is empty, then just return an owned string.
 	if (KN_UNLIKELY(length == 0)) {
@@ -245,8 +245,8 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 
 	if (KN_LIKELY(string != NULL)) {
 		// cached strings must be allocated.
-		assert(kn_flags(string) & KN_STRING_FL_STRUCT_ALLOC);
-		assert(kn_length(string) == length);
+		kn_assert(kn_flags(string) & KN_STRING_FL_STRUCT_ALLOC);
+		kn_assert(kn_length(string) == length);
 
 		// if the string is the same, then that means we want the cached one.
 		if (KN_LIKELY(strncmp(kn_string_deref(string), str, length) == 0))
@@ -272,7 +272,7 @@ struct kn_string *kn_string_new_borrowed(const char *str, size_t length) {
 
 void kn_string_dealloc(struct kn_string *string) {
 #ifdef KN_USE_REFCOUNT
-	assert(string->refcount == 0);
+	kn_assert(string->refcount == 0);
 #endif /* KN_USE_REFCOUNT */
 
 #ifdef KN_STRING_CACHE
@@ -304,7 +304,7 @@ void kn_string_cleanup(void) {
 
 			if (string != NULL) {
 				// we only cache allocated strings.
-				assert(kn_flags(string) & KN_STRING_FL_STRUCT_ALLOC);
+				kn_assert(kn_flags(string) & KN_STRING_FL_STRUCT_ALLOC);
 
 # ifdef KN_USE_REFCOUNT
 				// If there are no more references to it, deallocate the string.
@@ -343,7 +343,7 @@ struct kn_string *kn_string_concat(
 	// return early if either
 	if ((lhslen = kn_length(lhs)) == 0) {
 #if 0 /* TODO: WHY DOESNT THIS WORK? */
-		assert(lhs == &kn_string_empty);
+		kn_assert(lhs == &kn_string_empty);
 #else
 		kn_string_free(lhs); // this is the replacement to work.
 #endif
@@ -352,7 +352,7 @@ struct kn_string *kn_string_concat(
 
 	if ((rhslen = kn_length(rhs)) == 0) {
 #if 0 /* TODO: WHY DOESNT THIS WORK? */
-		assert(rhs == &kn_string_empty);
+		kn_assert(rhs == &kn_string_empty);
 #else
 		kn_string_free(rhs); // this is the replacement to work.
 #endif
@@ -415,7 +415,7 @@ struct kn_string *kn_string_repeat(struct kn_string *string, size_t amount) {
 	if (lhslen == 0 || amount == 0) {
 		// if the string is not empty, free it.
 		if (lhslen == 0) {
-			assert(string == &kn_string_empty);
+			kn_assert(string == &kn_string_empty);
 		} else {
 			kn_string_free(string);
 		}
@@ -446,11 +446,11 @@ struct kn_string *kn_string_get_substring(
 	size_t start,
 	size_t length
 ) {
-	assert(start + length <= kn_length(string));
+	kn_assert(start + length <= kn_length(string));
 
 	if (length == 0) {
 #if 0 /* TODO: WHY DOESNT THIS WORK? */
-		assert(string == &kn_string_empty);
+		kn_assert(string == &kn_string_empty);
 #else
 		kn_string_free(string); // this is the replacement to work.
 #endif
@@ -474,15 +474,15 @@ struct kn_string *kn_string_set_substring(
 	size_t length,
 	struct kn_string *replacement
 ) {
-	assert(start + length <= kn_length(string));
+	kn_assert(start + length <= kn_length(string));
 
 	if (kn_length(replacement) == 0 && start == 0) {
-		assert(replacement == &kn_string_empty);
+		kn_assert(replacement == &kn_string_empty);
 		return kn_string_get_substring(string, length, kn_length(string) - length);
 	}
 
 	if (KN_UNLIKELY(kn_length(string) == 0)) {
-		assert(string == &kn_string_empty);
+		kn_assert(string == &kn_string_empty);
 		return kn_string_clone_static(replacement);
 	}
 
