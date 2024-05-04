@@ -92,9 +92,7 @@
 # endif
 #endif /* KN_FALLTHROUGH */
 
-
 #define KN_DEFAULT_UNREACHABLE KN_CLANG_IGNORE("-Wcovered-switch-default", default: KN_UNREACHABLE)
-
 
 #if KN_HAS_ATTRIBUTE(cold)
 # define KN_COLD KN_ATTRIBUTE(cold)
@@ -102,38 +100,7 @@
 # define KN_COLD
 #endif /* KN_HAS_ATTRIBUTE(cold) */ 
 
-#ifdef NDEBUG
-# if KN_HAS_BUILTIN(__builtin_unreachable)
-#  define KN_UNREACHABLE do { __builtin_unreachable(); } while(0);
-	// __builtin_debugtrap <-- todo this too?
-# else
-#  define KN_UNREACHABLE do { (void) KN_UNLIKELY(1); abort(); } while(0);
-# endif /* KN_HAS_BUILTIN(__builtin_unreachable) */
-#else
-# define KN_UNREACHABLE do { kn_die("bug at %s:%d", __FILE__, __LINE__); } while(0);
-#endif /* NDEBUG */
-
-#ifdef KN_RECKLESS
-# define kn_error(...) KN_UNREACHABLE
-#else
-# define kn_error(...) kn_die(__VA_ARGS__)
-#endif /* !KN_RECKLESS */
-
-/**
- * A macros that's used to halt the execution of the program, writing the
- * given message to stderr before exiting with code 1.
- **/
-#ifdef KN_FUZZING
-# include <setjmp.h>  /* jmp_buf, setjmp, longjmp */
-extern jmp_buf kn_play_start;
-# define kn_die(...) longjmp(kn_play_start, 1)
-#else
-# define kn_die(...) (              \
-   (void) KN_UNLIKELY(1),        \
-   fprintf(stderr, __VA_ARGS__), \
-   fputc('\n', stderr),          \
-   exit(1))
-#endif /* KN_FUZZING */
+#define KN_NORETURN _Noreturn
 
 void *kn_memdup(const void *mem, size_t length);
 
