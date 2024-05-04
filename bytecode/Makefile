@@ -1,6 +1,7 @@
 CC?=gcc
 CFLAGS+=-Wall -Wextra -Wpedantic -std=c11
 SRCDIR?=src
+INCLDIR?=include/knight
 OBJDIR?=obj
 BINDIR?=bin
 CORPUSDIR?=corpus
@@ -12,7 +13,7 @@ objects=$(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(source_files))
 
 KN_FLAGS?=-DKN_AST_CACHE -DKN_STRING_CACHE # -DKN_USE_REFCOUNT
 
-override CFLAGS+=-F$(SRCDIR)
+override CFLAGS+=-I$(INCLDIR) -F$(SRCDIR)
 
 ifeq ($(MAKECMDGOALS),fuzzer) 
 override CFLAGS+=-g -fsanitize=address,undefined,fuzzer -DKN_FUZZING
