@@ -46,15 +46,15 @@
 # define KN_ATTRIBUTE(x)
 #endif /* KN_ATTRIBUTE */
 
-// #ifdef __clang__
-// # pragma clang diagnostic ignored "-Wnullability-extension"
+#ifdef __clang__
+# pragma clang diagnostic ignored "-Wnullability-extension"
 // # pragma clang diagnostic ignored "-Wnullability-completeness"
-// # define kn_nonnull _Nonnull
-// # define kn_nullable _Nullable
-// #else
-// # define kn_nonnull
-// # define kn_nullable
-// #endif
+# define KN_NONNULL _Nonnull
+# define KN_NULLABLE _Nullable
+#else
+# define KN_NONNULL
+# define KN_NULLABLE
+#endif
 
 // #if KN_HAS_ATTRIBUTE(nonnull)
 // # define KN_ARGS_NONNULL KN_ATTRIBUTE(nonnull)

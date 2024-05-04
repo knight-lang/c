@@ -42,15 +42,13 @@ void KN_NORETURN kn_die_fn(void (*fn)(void), const char *fmt, ...);
 # define kn_assertm(cond, ...) do { (void) 0; } while(0)
 #endif
 
-#define kn_assert(cond) kn_assertm(cond, "assertion `" #cond "` failed.")
+#define kn_assert(cond) kn_assertm(cond, "assertion `%s` failed", #cond)
 
 #define kn_assert_eq(lhs, rhs) kn_assertm((lhs) == (rhs), \
-	"equality failed: %lld != %lld, but should bed", \
-	(long long) (lhs), (long long) rhs)
+	"equality failed: %lld != %lld, but should bed", (long long) (lhs), (long long) rhs)
 
 #define kn_assert_ne(lhs, rhs) kn_assertm((lhs) != (rhs), \
-	"equality failed: %lld == %lld, but shouldnt be", \
-	(long long) (lhs), (long long) rhs)
+	"equality failed: %lld == %lld, but shouldnt be", (long long) (lhs), (long long) rhs)
 
 #define kn_assert_nonnull(ptr) kn_assert_ne(ptr, NULL)
 #endif

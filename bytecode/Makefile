@@ -11,7 +11,7 @@ dyn=$(BINDIR)/libknight.so
 source_files=$(wildcard $(SRCDIR)/*.c)
 objects=$(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(source_files))
 
-KN_FLAGS?=-DKN_AST_CACHE -DKN_STRING_CACHE # -DKN_USE_REFCOUNT
+KN_FLAGS?=-DKN_AST_CACHE -DKN_STRING_CACHE 
 
 override CFLAGS+=-I$(INCLDIR) -F$(SRCDIR)
 

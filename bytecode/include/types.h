@@ -1,5 +1,5 @@
-#ifndef KN_DECLS_H
-#define KN_DECLS_H
+#ifndef KN_TYPES_H
+#define KN_TYPES_H
 
 /**
  * This file exists so that the header files of types dependent upon the typedef'd `kn_value`,
@@ -33,4 +33,4 @@ struct kn_env;
 struct kn_custom;
 #endif /* KN_CUSTOM */
 
-#endif /* !KN_DECLS_H */
+#endif /* !KN_TYPES_H */

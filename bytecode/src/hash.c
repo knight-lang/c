@@ -2,7 +2,7 @@
 #include "debug.h"
 
 kn_hash_int kn_hash_acc(const char *str, size_t length, kn_hash_int hash) {
-	kn_assert_ne(str, NULL);
+	kn_assert_nonnull(str);
 
 	// This is MurmurHash.
 	while (length--) {

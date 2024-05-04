@@ -2,6 +2,7 @@
 #define KN_INTEGER_H
 
 #include <inttypes.h>
+#include "decls.h"
 
 /**
  * The integer type within Knight.
@@ -26,7 +27,7 @@ struct kn_list;
  * For efficiency purposes, this doesn't actually allocate the string (and thus you also don't need
  * to free it). To get an allocated version, use `kn_string_clone_static` on it.
  **/
-struct kn_string *kn_integer_to_string(kn_integer integer);
+struct kn_string *KN_NONNULL kn_integer_to_string(kn_integer integer);
 
 /**
  * Returns a list representation of `integer`.
@@ -34,6 +35,6 @@ struct kn_string *kn_integer_to_string(kn_integer integer);
  * For efficiency purposes, this doesn't actually allocate the list (and thus you also don't need
  * to free it). To get an allocated version, use `kn_list_clone_integer` on it.
  **/
-struct kn_list *kn_integer_to_list(kn_integer integer);
+struct kn_list *KN_NONNULL kn_integer_to_list(kn_integer integer);
 
 #endif /* !KN_INTEGER_H */
