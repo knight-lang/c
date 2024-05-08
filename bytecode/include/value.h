@@ -377,4 +377,8 @@ kn_value kn_value_mul(kn_value lhs, kn_value rhs);
 kn_value kn_value_div(kn_value lhs, kn_value rhs);
 kn_value kn_value_mod(kn_value lhs, kn_value rhs);
 kn_value kn_value_pow(kn_value lhs, kn_value rhs);
+
+kn_value kn_value_get(kn_value val, kn_value start, kn_value len);
+kn_value kn_value_set(kn_value val, kn_value start, kn_value len, kn_value repl);
+
 #endif /* !KN_VALUE_H */

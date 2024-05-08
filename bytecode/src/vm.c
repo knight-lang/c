@@ -265,7 +265,7 @@ kn_value kn_vm_run(struct kn_vm *vm, size_t ip) {
 		case KN_OPCODE_MOD: push(vm, kn_value_mod(args[1], args[0])); break;
 		case KN_OPCODE_POW: push(vm, kn_value_pow(args[1], args[0])); break;
 		case KN_OPCODE_LTH: push(vm, kn_value_new_boolean(kn_value_compare(args[1], args[0]) < 0)); break;
-		case KN_OPCODE_GTH: push(vm, kn_value_new_boolean(kn_value_compare(args[1], args[0]) < 0)); break;
+		case KN_OPCODE_GTH: push(vm, kn_value_new_boolean(kn_value_compare(args[1], args[0]) > 0)); break;
 		case KN_OPCODE_EQL:
 			push(vm, kn_value_new_boolean(kn_value_equal(args[1], args[0])));
 			break;
@@ -275,8 +275,13 @@ kn_value kn_vm_run(struct kn_vm *vm, size_t ip) {
 			ip = (unsigned) args[0] >> 3;
 			break;
 
-		case KN_OPCODE_GET: kn_die("todo KN_OPCODE_GET");// = KN_NEW_OPCODE(3, 0, 0),
-		case KN_OPCODE_SET: kn_die("todo KN_OPCODE_SET");// = KN_NEW_OPCODE(4, 0, 0),
+		case KN_OPCODE_GET:
+			push(vm, kn_value_get(args[2], args[1], args[0]));
+			break;
+
+		case KN_OPCODE_SET:
+			push(vm, kn_value_set(args[3], args[2], args[1], args[0]));
+			break;
 		default:
 			kn_bugm("unknown opcode %d", oc);
 		}

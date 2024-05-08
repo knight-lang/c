@@ -83,7 +83,7 @@ static void parse_expr(struct parser *p);
 struct kn_vm kn_parse(const char *source, size_t length) {
 	struct parser p = {
 		.consts = { 0, 4, kn_heap_alloc_ary(4, kn_value) },
-		.vars = { 0, 4, kn_heap_alloc_ary(4, const char *) },
+		.vars = { 0, 4, kn_heap_alloc_ary(4, struct variable) },
 		.code = { 0, 16, kn_heap_alloc_ary(16, union kn_bytecode) },
 		.src = source,
 		.len = length
@@ -186,16 +186,35 @@ static unsigned int parse_var(struct parser *p) {
 		advance(p);
 	}
 
-	size_t len = startpos - p->len;
+	unsigned len = startpos - p->len;
+	char *strndup(const char *, unsigned long);
+	start = strndup(start, len);
+	#ifdef KN_LOG
+	unsigned long strlen(const char *);
+	#endif
+	kn_log("adding in[1]: %*.s (len=%zu)", len, start,strlen(start));
 
 	extern int memcmp(const void *, const void *, unsigned long);
-	for (unsigned i = 0; i < p->vars.len; ++i)
-		if (p->vars.ptr[i].len == len && !memcmp(p->vars.ptr[i].ptr, start, len))
+	for (unsigned i = 0; i < p->vars.len; ++i) {
+#ifdef KN_LOG
+		printf("p->vars.ptr[%d] = %.*s", i, p->vars.ptr[i].len, p->vars.ptr[i].ptr);
+		printf(", look = %.*s", len, start);
+		printf("; len== %d", p->vars.ptr[i].len == len);
+		if ( p->vars.ptr[i].len == len) {
+			printf("; memcmp== %d", memcmp(p->vars.ptr[i].ptr, start, len));
+		}
+#endif
+		if (p->vars.ptr[i].len == len && !memcmp(p->vars.ptr[i].ptr, start, len)) {
+			kn_log("\tfound!");
 			return i;
+		}
+		kn_log("");
+	}
 
 	if (p->vars.len == p->vars.cap)
 		p->vars.ptr = kn_heap_realloc_ary(p->vars.ptr, p->vars.cap *= 2, struct variable);
 
+	kn_log("adding in: %*.s (len=%zu)", len, start, len);
 	p->vars.ptr[p->vars.len] = (struct variable) {
 		.len = len,
 		.ptr = start

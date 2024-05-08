@@ -52,7 +52,7 @@ static inline void kn_heap_free(void *ptr) {
 	free(ptr);
 }
 
-#define kn_heap_alloc_ary(amnt, kind) kn_heap_malloc((amnt) * sizeof(kind))
-#define kn_heap_realloc_ary(ptr, amnt, kind) kn_heap_realloc(ptr, (amnt) * sizeof(kind))
+#define kn_heap_alloc_ary(amnt, kind) ((kind *) kn_heap_malloc((amnt) * sizeof(kind)))
+#define kn_heap_realloc_ary(ptr, amnt, kind) ((kind *) kn_heap_realloc(ptr, (amnt) * sizeof(kind)))
 
 #endif

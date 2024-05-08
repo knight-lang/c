@@ -355,3 +355,85 @@ kn_integer kn_value_compare(kn_value lhs, kn_value rhs) {
 		kn_error("can only compare boolean, integer, list, and string.");
 	}
 }
+
+kn_value kn_value_get(kn_value container, kn_value start_, kn_value len) {
+
+	kn_integer start = kn_value_to_integer(start_);
+	kn_integer length = kn_value_to_integer(len);
+
+	if (start < 0 || start != (kn_integer) (size_t) start)
+		kn_error("starting index is negative or too large: %"PRIdkn, start);
+
+	if (length < 0 || length != (kn_integer) (size_t) length)
+		kn_error("length is negative or too large: %"PRIdkn, length);
+
+	if (!kn_value_is_string(container) && !kn_value_is_list(container))
+		kn_error("can only call GET on lists and strings");
+
+	size_t container_len = kn_value_is_string(container) ? kn_value_as_string(container)->length :
+		 kn_value_as_list(container)->length;
+
+	// NOTE: both strings and lists have the the length in the same spot.
+	if ((kn_integer) container_len < start + length) {
+		kn_error(
+			"invalid bounds for GET: container length = %zu, end index=%"PRIdkn,
+			container_len,
+			start + length
+		);
+	}
+
+	if (kn_value_is_list(container)) {
+		return kn_value_new_list(kn_list_get_sublist(
+			kn_value_as_list(container),
+			start,
+			length
+		));
+	}
+
+	return kn_value_new_string(kn_string_get_substring(
+		kn_value_as_string(container),
+		start,
+		length
+	));
+}
+
+kn_value kn_value_set(kn_value container, kn_value start_, kn_value len, kn_value repl) {
+	kn_integer start = kn_value_to_integer(start_);
+	kn_integer length = kn_value_to_integer(len);
+
+	if (start < 0 || start != (kn_integer) (size_t) start)
+		kn_error("starting index is negative or too large: %"PRIdkn, start);
+
+	if (length < 0 || length != (kn_integer) (size_t) length)
+		kn_error("length is negative or too large: %"PRIdkn, length);
+
+	if (!kn_value_is_string(container) && !kn_value_is_list(container))
+		kn_error("can only call SET on lists and strings");
+
+	size_t container_len = kn_value_is_string(container) ? kn_value_as_string(container)->length :
+		 kn_value_as_list(container)->length;
+
+	if ((kn_integer) container_len < start + length) {
+		kn_error(
+			"invalid bounds for SET: container length = %zu, end index=%"PRIdkn,
+			container_len,
+			start + length
+		);
+	}
+
+	if (kn_value_is_list(container)) {
+		return kn_value_new_list(kn_list_set_sublist(
+			kn_value_as_list(container),
+			start,
+			length,
+			kn_value_to_list(repl)
+		));
+	}
+
+	return kn_value_new_string(kn_string_set_substring(
+		kn_value_as_string(container),
+		start,
+		length,
+		kn_value_to_string(repl)
+	));
+}
