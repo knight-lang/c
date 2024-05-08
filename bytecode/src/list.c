@@ -114,7 +114,9 @@ kn_integer kn_list_compare(const struct kn_list *lhs, const struct kn_list *rhs)
 	size_t minlen = kn_length(lhs) < kn_length(rhs) ? kn_length(lhs) : kn_length(rhs);
 
 	for (size_t i = 0; i < minlen; ++i) {
-		kn_integer cmp = kn_value_compare(kn_list_get(lhs, i), kn_list_get(rhs, i));
+		kn_bug("todo");
+		kn_integer cmp = 1;
+		// kn_integer cmp = kn_value_compare(kn_list_get(lhs, i), kn_list_get(rhs, i));
 
 		if (cmp != 0)
 			return cmp;

@@ -4,6 +4,12 @@
 #undef KN_DECLS_H
 #include "decls.h"
 
+#ifdef KN_LOG
+# define kn_log(...) printf(__VA_ARGS__), putc('\n', stdout), fflush(stdout)
+#else
+# define kn_log(...)
+#endif
+
 /**
  * A macros that's used to halt the execution of the program, writing the
  * given message to stderr before exiting with code 1.

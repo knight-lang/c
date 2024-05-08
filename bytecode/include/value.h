@@ -28,7 +28,7 @@ KN_STATIC_ASSERTM(_Alignof(kn_value) >= 8, "tags won't work!");
 enum kn_value_tag {
 	KN_VTAG_CONSTANT = 0,
 	KN_VTAG_INTEGER  = 1,
-	KN_VTAG_VARIABLE = 2,
+//	KN_VTAG_VARIABLE = 2,
 	KN_VTAG_BLOCKREF = 3,
 	KN_VTAG_STRING   = 4,
 	KN_VTAG_LIST     = 5
@@ -82,6 +82,7 @@ static inline enum kn_value_tag kn_tag(kn_value value) {
  *                                                                                                *
  **************************************************************************************************/
 
+#define KN_INTERNAL_VALUE_NEW_INTEGER(val) ((((kn_value) val) << KN_SHIFT) | KN_VTAG_INTEGER) // used in value.c
 /**
  * Creates a new integer value.
  *
@@ -91,6 +92,7 @@ static inline enum kn_value_tag kn_tag(kn_value value) {
 static inline kn_value kn_value_new_integer(kn_integer integer) {
 	kn_value shifted = (kn_value) integer << KN_SHIFT;
 	kn_assert_eq(integer, (kn_integer) shifted >> KN_SHIFT);
+	kn_assert_eq(shifted | KN_VTAG_INTEGER, KN_INTERNAL_VALUE_NEW_INTEGER(integer));
 
 	return shifted | KN_VTAG_INTEGER;
 }
@@ -364,10 +366,15 @@ struct kn_list *KN_NONNULL kn_value_to_list(kn_value value);
  **/
 void kn_value_dump(kn_value value, FILE *KN_NONNULL out);
 
-
 void kn_value_mark(kn_value value);
 void kn_value_dealloc(kn_value value);
 bool kn_value_equal(kn_value lhs, kn_value rhs);
 kn_integer kn_value_compare(kn_value lhs, kn_value rhs);
 
+kn_value kn_value_add(kn_value lhs, kn_value rhs);
+kn_value kn_value_sub(kn_value lhs, kn_value rhs);
+kn_value kn_value_mul(kn_value lhs, kn_value rhs);
+kn_value kn_value_div(kn_value lhs, kn_value rhs);
+kn_value kn_value_mod(kn_value lhs, kn_value rhs);
+kn_value kn_value_pow(kn_value lhs, kn_value rhs);
 #endif /* !KN_VALUE_H */

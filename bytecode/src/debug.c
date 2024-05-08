@@ -7,6 +7,7 @@ void kn_die_fn(void (*fn)(void), const char *fmt, ...) {
 	va_start(args, fmt);
 	vfprintf(stderr, fmt, args);
 	va_end(args);
+	fputc('\n', stderr);
 
 	fn();
 	abort();

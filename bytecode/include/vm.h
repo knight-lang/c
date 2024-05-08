@@ -11,10 +11,11 @@ union kn_bytecode {
 
 struct kn_vm {
 	const kn_value *constants;
-	struct kn_variable *variables;
+	kn_value *variables;
 	union kn_bytecode *bytecode;
 	kn_value *stack;
 	size_t stack_length, stack_cap;
+
 #ifndef KN_NDEBUG
 	size_t bytecode_length, variables_length, constants_length;
 #endif
