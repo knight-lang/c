@@ -56,19 +56,6 @@
 # define KN_NULLABLE
 #endif
 
-// #if KN_HAS_ATTRIBUTE(nonnull)
-// # define KN_ARGS_NONNULL KN_ATTRIBUTE(nonnull)
-// # define KN_ARG_NONNULL(...) KN_ATTRIBUTE(nonnull(__VA_ARGS__))
-// #else
-// # define KN_ARGS_NONNULL
-// # define KN_ARG_NONNULL(...)
-// #endif
-
-// #if KN_HAS_ATTRIBUTE(returns_nonnull)
-// # define KN_RETURNS_NONNULL KN_ATTRIBUTE(returns_nonnull)
-// #else
-// # define KN_RETURNS_NONNULL
-// #endif
 
 #if KN_HAS_BUILTIN(__builtin_expect)
 # define KN_EXPECT(x, y) (__builtin_expect(x, y))

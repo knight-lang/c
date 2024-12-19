@@ -40,7 +40,7 @@ fuzzer: $(exe) $(CORPUSDIR)
 clean:
 	-@rm -r $(OBJDIR) $(BINDIR) $(CORPUSDIR)
 
-optimized:
+optimized: $(objects) | $(BINDIR)
 	$(CC) $(CFLAGS) -o $(exe) $(source_files)
 
 $(exe): $(objects) | $(BINDIR)

@@ -23,11 +23,9 @@
 typedef uintptr_t kn_value;
 
 // Forward declarations.
-struct kn_ast;
 struct kn_string;
-struct kn_variable;
 struct kn_list;
-struct kn_env;
+// todo, include blockref
 
 #ifdef KN_CUSTOM
 struct kn_custom;

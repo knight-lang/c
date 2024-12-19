@@ -95,18 +95,18 @@ struct kn_vm kn_parse(const char *source, size_t length) {
 #ifdef KN_LOG
 	for (unsigned i = 0; i < p.code.len; ++i) {
 		enum kn_opcode op = p.code.ptr[i].opcode;
-		printf("vm[%u] = %s", i, kn_opcode_to_str(op));
+		kn_logn("vm[%u] = %s", i, kn_opcode_to_str(op));
 
 		if (kn_opcode_takes_offset(op)) {
-			printf(" (offset=%u)", p.code.ptr[++i].offset);
+			kn_logn(" (offset=%u)", p.code.ptr[++i].offset);
 			if (op == KN_OPCODE_PUSH_CONSTANT)
-				printf(" : "), kn_value_dump(p.consts.ptr[p.code.ptr[i].offset], stdout);
+				kn_logn(" : "), kn_value_dump(p.consts.ptr[p.code.ptr[i].offset], stdout);
 			if (op == KN_OPCODE_PUSHVAR || op == KN_OPCODE_STOREVAR) {
-				printf(" : %.*s", p.vars.ptr[p.code.ptr[i].offset].len, p.vars.ptr[p.code.ptr[i].offset].ptr);
+				kn_logn(" : %.*s", p.vars.ptr[p.code.ptr[i].offset].len, p.vars.ptr[p.code.ptr[i].offset].ptr);
 			}
 
 		}
-		putc('\n', stdout);
+		kn_log("");
 	}
 #endif
 
@@ -196,14 +196,13 @@ static unsigned int parse_var(struct parser *p) {
 
 	extern int memcmp(const void *, const void *, unsigned long);
 	for (unsigned i = 0; i < p->vars.len; ++i) {
-#ifdef KN_LOG
-		printf("p->vars.ptr[%d] = %.*s", i, p->vars.ptr[i].len, p->vars.ptr[i].ptr);
-		printf(", look = %.*s", len, start);
-		printf("; len== %d", p->vars.ptr[i].len == len);
-		if ( p->vars.ptr[i].len == len) {
-			printf("; memcmp== %d", memcmp(p->vars.ptr[i].ptr, start, len));
+		kn_logn("p->vars.ptr[%d] = %.*s", i, p->vars.ptr[i].len, p->vars.ptr[i].ptr);
+		kn_logn(", look = %.*s", len, start);
+		kn_logn("; len== %d", p->vars.ptr[i].len == len);
+		if (p->vars.ptr[i].len == len) {
+			kn_logn("; memcmp== %d", memcmp(p->vars.ptr[i].ptr, start, len));
 		}
-#endif
+
 		if (p->vars.ptr[i].len == len && !memcmp(p->vars.ptr[i].ptr, start, len)) {
 			kn_log("\tfound!");
 			return i;

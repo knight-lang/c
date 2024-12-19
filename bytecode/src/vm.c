@@ -51,12 +51,12 @@ kn_value kn_vm_run(struct kn_vm *vm, size_t ip) {
 		if (vm->stack_length) {
 			kn_log("\tstack (len=%zu)=", vm->stack_length);
 			for (unsigned i = 0; i < vm->stack_length; ++i)
-				printf("\t\t[%d] ", i), kn_value_dump(vm->stack[i], stdout), puts("");
+				kn_logn("\t\t[%d] ", i), kn_value_dump(vm->stack[i], stdout), puts("");
 		}
 		if (kn_opcode_arity(oc)) {
 			kn_log("\targs (len=%zu)=", kn_opcode_arity(oc));
 			for (unsigned i = 0; i < kn_opcode_arity(oc); ++i)
-				printf("\t\t[%d] ", i), kn_value_dump(args[i], stdout), puts("");
+				kn_logn("\t\t[%d] ", i), kn_value_dump(args[i], stdout), puts("");
 		}
 		if (kn_opcode_takes_offset(oc)) kn_log("\toffset = %u", offset);
 #endif

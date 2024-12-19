@@ -4,21 +4,10 @@
 #include "opcode.h"
 #include "types.h"
 
-union kn_bytecode {
-	enum kn_opcode opcode;
-	unsigned int offset;
-};
-
 struct kn_vm {
-	const kn_value *constants;
-	kn_value *variables;
-	union kn_bytecode *bytecode;
-	kn_value *stack;
-	size_t stack_length, stack_cap;
-
-#ifndef KN_NDEBUG
-	size_t bytecode_length, variables_length, constants_length;
-#endif
+	size_t ip, stack_len, stack_cap;
+	kn_value *variables, *stack;
+	const struct kn_code *code;
 };
 
 kn_value kn_vm_run(struct kn_vm *vm, size_t start);

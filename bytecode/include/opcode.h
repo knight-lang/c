@@ -67,4 +67,12 @@ static inline _Bool kn_opcode_takes_offset(enum kn_opcode opcode) {
 	return opcode & (1 << KN_OPCODE_TAKE_OFFSET_SHIFT);
 }
 
+typedef unsigned int kn_offset;
+
+union kn_bytecode {
+	enum kn_opcode opcode;
+	kn_offset offset;
+};
+
+
 #endif
