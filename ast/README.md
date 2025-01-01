@@ -1,5 +1,5 @@
-# Knight (2.0.1) in C
-This is the AST-walker implementation of Knight in C. It's (as of April 2021), the most performant version of Knight I've developed.
+# Knight (3.0) in C
+This is the AST-walker implementation of Knight in C. It's (as of Jan 2025), the most performant version of Knight I've developed.
 
 todo: make the old `assert_reckless`s into actual errors
 

@@ -80,9 +80,9 @@ DECLARE_FUNCTION(prompt, 0, "PROMPT") {
 
 	assert(length != 0); // shoudla been checked by fgets
 	if (line[length - 1] == '\n')
-		length--;
+		--length;
 
-	while (length && line[length - 1] == '\r')
+	if (length && line[length - 1] == '\r')
 		--length;
 
 	line[length] = '\0';
