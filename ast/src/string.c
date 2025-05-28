@@ -117,7 +117,7 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 	assert(str != NULL);
 	assert(length != 0); // zero length strings are `empty`.
 
-	struct kn_string *string = kn_heap_malloc(sizeof(struct kn_string));
+	struct kn_string *string = kn_heap_alloc(struct kn_string);
 
 	string->ptr = str;
 	kn_flags(string) = KN_STRING_FL_STRUCT_ALLOC;
@@ -133,7 +133,7 @@ static struct kn_string *allocate_heap_string(char *str, size_t length) {
 static struct kn_string *allocate_embed_string(size_t length) {
 	assert(length != 0);
 
-	struct kn_string *string = kn_heap_malloc(sizeof(struct kn_string));
+	struct kn_string *string = kn_heap_alloc(struct kn_string);
 
 	kn_flags(string) = KN_STRING_FL_STRUCT_ALLOC | KN_STRING_FL_EMBED;
 	string->length = length;

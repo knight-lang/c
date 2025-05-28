@@ -13,7 +13,7 @@ struct kn_list kn_list_empty = {
 };
 
 static struct kn_list *alloc_list(size_t length, unsigned char flags) {
-	struct kn_list *list = kn_heap_malloc(sizeof(struct kn_list));
+	struct kn_list *list = kn_heap_alloc(struct kn_list);
 
 #ifdef KN_USE_REFCOUNT
 	list->refcount = 1;
@@ -33,7 +33,7 @@ struct kn_list *kn_list_alloc(size_t length) {
 	struct kn_list *list = alloc_list(length, is_embed ? KN_LIST_FL_ALLOC : KN_LIST_FL_EMBED);
 
 	if (is_embed)
-		list->alloc = kn_heap_malloc(sizeof(kn_value) * length);
+		list->alloc = kn_heap_alloc_array(kn_value, length);
 
 	return list;
 }

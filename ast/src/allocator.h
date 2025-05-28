@@ -60,6 +60,9 @@ void *
 #endif
 kn_heap_malloc(size_t size);
 
+#define kn_heap_alloc(type) ((type *) kn_heap_malloc(sizeof(type)))
+#define kn_heap_alloc_array(type, size) ((type *) kn_heap_malloc(sizeof(type) * (size)))
+
 /**
  * Resizes the pointer to a segment of at least `size` bytes of memory and
  * returns the new segment's pointer.

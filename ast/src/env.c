@@ -30,15 +30,18 @@ struct kn_env {
 };
 
 struct kn_env *kn_env_create(size_t capacity_per_bucket, size_t number_of_buckets) {
-	struct kn_env *env = kn_heap_malloc(sizeof(struct kn_env));
+	struct kn_env *env = kn_heap_alloc(struct kn_env);
 
 	env->capacity_per_bucket = capacity_per_bucket;
 	env->number_of_buckets = number_of_buckets;
-	env->buckets = kn_heap_malloc(sizeof(struct kn_env_bucket) * number_of_buckets);
+	env->buckets = kn_heap_alloc_array(struct kn_env_bucket, number_of_buckets);
 
 	for (size_t i = 0; i < number_of_buckets; ++i) {
 		env->buckets[i].length = 0;
-		env->buckets[i].variables = kn_heap_malloc(sizeof(struct kn_variable) * capacity_per_bucket);
+		env->buckets[i].variables = kn_heap_alloc_array(
+			struct kn_variable,
+			capacity_per_bucket
+		);
 	}
 
 	return env;
