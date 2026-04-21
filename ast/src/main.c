@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
 
 	default:
 	usage:
-		fprintf(stderr, "usage: %s (-e 'expr' | -f file)", argv[0]);
+		fprintf(stderr, "usage: %s (-e 'expr' | -f file)\n", argv[0]);
 		return 1;
 	}
 
