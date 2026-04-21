@@ -107,7 +107,7 @@ DECLARE_FUNCTION(eval, 1, "EVAL") {
 #error todo: figure out where the `env` is from.
 	kn_value ret = kn_play(
 		kn_string_deref(string),
-		kn_length(string),
+		kn_length(string)
 	);
 
 	kn_string_free(string);
