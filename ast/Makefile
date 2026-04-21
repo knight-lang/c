@@ -44,7 +44,7 @@ optimized:
 	$(CC) $(CFLAGS) -o $(exe) $(source_files)
 
 $(exe): $(objects) | $(BINDIR)
-	$(CC) $(CFLAGS) -o $@ $+
+	$(CC) $(CFLAGS) -o $@ $+ -lm
 
 $(dyn): $(objects) | $(BINDIR)
 	$(CC) $(CFLAGS) -shared -o $@ $+

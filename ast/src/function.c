@@ -27,7 +27,7 @@
 #include <stdio.h>    /* fflush, fputs, putc, puts, feof, ferror, FILE, getline,
                          clearerr, stdout, stdin, popen, fread, pclose */
 #include <time.h>     /* time */
-#include <math.h>
+#include <math.h>     /* powl */
 #ifndef KN_RECKLESS
 #include <sys/errno.h>
 #endif /* !KN_RECKLESS */
