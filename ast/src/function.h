@@ -7,7 +7,7 @@
 #ifdef KN_EXT
 # define KN_EXT_VALUE
 # define KN_EXT_SYSTEM
-// # define KN_EXT_EVAL <-- TODO: solve the bug with this one
+# define KN_EXT_EVAL
 # define KN_EXT_EQL_INTERPOLATE
 #endif /* KN_EXT */
 

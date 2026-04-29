@@ -212,11 +212,8 @@ DECLARE_FUNCTION(call, 1, "CALL") {
 }
 
 #ifdef KN_EXT_SYSTEM
-DECLARE_FUNCTION(system, 2, "$") {
+DECLARE_FUNCTION(system, 1, "$") {
 	struct kn_string *command = kn_value_to_string(args[0]);
-
-	if (kn_value_run(args[1]) != KN_NULL)
-		kn_die("only `NULL` for a second arg is currently supported");
 
 	const char *str = kn_string_deref(command);
 	FILE *stream = popen(str, "r");
