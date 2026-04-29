@@ -11,6 +11,7 @@ source_files=$(wildcard $(SRCDIR)/*.c)
 objects=$(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(source_files))
 
 KN_FLAGS?=-DKN_AST_CACHE -DKN_STRING_CACHE # -DKN_USE_REFCOUNT
+KN_DEFINES?= # nothing; used for `KN_DEFINES='-DKN_EXT_...' make`
 
 override CFLAGS+=-F$(SRCDIR)
 
@@ -26,7 +27,7 @@ ifdef COMPUTED_GOTOS
 override CFLAGS+=-DKN_COMPUTED_GOTOS -Wno-gnu-label-as-value -Wno-gnu-designator
 endif
 
-override CFLAGS+=$(KN_FLAGS)
+override CFLAGS+=$(KN_FLAGS) $(KN_DEFINES)
 
 .PHONY: all optimized clean shared fuzzer
 

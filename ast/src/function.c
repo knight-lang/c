@@ -1,5 +1,10 @@
+#if !defined(_POSIX_C_SOURCE) && defined(KN_EXT_SYSTEM)
+# define _POSIX_C_SOURCE 200809L /* for `popen` */
+#endif /* ! _POSIX_C_SOURCE */
+
 #include "function.h" /* prototypes */
 #include "knight.h"   /* kn_play */
+
 #include "ast.h"      /* kn_ast_run */
 #include "env.h"      /* kn_env_fetch, kn_variable, kn_variable_run,
                          kn_variable_assign */
